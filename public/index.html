@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoCorp - Menu Principal</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+    <div class="container">
+        <h1 class="title">Menu Principal</h1>
+        <p id="greeting" class="subtitle is-4"></p>
+        <div class="menu-opcoes">
+            <!-- Card Configurar Ambiente -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-cogs fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">Configurar Ambiente</p>
+                            <p class="subtitle is-6">Ajuste as configurações do sistema.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-config" class="card-footer-item button is-primary">Acessar</button>
+                </footer>
+            </div>
+
+            <!-- Card Rotinas -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-list fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">Rotinas</p>
+                            <p class="subtitle is-6">Gerencie as rotinas do sistema.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-rotinas" class="card-footer-item button is-link">Acessar</button>
+                </footer>
+            </div>
+
+            <!-- Card Utilitários NeoCorp / NeoWeb -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-globe fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">Utilitários</p>
+                            <p class="subtitle is-6">Acesse os utilitários integrados.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-utilitarios" class="card-footer-item button is-info">Acessar</button>
+                </footer>
+            </div>
+
+            <!-- Card Recursos em Desenvolvimento -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-code fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">Recursos em Desenvolvimento</p>
+                            <p class="subtitle is-6">Explore os recursos em progresso.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-recursos-dev" class="card-footer-item button is-danger">Acessar</button>
+                </footer>
+            </div>
+
+            <!-- Card Sugestões de Desenvolvimento -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-lightbulb fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">Sugestões de Desenvolvimento</p>
+                            <p class="subtitle is-6">Envie sugestões para novos recursos.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-sugestoes-dev" class="card-footer-item button is-light">Acessar</button>
+                </footer>
+            </div>
+
+            <!-- Modal -->
+            <div class="modal" id="nameModal">
+                <div class="modal-background"></div>
+                <div class="modal-content">
+                    <div class="box">
+                        <h2 class="title is-4">Bem-vindo, como posso te chamar?</h2>
+                        <div class="field">
+                            <div class="control">
+                                <input id="userNameInput" class="input" type="text" placeholder="Digite seu nome">
+                            </div>
+                        </div>
+                        <div class="buttons">
+                            <button class="button is-primary" id="submitName">Salvar</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="modal-close is-large" id="closeModal"></button>
+            </div>
+
+            <!-- Toast Notification -->
+            <div id="toast" class="notification is-info is-hidden">
+                <button class="delete" onclick="hideToast()"></button>
+                Por favor, insira um nome!
+            </div>
+
+            <!-- User Settings -->
+            <div class="user-settings">
+                <button id="userNameButton"><i class="fas fa-user"></i></button>
+                <button id="theme-toggle"><i class="fas fa-adjust" id="theme-icon"></i></button>
+            </div>
+        </div>
+        <!-- User Settings -->
+        <div class="user-settings">
+            <button id="userNameButton"><i class="fas fa-user"></i></button> <!-- Ícone de usuário -->
+            <button id="theme-toggle"><i class="fas fa-adjust" id="theme-icon"></i></button>
+        </div>
+    </div>
+
+    <!-- Carregar scripts na ordem correta -->
+    <script src="/componentes/navbar-component.js"></script>
+    <script src="/services/user-settings.js"></script>
+    <script src="/components/tab-manager.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

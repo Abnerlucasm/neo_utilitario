@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Sugestões</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .hero {
+            background: linear-gradient(135deg, #3273dc 0%, #1a1a1a 100%);
+            margin-bottom: 2rem;
+        }
+        
+        .stats-container {
+            margin-bottom: 2rem;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-box .icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #3273dc;
+        }
+        
+        .suggestion-list {
+            margin-top: 2rem;
+        }
+        
+        .suggestion-item {
+            border-left: 4px solid #3273dc;
+            margin-bottom: 1rem;
+        }
+        
+        .suggestion-item.is-warning {
+            border-left-color: #ffdd57;
+        }
+        
+        .suggestion-item.is-danger {
+            border-left-color: #ff3860;
+        }
+        
+        .tag-container {
+            margin-bottom: 1rem;
+        }
+        
+        .progress-section {
+            margin: 2rem 0;
+        }
+        
+        .notification {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="has-background-light">
+    <neo-navbar></neo-navbar>
+
+    <!-- Hero Section -->
+    <section class="hero is-medium">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title has-text-white has-text-centered">
+                    Sistema de Sugestões de Desenvolvimento
+                </h1>
+                <p class="subtitle has-text-white has-text-centered">
+                    Contribua para a evolução dos nossos sistemas
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <!-- Stats Section -->
+        <div class="columns stats-container">
+            <div class="column">
+                <div class="stat-box">
+                    <span class="icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </span>
+                    <p class="heading">Total de Sugestões</p>
+                    <p class="title" id="totalSuggestions">0</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="stat-box">
+                    <span class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </span>
+                    <p class="heading">Implementadas</p>
+                    <p class="title" id="implementedSuggestions">0</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="stat-box">
+                    <span class="icon">
+                        <i class="fas fa-clock"></i>
+                    </span>
+                    <p class="heading">Em Análise</p>
+                    <p class="title" id="pendingSuggestions">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <div class="columns">
+            <div class="column is-6">
+                <div class="box">
+                    <h2 class="title is-4">Nova Sugestão</h2>
+                    <form id="suggestionForm">
+                        <div class="field">
+                            <label class="label">Categoria</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="category" required>
+                                        <option value="correcao">Correção</option>
+                                        <option value="melhoria">Melhoria</option>
+                                        <option value="novo">Novo Recurso</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Descrição</label>
+                            <div class="control">
+                                <textarea id="description" class="textarea" required></textarea>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <div class="control">
+                                <button type="submit" class="button is-primary is-fullwidth">
+                                    Enviar Sugestão
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Suggestions Section -->
+            <div class="column is-6">
+                <div class="box">
+                    <h2 class="title is-4">Últimas Sugestões</h2>
+                    <div class="tag-container">
+                        <span class="tag is-info">Todas</span>
+                        <span class="tag is-light">Correções</span>
+                        <span class="tag is-light">Melhorias</span>
+                        <span class="tag is-light">Novos Recursos</span>
+                    </div>
+                    <div id="suggestionList" class="suggestion-list">
+                        <!-- Suggestions will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="box progress-section">
+            <h2 class="title is-4">Status de Implementação</h2>
+            <div class="columns is-multiline">
+                <div class="column is-12">
+                    <p class="subtitle is-6">Correções de Bugs</p>
+                    <progress class="progress is-danger" value="70" max="100">70%</progress>
+                </div>
+                <div class="column is-12">
+                    <p class="subtitle is-6">Melhorias</p>
+                    <progress class="progress is-warning" value="45" max="100">45%</progress>
+                </div>
+                <div class="column is-12">
+                    <p class="subtitle is-6">Novos Recursos</p>
+                    <progress class="progress is-info" value="30" max="100">30%</progress>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/componentes/navbar-component.js"></script>
+    <script>
+        // Adicionar função showToast
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `notification is-${type}`;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '1000';
+            toast.innerHTML = `
+                <button class="delete" onclick="this.parentElement.remove()"></button>
+                ${message}
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Adicionar função getProgressBarClass
+        function getProgressBarClass(category) {
+            const classes = {
+                correcao: 'danger',
+                melhoria: 'warning',
+                novo: 'info'
+            };
+            return classes[category] || 'info';
+        }
+
+        // Corrigir o formulário de envio
+        const form = document.getElementById('suggestionForm');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            const suggestion = {
+                description: document.getElementById('description').value,
+                category: document.getElementById('category').value,
+                priority: 'media', // Valor padrão
+                createdBy: 'Usuário', // Valor padrão
+                title: 'Nova Sugestão' // Valor padrão
+            };
+
+            try {
+                const response = await fetch('/api/suggestions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(suggestion)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao salvar sugestão');
+                }
+
+                form.reset();
+                await updateStats();
+                showToast('Sugestão enviada com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('Erro ao enviar sugestão', 'danger');
+            }
+        });
+
+        // Atualizar função updateProgressBars
+        function updateProgressBars(suggestions) {
+            const categories = {
+                correcao: { total: 0, implemented: 0 },
+                melhoria: { total: 0, implemented: 0 },
+                novo: { total: 0, implemented: 0 }
+            };
+
+            suggestions.forEach(s => {
+                if (categories[s.category]) {
+                    categories[s.category].total++;
+                    if (s.status === 'implemented') {
+                        categories[s.category].implemented++;
+                    }
+                }
+            });
+
+            // Atualizar as barras de progresso
+            const progressElements = document.querySelectorAll('.progress-section .progress');
+            let index = 0;
+            
+            Object.entries(categories).forEach(([category, stats]) => {
+                const percentage = stats.total > 0 
+                    ? Math.round((stats.implemented / stats.total) * 100)
+                    : 0;
+                
+                if (progressElements[index]) {
+                    progressElements[index].value = percentage;
+                    const textElement = progressElements[index].nextElementSibling;
+                    if (textElement) {
+                        textElement.textContent = `${percentage}%`;
+                    }
+                }
+                index++;
+            });
+        }
+
+        // Atualizar função updateStats
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/suggestions');
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar sugestões');
+                }
+                
+                const suggestions = await response.json();
+
+                // Atualizar contadores
+                document.getElementById('totalSuggestions').textContent = suggestions.length;
+                document.getElementById('implementedSuggestions').textContent = 
+                    suggestions.filter(s => s.status === 'implemented').length;
+                document.getElementById('pendingSuggestions').textContent = 
+                    suggestions.filter(s => s.status === 'pending').length;
+
+                // Atualizar barras de progresso
+                updateProgressBars(suggestions);
+                
+                // Atualizar lista de sugestões recentes
+                updateSuggestionsList(suggestions);
+            } catch (error) {
+                console.error('Erro ao atualizar estatísticas:', error);
+                showToast('Erro ao atualizar estatísticas', 'danger');
+            }
+        }
+
+        function updateSuggestionsList(suggestions) {
+            const suggestionList = document.getElementById('suggestionList');
+            suggestionList.innerHTML = '';
+
+            const recentSuggestions = suggestions
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, 5);
+
+            recentSuggestions.forEach(suggestion => {
+                const item = document.createElement('div');
+                item.className = 'box';
+                item.innerHTML = `
+                    <div class="columns is-vcentered">
+                        <div class="column">
+                            <p class="is-size-5">${suggestion.description}</p>
+                            <p class="is-size-7">
+                                <span class="tag is-${getCategoryClass(suggestion.category)}">${suggestion.category}</span>
+                                <span class="tag is-${getStatusClass(suggestion.status)}">${getStatusText(suggestion.status)}</span>
+                                <span>Criado em: ${new Date(suggestion.createdAt).toLocaleDateString()}</span>
+                            </p>
+                        </div>
+                        <div class="column is-narrow">
+                            ${suggestion.status !== 'implemented' ? `
+                                <button class="button is-small is-success" onclick="updateSuggestionStatus('${suggestion._id}', 'implemented')">
+                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                suggestionList.appendChild(item);
+            });
+        }
+
+        async function updateSuggestionStatus(id, status) {
+            try {
+                const response = await fetch(`/api/suggestions/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (!response.ok) throw new Error('Erro ao atualizar status');
+
+                updateStats();
+                showToast('Status atualizado com sucesso', 'success');
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('Erro ao atualizar status', 'danger');
+            }
+        }
+
+        // Funções auxiliares
+        function getStatusClass(status) {
+            const classes = {
+                pending: 'warning',
+                in_progress: 'info',
+                implemented: 'success'
+            };
+            return classes[status] || 'light';
+        }
+
+        function getCategoryClass(category) {
+            const classes = {
+                correcao: 'danger',
+                melhoria: 'warning',
+                novo: 'info'
+            };
+            return classes[category] || 'light';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                pending: 'Pendente',
+                in_progress: 'Em Progresso',
+                implemented: 'Implementado'
+            };
+            return texts[status] || status;
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStats();
+            setInterval(updateStats, 30000); // Atualizar a cada 30 segundos
+        });
+    </script>
+</body>
+</html>

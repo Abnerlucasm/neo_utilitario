@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento Glassfish</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <script src="/componentes/navbar-component.js"></script>
+    <style>
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .status-active {
+            background-color: green;
+        }
+        .status-inactive {
+            background-color: red;
+        }
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            color: #00d1b2;
+        }
+        .add-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #00d1b2;
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+        .empty-message {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        .control-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .card-actions button {
+            margin-right: 8px;
+        }
+        .input-number {
+            display: flex;
+            align-items: center;
+        }
+        .input-number button {
+            border: none;
+            background-color: #f5f5f5;
+            padding: 0 10px;
+            cursor: pointer;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 1rem;
+            border-radius: 4px;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+        .toast.is-success {
+            background-color: #48c774;
+            color: white;
+        }
+        .toast.is-danger {
+            background-color: #f14668;
+            color: white;
+        }
+        .toast.show {
+            display: block;
+            animation: fadeIn 0.5s, fadeOut 0.5s 2.5s;
+        }
+        @keyframes fadeIn {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+        @keyframes fadeOut {
+            from {opacity: 1;}
+            to {opacity: 0;}
+        }
+        .hero {
+            background: linear-gradient(135deg, #00d1b2 0%, #1a1a1a 100%);
+            margin-bottom: 2rem;
+            padding: 2rem 0;
+        }
+        .dashboard-stats {
+            margin-bottom: 2rem;
+        }
+        .stat-box {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-box .icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #00d1b2;
+        }
+        .system-info {
+            margin-bottom: 2rem;
+            font-family: 'Courier New', monospace;
+        }
+        .system-info pre {
+            background: #2d2d2d;
+            color: #00d1b2;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .filter-section {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .server-grid {
+            margin-top: 2rem;
+        }
+        .technical-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .stat-box .progress {
+            margin-top: 0.5rem;
+            height: 0.5rem;
+        }
+        .stat-box .progress.is-danger {
+            background-color: #ff3860;
+        }
+        .stat-box .progress.is-warning {
+            background-color: #ffdd57;
+        }
+        .stat-box .progress.is-success {
+            background-color: #23d160;
+        }
+        .category-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            z-index: 1;
+        }
+        .category-badge.is-warning {
+            background-color: #81a92c;
+            color: rgb(255, 255, 255);
+        }
+        .category-badge.is-info {
+            background-color: #000000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 6px;
+        }
+        .category-badge img {
+            height: 20px;
+            width: auto;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.is-active {
+            display: block;
+        }
+        .loading-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .loading-icon.is-hidden {
+            display: none;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+        .loading-container {
+            padding: 2rem;
+            color: #666;
+        }
+        .loading-container .icon {
+            margin-bottom: 1rem;
+        }
+        .applications-container {
+            min-height: 200px;
+            position: relative;
+        }
+        .status-indicator.is-success {
+            background-color: #23d160;
+        }
+        .status-indicator.is-danger {
+            background-color: #ff3860;
+        }
+        .status-indicator.is-warning {
+            background-color: #ffdd57;
+        }
+    </style>
+</head>
+<body class="has-background-light">
+    <!-- Navbar -->
+    <neo-navbar></neo-navbar>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title has-text-white has-text-centered">
+                    Gerenciamento de Servidores Glassfish
+                </h1>
+                <p class="subtitle has-text-white has-text-centered">
+                    Monitoramento e Controle de Instâncias
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <!-- Dashboard Stats -->
+            <div class="columns stats-container">
+                <div class="column">
+                    <div class="stat-box">
+                        <span class="icon">
+                            <i class="fas fa-server"></i>
+                        </span>
+                        <p class="heading">Servidores Ativos</p>
+                        <p class="title" id="activeServers">0</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="stat-box">
+                        <span class="icon">
+                            <i class="fas fa-memory"></i>
+                        </span>
+                        <p class="heading">RAM Média</p>
+                        <p class="title" id="avgRamUsage">0%</p>
+                        <progress class="progress is-info" id="ramProgress" value="0" max="100"></progress>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="stat-box">
+                        <span class="icon">
+                            <i class="fas fa-microchip"></i>
+                        </span>
+                        <p class="heading">CPU Média</p>
+                        <p class="title" id="avgCpuUsage">0%</p>
+                        <progress class="progress is-info" id="cpuProgress" value="0" max="100"></progress>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Info -->
+            <div class="system-info">
+                <div class="box">
+                    <h2 class="title is-5">Informações do Sistema</h2>
+                    <pre id="systemInfo">
+Versão Glassfish: 6.2.5
+Ambiente: Produção
+Status do Cluster: Ativo
+Última Verificação: ${new Date().toLocaleString()}
+                    </pre>
+                </div>
+            </div>
+
+            <!-- Filtros e Controles -->
+            <div class="filter-section">
+                <div class="columns is-vcentered">
+                    <div class="column">
+                        <div class="select">
+                            <select id="filter-status" onchange="filterCards()">
+                                <option value="all">Todos os Status</option>
+                                <option value="active">Ativos</option>
+                                <option value="inactive">Inativos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="buttons">
+                            <button class="button is-info is-small" onclick="sortCards('name')">
+                                <span class="icon">
+                                    <i class="fas fa-sort-alpha-down"></i>
+                                </span>
+                                <span>Nome</span>
+                            </button>
+                            <button class="button is-info is-small" onclick="sortCards('status')">
+                                <span class="icon">
+                                    <i class="fas fa-sort"></i>
+                                </span>
+                                <span>Status</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <p id="results-count" class="has-text-right has-text-weight-semibold"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mensagem inicial -->
+            <div id="empty-message" class="empty-message">
+                <div class="notification is-info is-light">
+                    <p class="has-text-centered">
+                        <span class="icon">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                        Nenhum serviço Glassfish cadastrado. Clique no botão "+" para adicionar.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Grid de Cards -->
+            <div class="columns is-multiline server-grid" id="cards-container"></div>
+        </div>
+
+        <!-- Botão para adicionar -->
+        <div class="add-button" onclick="openAddModal()">
+            <i class="fas fa-plus"></i>
+        </div>
+    </section>
+
+    <!-- Modal para Adicionar/Editar Glassfish -->
+    <div class="modal" id="add-modal">
+        <div class="modal-background" onclick="closeAddModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" id="modal-title">Adicionar Glassfish</p>
+                <button class="delete" aria-label="close" onclick="closeAddModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Nome do Serviço</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-name" placeholder="Nome do serviço">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">IP</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-ip" placeholder="IP do servidor">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Porta</label>
+                    <div class="control input-number">
+                        <button onclick="adjustPort('decrease')">-</button>
+                        <input class="input" type="number" id="service-port" value="8080">
+                        <button onclick="adjustPort('increase')">+</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Domínio</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-domain" placeholder="Domínio do serviço">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Categoria</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select id="service-category">
+                                <option value="Cliente">Cliente</option>
+                                <option value="Neo">Neo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Senha</label>
+                    <div class="control">
+                        <div class="input-group">
+                            <input class="input" type="password" id="service-password" placeholder="Senha do serviço">
+                            <button type="button" onclick="togglePasswordVisibility()"><i class="fas fa-eye" id="eye-icon"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Usuário SSH</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-ssh-username" placeholder="Usuário SSH">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Senha SSH</label>
+                    <div class="control">
+                        <div class="input-group">
+                            <input class="input" type="password" id="service-ssh-password" placeholder="Senha SSH">
+                            <button type="button" onclick="toggleSSHPasswordVisibility()"><i class="fas fa-eye" id="ssh-eye-icon"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button is-info" type="button" onclick="testSSHConnection()">
+                        Testar Conexão SSH
+                    </button>
+                    <p id="ssh-test-result" class="help"></p>
+                </div>
+                <div class="field">
+                    <label class="label">Caminho de Instalação</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-install-path" 
+                            placeholder="/glassfish6.2.5" 
+                            value="/glassfish6.2.5">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Tipo de Acesso</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select id="service-access-type" onchange="handleAccessTypeChange()">
+                                <option value="local">Rede Local</option>
+                                <option value="external">Acesso Externo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button is-link" onclick="openAdminPanel()">
+                        <span class="icon">
+                            <i class="fas fa-external-link-alt"></i>
+                        </span>
+                        <span>Acessar Painel Admin</span>
+                    </button>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" onclick="saveGlassfish()">Salvar</button>
+                <button class="button" onclick="closeAddModal()">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal para exibir logs -->
+    <div class="modal" id="logs-modal">
+        <div class="modal-background" onclick="closeLogsModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Logs do Serviço</p>
+                <div class="buttons">
+                    <button class="button is-small" onclick="toggleLiveLog()">
+                        <span id="live-log-status">Iniciar Live Log</span>
+                    </button>
+                    <button class="delete" aria-label="close" onclick="closeLogsModal()"></button>
+                </div>
+            </header>
+            <section class="modal-card-body">
+                <pre id="logs-content">Carregando logs...</pre>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button" onclick="closeLogsModal()">Fechar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal de Manutenção -->
+    <div class="modal" id="maintenance-modal">
+        <div class="modal-background" onclick="closeMaintenanceModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Manutenção do Serviço</p>
+                <button class="delete" aria-label="close" onclick="closeMaintenanceModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="content">
+                    <p class="has-text-warning">
+                        <span class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <strong>Atenção:</strong> Esta operação pode excluir dados importantes.
+                    </p>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="clean-applications">
+                            Apagar Applications
+                            <p class="help">Remove todos os arquivos da pasta applications</p>
+                        </label>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="clean-logs">
+                            Apagar Logs
+                            <p class="help">Remove todos os arquivos de log do serviço</p>
+                        </label>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="clean-generated">
+                            Apagar Generated
+                            <p class="help">Remove todos os arquivos gerados temporariamente</p>
+                        </label>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="clean-autodeploy">
+                            Apagar Autodeploy
+                            <p class="help">Remove todos os arquivos da pasta autodeploy</p>
+                        </label>
+                    </div>
+                    
+                    <div class="notification is-info is-light mt-4">
+                        <p>
+                            <strong>Dica:</strong> É recomendado parar o serviço antes de realizar a limpeza.
+                        </p>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-danger" onclick="executeMaintenanceTasks()">
+                    <span class="icon">
+                        <i class="fas fa-broom"></i>
+                    </span>
+                    <span>Executar Limpeza</span>
+                </button>
+                <button class="button" onclick="closeMaintenanceModal()">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal de Configuração do Domain -->
+    <div class="modal" id="domain-config-modal">
+        <div class="modal-background" onclick="closeDomainConfigModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Configurações do Domain</p>
+                <button class="delete" aria-label="close" onclick="closeDomainConfigModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <!-- Tabs -->
+                <div class="tabs">
+                    <ul>
+                        <li class="is-active">
+                            <a onclick="switchTab('database')">
+                                <span class="icon is-small"><i class="fas fa-database"></i></span>
+                                <span>Banco de Dados</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a onclick="switchTab('applications')">
+                                <span class="icon is-small"><i class="fas fa-cube"></i></span>
+                                <span>Aplicações</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Conteúdo das Tabs -->
+                <div id="database-tab" class="tab-content" style="display: block;">
+                    <h3 class="title is-5">Configuração do Banco de Dados</h3>
+                    <div class="field">
+                        <label class="label">Servidor</label>
+                        <div class="control">
+                            <input class="input" type="text" id="db-server" placeholder="Carregando..." disabled>
+                            <span id="db-server-loading" class="icon is-small is-right loading-icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Usuário</label>
+                        <div class="control">
+                            <input class="input" type="text" id="db-user" placeholder="Carregando..." disabled>
+                            <span id="db-user-loading" class="icon is-small is-right loading-icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Senha</label>
+                        <div class="control">
+                            <input class="input" type="password" id="db-password" placeholder="Carregando..." disabled>
+                            <span id="db-password-loading" class="icon is-small is-right loading-icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Nome do Banco</label>
+                        <div class="control">
+                            <input class="input" type="text" id="db-name" placeholder="Carregando..." disabled>
+                            <span id="db-name-loading" class="icon is-small is-right loading-icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="applications-tab" class="tab-content" style="display: none;">
+                    <h3 class="title is-5">Aplicações Instaladas</h3>
+                    <div class="field">
+                        <div class="file has-name is-fullwidth">
+                            <label class="file-label">
+                                <input class="file-input" type="file" id="application-file" 
+                                    accept=".war,.ear,.jar">
+                                <span class="file-cta">
+                                    <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                    </span>
+                                    <span class="file-label">
+                                        Escolher arquivo...
+                                    </span>
+                                </span>
+                                <span class="file-name" id="file-name">
+                                    Nenhum arquivo selecionado
+                                </span>
+                            </label>
+                        </div>
+                        <button class="button is-info mt-2 is-fullwidth" onclick="uploadApplication()" 
+                            id="upload-button" disabled>
+                            <span class="icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </span>
+                            <span>Fazer Upload</span>
+                        </button>
+                    </div>
+                    <div class="notification is-info is-light mb-4">
+                        <p>
+                            <span class="icon"><i class="fas fa-info-circle"></i></span>
+                            Arquivos suportados: .war, .ear, .jar
+                        </p>
+                    </div>
+                    <div id="applications-list" class="applications-container">
+                        <div class="loading-container has-text-centered" id="applications-loading">
+                            <span class="icon is-large">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            </span>
+                            <p class="help">Carregando aplicações...</p>
+                        </div>
+                        <div id="applications-content" class="is-hidden">
+                            <!-- Lista de aplicações será carregada aqui -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" onclick="saveDomainConfig()">Salvar</button>
+                <button class="button" onclick="closeDomainConfigModal()">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const cardsContainer = document.getElementById('cards-container');
+        const emptyMessage = document.getElementById('empty-message');
+        const resultsCount = document.getElementById('results-count');
+        const modalTitle = document.getElementById('modal-title');
+        let editingIndex = null;
+        let services = [];
+        let currentWebSocket = null;
+        let currentServiceId = null;
+        let statusCheckInterval = null;
+        let currentMaintenanceIndex = null;
+        let currentDomainConfigIndex = null;
+
+        // Função para obter os dados do MongoDB
+        async function fetchServices() {
+            try {
+                const response = await fetch('/api/servicos');
+                if (!response.ok) {
+                    throw new Error('Erro ao obter serviços');
+                }
+                services = await response.json();
+                renderCards(services);
+                checkAllServicesStatus();
+                updateDashboardStats();
+            } catch (error) {
+                console.error('Erro ao carregar serviços:', error);
+                showToast('Erro ao carregar serviços. Por favor, recarregue a página.', 'danger');
+            }
+        }
+
+        // Função para verificar o status de todos os serviços
+        async function checkAllServicesStatus() {
+            for (let i = 0; i < services.length; i++) {
+                const service = services[i];
+                try {
+                    const response = await fetch(`/api/servicos/${service._id}/status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await response.json();
+                    
+                    const statusIndicator = document.querySelector(`#status-${service._id}`);
+                    if (statusIndicator) {
+                        if (response.ok) {
+                            statusIndicator.className = `status-indicator ${data.status === 'ativo' ? 'status-active' : 'status-inactive'}`;
+                            services[i].status = data.status === 'ativo' ? 'active' : 'inactive';
+                        } else {
+                            console.warn(`Aviso ao verificar status do serviço ${service.name}:`, data.error);
+                            // Mantém o status visual atual em caso de erro
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Erro ao verificar status do serviço ${service.name}:`, error);
+                    // Não altera o status visual em caso de erro
+                }
+            }
+        }
+
+        function openAddModal(editIndex = null) {
+            editingIndex = editIndex;
+            if (editIndex !== null) {
+                const service = services[editIndex];
+                document.getElementById('service-name').value = service.name;
+                document.getElementById('service-ip').value = service.ip;
+                document.getElementById('service-port').value = service.port;
+                document.getElementById('service-domain').value = service.domain;
+                document.getElementById('service-ssh-username').value = service.sshUsername;
+                document.getElementById('service-ssh-password').value = service.sshPassword;
+                document.getElementById('service-install-path').value = service.installPath;
+                document.getElementById('service-category').value = service.categoria || 'Cliente';
+                document.getElementById('service-access-type').value = service.accessType || 'local';
+                modalTitle.textContent = 'Editar Glassfish';
+            } else {
+                document.getElementById('service-name').value = '';
+                document.getElementById('service-ip').value = '';
+                document.getElementById('service-port').value = 8080;
+                document.getElementById('service-domain').value = '';
+                document.getElementById('service-ssh-username').value = '';
+                document.getElementById('service-ssh-password').value = '';
+                document.getElementById('service-install-path').value = '/glassfish6.2.5';
+                document.getElementById('service-category').value = 'Cliente';
+                document.getElementById('service-access-type').value = 'local';
+                modalTitle.textContent = 'Adicionar Glassfish';
+            }
+            document.getElementById('add-modal').classList.add('is-active');
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.remove('is-active');
+            editingIndex = null;
+        }
+
+        // Função para salvar ou editar serviço no MongoDB
+        async function saveGlassfish() {
+            try {
+                const service = {
+                    name: document.getElementById('service-name').value,
+                    ip: document.getElementById('service-ip').value,
+                    port: parseInt(document.getElementById('service-port').value),
+                    domain: document.getElementById('service-domain').value,
+                    password: document.getElementById('service-password').value || 'admin',
+                    sshUsername: document.getElementById('service-ssh-username').value,
+                    sshPassword: document.getElementById('service-ssh-password').value,
+                    installPath: document.getElementById('service-install-path').value || '/srv/glassfish6.2.5',
+                    status: 'inactive',
+                    categoria: document.getElementById('service-category').value,
+                    accessType: document.getElementById('service-access-type').value
+                };
+
+                if (!service.name || !service.ip || !service.domain || !service.sshUsername || !service.sshPassword) {
+                    showToast('Por favor, preencha todos os campos obrigatórios', 'danger');
+                    return;
+                }
+
+                const url = editingIndex !== null ? 
+                    `/api/servicos/${services[editingIndex]._id}` : 
+                    '/api/servicos';
+
+                const method = editingIndex !== null ? 'PUT' : 'POST';
+
+                console.log('Enviando dados do serviço:', { ...service, sshPassword: '***' });
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(service)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erro ao salvar serviço');
+                }
+
+                showToast('Serviço salvo com sucesso!', 'success');
+                closeAddModal();
+                await fetchServices(); // Recarrega a lista de serviços
+            } catch (error) {
+                console.error('Erro ao salvar serviço:', error);
+                showToast(error.message, 'danger');
+            }
+        }
+
+        async function renderCards(servicesData) {
+            console.log('Renderizando cards com dados:', servicesData);
+            cardsContainer.innerHTML = '';
+            servicesData.forEach((service, index) => {
+                console.log('Renderizando serviço:', service);
+                const card = document.createElement('div');
+                card.className = 'column is-one-third';
+                
+                // Garantir que a categoria tenha um valor padrão se não estiver definida
+                const categoria = service.categoria || 'Cliente';
+                
+                card.innerHTML = `
+                    <div class="card" onclick="openAddModal(${index})">
+                        <div class="card-content has-text-centered">
+                            <span id="status-${service._id}" class="status-indicator ${service.status === 'active' ? 'status-active' : 'status-inactive'}"></span>
+                            <div class="category-badge ${categoria === 'Neo' ? 'is-info' : 'is-warning'}">
+                                ${categoria === 'Neo' ? 
+                                  '<img src="/assets/neo-logo-small.png" alt="Neo" style="height: 20px;">' : 
+                                  'Cliente'}
+                            </div>
+                            <span class="card-icon"><i class="fas fa-server"></i></span>
+                            <p class="title is-4">${service.name}</p>
+                            <p class="subtitle is-6">
+                                IP: ${service.ip}
+                            </p>
+                            <div class="card-actions">
+                                <button class="button is-small is-success" onclick="startService(${index})" title="Iniciar Serviço"
+                                    id="start-btn-${service._id}">
+                                    <span class="icon"><i class="fas fa-play"></i></span>
+                                </button>
+                                <button class="button is-small is-danger" onclick="stopService(${index})" title="Parar Serviço"
+                                    id="stop-btn-${service._id}">
+                                    <span class="icon"><i class="fas fa-stop"></i></span>
+                                </button>
+                                <button class="button is-small is-info" onclick="restartService(${index})" title="Reiniciar Serviço">
+                                    <span class="icon"><i class="fas fa-sync"></i></span>
+                                </button>
+                                <button class="button is-small" onclick="viewLogs(${index})" title="Ver Logs">
+                                    <span class="icon"><i class="fas fa-file-alt"></i></span>
+                                </button>
+                                <button class="button is-small is-warning" onclick="openMaintenanceModal(${index})" title="Manutenção">
+                                    <span class="icon"><i class="fas fa-tools"></i></span>
+                                </button>
+                                <button class="button is-small is-danger" onclick="removeService(${index})" title="Excluir Serviço">
+                                    <span class="icon"><i class="fas fa-trash"></i></span>
+                                </button>
+                                <button class="button is-small is-info" onclick="openDomainConfigModal(${index})" title="Configurar Domain">
+                                    <span class="icon"><i class="fas fa-cog"></i></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+
+            emptyMessage.style.display = servicesData.length > 0 ? 'none' : 'block';
+            resultsCount.textContent = `Exibindo ${servicesData.length} serviços`;
+        }
+
+        // Funções de manipulação de status
+        async function startService(index) {
+            const service = services[index];
+            console.log('Iniciando serviço:', service);
+            
+            // Obter referências aos botões
+            const startButton = document.getElementById(`start-btn-${service._id}`);
+            const stopButton = document.getElementById(`stop-btn-${service._id}`);
+            
+            try {
+                // Desabilitar botões e mostrar loading
+                startButton.classList.add('is-loading');
+                startButton.disabled = true;
+                stopButton.disabled = true;
+
+                const response = await fetch(`/api/servicos/glassfish/${service._id}/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erro ao iniciar serviço');
+                }
+                
+                showToast('Serviço iniciado com sucesso!', 'success');
+                await checkAllServicesStatus();
+            } catch (error) {
+                console.error('Erro ao iniciar serviço:', error);
+                showToast(error.message, 'danger');
+            } finally {
+                // Reabilitar botões e remover loading
+                startButton.classList.remove('is-loading');
+                startButton.disabled = false;
+                stopButton.disabled = false;
+            }
+        }
+
+        async function stopService(index) {
+            const service = services[index];
+            
+            // Obter referências aos botões
+            const startButton = document.getElementById(`start-btn-${service._id}`);
+            const stopButton = document.getElementById(`stop-btn-${service._id}`);
+            
+            try {
+                // Desabilitar botões e mostrar loading
+                stopButton.classList.add('is-loading');
+                startButton.disabled = true;
+                stopButton.disabled = true;
+
+                const response = await fetch(`/api/servicos/glassfish/${service._id}/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Erro ao parar serviço');
+                }
+                
+                showToast('Serviço parado com sucesso!', 'success');
+                await checkAllServicesStatus();
+            } catch (error) {
+                let errorMessage = error.message;
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Timeout ao tentar parar o serviço';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Não foi possível conectar ao servidor. Verifique se o serviço está rodando.';
+                }
+                console.error('Erro ao parar serviço:', error);
+                showToast(errorMessage, 'danger');
+            } finally {
+                // Reabilitar botões e remover loading
+                stopButton.classList.remove('is-loading');
+                startButton.disabled = false;
+                stopButton.disabled = false;
+            }
+        }
+
+        // Atualizar a função de restart também
+        async function restartService(index) {
+            const service = services[index];
+            
+            // Obter referência aos botões
+            const restartButton = document.querySelector(`button[onclick="restartService(${index})"]`);
+            const startButton = document.getElementById(`start-btn-${service._id}`);
+            const stopButton = document.getElementById(`stop-btn-${service._id}`);
+            
+            try {
+                // Desabilitar todos os botões e mostrar loading
+                restartButton.classList.add('is-loading');
+                startButton.disabled = true;
+                stopButton.disabled = true;
+                restartButton.disabled = true;
+  
+                // Parar o serviço diretamente
+                const stopResponse = await fetch(`/api/servicos/glassfish/${service._id}/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!stopResponse.ok) {
+                    const data = await stopResponse.json();
+                    throw new Error(data.error || 'Erro ao parar serviço');
+                }
+                
+                // Pequeno delay para garantir que o serviço parou completamente
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Iniciar o serviço diretamente
+                const startResponse = await fetch(`/api/servicos/glassfish/${service._id}/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!startResponse.ok) {
+                    const data = await startResponse.json();
+                    throw new Error(data.error || 'Erro ao iniciar serviço');
+                }
+                
+                showToast('Serviço reiniciado com sucesso!', 'success');
+                await checkAllServicesStatus();
+            } catch (error) {
+                console.error('Erro ao reiniciar serviço:', error);
+                showToast('Erro ao reiniciar serviço: ' + error.message, 'danger');
+            } finally {
+                // Reabilitar todos os botões e remover loading
+                restartButton.classList.remove('is-loading');
+                startButton.disabled = false;
+                stopButton.disabled = false;
+                restartButton.disabled = false;
+            }
+        }
+
+        async function removeService(index) {
+            event.stopPropagation(); // Evita que o modal de edição abra
+            const service = services[index];
+            if (confirm(`Tem certeza que deseja excluir o serviço "${service.name}"?`)) {
+                try {
+                    const response = await fetch(`/api/servicos/${service._id}`, { 
+                        method: 'DELETE' 
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Erro ao excluir serviço');
+                    }
+                    
+                    showToast('Serviço excluído com sucesso!');
+                    fetchServices();
+                } catch (error) {
+                    console.error('Erro ao excluir serviço:', error);
+                    showToast(error.message, 'danger');
+                }
+            }
+        }
+
+        function filterCards() {
+            const statusFilter = document.getElementById('filter-status').value;
+            const filteredServices = statusFilter === 'all' ? services :
+                services.filter(service => service.status === statusFilter);
+            renderCards(filteredServices);
+        }
+
+        // Ordenação
+        function sortCards(criteria) {
+            const sortedServices = [...services].sort((a, b) => {
+                if (criteria === 'name') {
+                    return a.name.localeCompare(b.name);
+                } else if (criteria === 'status') {
+                    return a.status.localeCompare(b.status);
+                }
+                return 0;
+            });
+            renderCards(sortedServices);
+        }
+
+        function toggleLiveLog() {
+            const statusElement = document.getElementById('live-log-status');
+            
+            if (currentWebSocket) {
+                currentWebSocket.close();
+                currentWebSocket = null;
+                statusElement.textContent = 'Iniciar Live Log';
+                return;
+            }
+
+            const service = services[currentServiceId];
+            const ws = new WebSocket(`ws://${window.location.host}/api/servicos/${service._id}/logs/live`);
+            
+            ws.onmessage = (event) => {
+                const logsContent = document.getElementById('logs-content');
+                logsContent.textContent += event.data;
+                logsContent.scrollTop = logsContent.scrollHeight;
+            };
+
+            ws.onclose = () => {
+                statusElement.textContent = 'Iniciar Live Log';
+                currentWebSocket = null;
+            };
+
+            currentWebSocket = ws;
+            statusElement.textContent = 'Parar Live Log';
+        }
+
+        async function viewLogs(index) {
+            currentServiceId = index;
+            try {
+                const service = services[index];
+                const response = await fetch(`/api/servicos/glassfish/${service._id}/logs`);
+                const data = await response.json();
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                document.getElementById('logs-content').textContent = data.logs;
+                document.getElementById('logs-modal').classList.add('is-active');
+            } catch (error) {
+                console.error('Erro ao obter logs:', error);
+                alert('Erro ao obter logs');
+            }
+        }
+
+        function closeLogsModal() {
+            if (currentWebSocket) {
+                currentWebSocket.close();
+                currentWebSocket = null;
+            }
+            document.getElementById('logs-modal').classList.remove('is-active');
+        }
+
+        function toggleSSHPasswordVisibility() {
+            const passwordInput = document.getElementById('service-ssh-password');
+            const eyeIcon = document.getElementById('ssh-eye-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('service-password');
+            const eyeIcon = document.getElementById('eye-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        async function testSSHConnection() {
+            const ip = document.getElementById('service-ip').value;
+            const username = document.getElementById('service-ssh-username').value;
+            const password = document.getElementById('service-ssh-password').value;
+            const resultElement = document.getElementById('ssh-test-result');
+
+            if (!ip || !username || !password) {
+                resultElement.className = 'help is-danger';
+                resultElement.textContent = 'Preencha todos os campos de conexão SSH';
+                return;
+            }
+
+            try {
+                resultElement.className = 'help is-warning';
+                resultElement.textContent = 'Testando conexão...';
+
+                console.log('Enviando teste SSH para:', {
+                    host: ip,
+                    username
+                });
+
+                const response = await fetch('/api/test-ssh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ host: ip, username, password })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    console.error('Resposta de erro:', errorData);
+                    throw new Error(errorData);
+                }
+
+                const data = await response.json();
+                console.log('Resposta do teste SSH:', data);
+
+                if (data.success) {
+                    resultElement.className = 'help is-success';
+                    resultElement.textContent = 'Conexão SSH estabelecida com sucesso!';
+                } else {
+                    resultElement.className = 'help is-danger';
+                    resultElement.textContent = `Erro: ${data.error}`;
+                }
+            } catch (error) {
+                console.error('Erro ao testar conexão SSH:', error);
+                resultElement.className = 'help is-danger';
+                resultElement.textContent = `Erro ao testar conexão: ${error.message}`;
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast is-${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function openAdminPanel() {
+            const ip = document.getElementById('service-ip').value;
+            const port = document.getElementById('service-port').value;
+            const url = `https://${ip}:${port}`;
+            window.open(url, '_blank');
+        }
+
+        // Atualizar a função updateDashboardStats para refletir as sugestões
+        async function updateDashboardStats() {
+            try {
+                // Buscar estatísticas gerais
+                const response = await fetch('/api/servicos/stats/overview');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                
+                const overview = await response.json();
+
+                // Atualizar contadores e barras de progresso
+                document.getElementById('activeServers').textContent = overview.activeServers;
+                document.getElementById('avgRamUsage').textContent = `${overview.averageMemory}%`;
+                document.getElementById('avgCpuUsage').textContent = `${overview.averageCpu}%`;
+
+                // Atualizar barras de progresso
+                const ramProgress = document.getElementById('ramProgress');
+                const cpuProgress = document.getElementById('cpuProgress');
+                
+                ramProgress.value = overview.averageMemory;
+                cpuProgress.value = overview.averageCpu;
+
+                // Atualizar cores das barras de progresso
+                updateProgressColor(ramProgress, overview.averageMemory);
+                updateProgressColor(cpuProgress, overview.averageCpu);
+
+                // Atualizar informações detalhadas do sistema
+                const systemInfo = document.getElementById('systemInfo');
+                systemInfo.innerHTML = `
+<pre>
+Status dos Servidores
+--------------------
+Total de Servidores: ${overview.totalServers}
+Servidores Ativos: ${overview.activeServers}
+RAM Média: ${overview.averageMemory}%
+CPU Média: ${overview.averageCpu}%
+Última Atualização: ${new Date().toLocaleString()}
+
+Detalhes por Servidor:
+${overview.serverDetails.map(server => 
+    `${server.name}:
+    RAM: ${server.memory}%
+    CPU: ${server.cpu}%
+`).join('\n')}
+</pre>`;
+
+            } catch (error) {
+                console.error('Erro ao atualizar estatísticas:', error);
+                showToast('Erro ao atualizar estatísticas: ' + error.message, 'danger');
+                
+                // Limpar os valores em caso de erro
+                document.getElementById('activeServers').textContent = 'N/A';
+                document.getElementById('avgRamUsage').textContent = 'N/A';
+                document.getElementById('avgCpuUsage').textContent = 'N/A';
+                
+                const ramProgress = document.getElementById('ramProgress');
+                const cpuProgress = document.getElementById('cpuProgress');
+                ramProgress.value = 0;
+                cpuProgress.value = 0;
+            }
+        }
+
+        // Atualizar a função de cores do progresso
+        function updateProgressColor(progressBar, value) {
+            progressBar.classList.remove('is-success', 'is-warning', 'is-danger');
+            if (value < 60) {
+                progressBar.classList.add('is-success');
+            } else if (value < 80) {
+                progressBar.classList.add('is-warning');
+            } else {
+                progressBar.classList.add('is-danger');
+            }
+        }
+
+        // Iniciar monitoramento
+        function startMonitoring() {
+            updateDashboardStats();
+            // Atualizar a cada 30 segundos
+            setInterval(updateDashboardStats, 30000);
+        }
+
+        function handleAccessTypeChange() {
+            const accessType = document.getElementById('service-access-type').value;
+            const ipInput = document.getElementById('service-ip');
+            const portInput = document.getElementById('service-port');
+            
+            if (accessType === 'external') {
+                ipInput.placeholder = "IP externo ou hostname";
+                // Você pode adicionar validações específicas para IPs externos
+            } else {
+                ipInput.placeholder = "IP local (192.168.x.x)";
+            }
+        }
+
+        function openMaintenanceModal(index) {
+            event.stopPropagation(); // Evita que o modal de edição abra
+            currentMaintenanceIndex = index;
+            // Limpa os checkboxes
+            document.getElementById('clean-applications').checked = false;
+            document.getElementById('clean-logs').checked = false;
+            document.getElementById('clean-generated').checked = false;
+            document.getElementById('clean-autodeploy').checked = false;
+            // Abre o modal
+            document.getElementById('maintenance-modal').classList.add('is-active');
+        }
+
+        function closeMaintenanceModal() {
+            document.getElementById('maintenance-modal').classList.remove('is-active');
+            currentMaintenanceIndex = null;
+        }
+
+        async function executeMaintenanceTasks() {
+            const service = services[currentMaintenanceIndex];
+            const tasks = {
+                cleanApplications: document.getElementById('clean-applications').checked,
+                cleanLogs: document.getElementById('clean-logs').checked,
+                cleanGenerated: document.getElementById('clean-generated').checked,
+                cleanAutodeploy: document.getElementById('clean-autodeploy').checked
+            };
+
+            if (!tasks.cleanApplications && !tasks.cleanLogs && !tasks.cleanGenerated && !tasks.cleanAutodeploy) {
+                showToast('Selecione pelo menos uma opção de limpeza', 'warning');
+                return;
+            }
+
+            // Adicionar loading state
+            const cleanButton = document.querySelector('#maintenance-modal .button.is-danger');
+            cleanButton.classList.add('is-loading');
+            cleanButton.disabled = true;
+
+            try {
+                const response = await fetch(`/api/servicos/glassfish/${service._id}/maintenance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tasks)
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Erro na manutenção');
+                }
+
+                // Criar modal para mostrar o log
+                const logModal = document.createElement('div');
+                logModal.className = 'modal is-active';
+                logModal.innerHTML = `
+                    <div class="modal-background"></div>
+                    <div class="modal-card">
+                        <header class="modal-card-head">
+                            <p class="modal-card-title">Resultado da Manutenção</p>
+                            <button class="delete" aria-label="close" onclick="this.closest('.modal').remove()"></button>
+                        </header>
+                        <section class="modal-card-body">
+                            <pre style="max-height: 400px; overflow-y: auto;">${result.log}</pre>
+                        </section>
+                        <footer class="modal-card-foot">
+                            <button class="button" onclick="this.closest('.modal').remove()">Fechar</button>
+                        </footer>
+                    </div>
+                `;
+                document.body.appendChild(logModal);
+
+                showToast('Manutenção concluída com sucesso', 'success');
+            } catch (error) {
+                console.error('Erro na manutenção:', error);
+                showToast(`Erro na manutenção: ${error.message}`, 'danger');
+            } finally {
+                cleanButton.classList.remove('is-loading');
+                cleanButton.disabled = false;
+                closeMaintenanceModal();
+            }
+        }
+
+        function openDomainConfigModal(index) {
+            event.stopPropagation();
+            currentDomainConfigIndex = index;
+            const service = services[index];
+            
+            // Limpar campos e mostrar loading
+            setLoadingState(true);
+            
+            // Resetar campos
+            document.getElementById('db-server').value = '';
+            document.getElementById('db-user').value = '';
+            document.getElementById('db-password').value = '';
+            document.getElementById('db-name').value = '';
+            
+            // Resetar aplicações
+            const loadingEl = document.getElementById('applications-loading');
+            const contentEl = document.getElementById('applications-content');
+            contentEl.innerHTML = '';
+            loadingEl.classList.remove('is-hidden');
+            contentEl.classList.add('is-hidden');
+            
+            // Abrir modal
+            document.getElementById('domain-config-modal').classList.add('is-active');
+            
+            // Carregar configurações
+            loadDomainConfig(service);
+            loadApplicationsList(service);
+        }
+
+        function closeDomainConfigModal() {
+            document.getElementById('domain-config-modal').classList.remove('is-active');
+            currentDomainConfigIndex = null;
+        }
+
+        async function loadDomainConfig(service) {
+            // Mostrar estado de carregamento
+            setLoadingState(true);
+            
+            try {
+                const response = await fetch(`/api/servicos/${service._id}/domain-config`);
+                const config = await response.json();
+                
+                // Atualizar os campos com os valores
+                updateDatabaseFields(config);
+                
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+                showToast('Erro ao carregar configurações do domain.xml', 'danger');
+            } finally {
+                // Remover estado de carregamento
+                setLoadingState(false);
+            }
+        }
+
+        function setLoadingState(isLoading) {
+            const fields = ['server', 'user', 'password', 'name'];
+            fields.forEach(field => {
+                const input = document.getElementById(`db-${field}`);
+                const loadingIcon = document.getElementById(`db-${field}-loading`);
+                
+                if (isLoading) {
+                    input.disabled = true;
+                    input.placeholder = 'Carregando...';
+                    loadingIcon.classList.remove('is-hidden');
+                } else {
+                    input.disabled = false;
+                    input.placeholder = getDefaultPlaceholder(field);
+                    loadingIcon.classList.add('is-hidden');
+                }
+            });
+        }
+
+        function getDefaultPlaceholder(field) {
+            switch (field) {
+                case 'server': return '192.168.1.103';
+                case 'user': return 'postgres';
+                case 'name': return 'neocorp';
+                default: return '';
+            }
+        }
+
+        function updateDatabaseFields(config) {
+            document.getElementById('db-server').value = config.serverName || '';
+            document.getElementById('db-user').value = config.user || '';
+            document.getElementById('db-password').value = config.password || '';
+            document.getElementById('db-name').value = config.databaseName || '';
+        }
+
+        async function loadApplicationsList(service) {
+            // Mostrar loading
+            const loadingEl = document.getElementById('applications-loading');
+            const contentEl = document.getElementById('applications-content');
+            loadingEl.classList.remove('is-hidden');
+            contentEl.classList.add('is-hidden');
+
+            try {
+                const response = await fetch(`/api/servicos/${service._id}/applications`);
+                const apps = await response.json();
+                
+                let content = '';
+                if (!Array.isArray(apps)) {
+                    content = '<p>Nenhuma aplicação instalada</p>';
+                } else {
+                    content = apps.length > 0 
+                        ? apps.map(app => `
+                            <div class="box">
+                                <strong>${app.name}</strong>
+                                <p class="help">Localização: ${app.location}</p>
+                            </div>
+                        `).join('')
+                        : '<p>Nenhuma aplicação instalada</p>';
+                }
+                
+                contentEl.innerHTML = content;
+            } catch (error) {
+                console.error('Erro ao carregar aplicações:', error);
+                showToast('Erro ao carregar lista de aplicações', 'danger');
+                contentEl.innerHTML = '<p class="has-text-danger">Erro ao carregar aplicações</p>';
+            } finally {
+                // Esconder loading e mostrar conteúdo
+                loadingEl.classList.add('is-hidden');
+                contentEl.classList.remove('is-hidden');
+            }
+        }
+
+        async function saveDomainConfig() {
+            const service = services[currentDomainConfigIndex];
+            const config = {
+                serverName: document.getElementById('db-server').value,
+                user: document.getElementById('db-user').value,
+                password: document.getElementById('db-password').value,
+                databaseName: document.getElementById('db-name').value
+            };
+
+            try {
+                const response = await fetch(`/api/servicos/${service._id}/domain-config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao salvar configurações');
+                }
+
+                showToast('Configurações salvas com sucesso!', 'success');
+                closeDomainConfigModal();
+            } catch (error) {
+                console.error('Erro ao salvar configurações:', error);
+                showToast('Erro ao salvar configurações', 'danger');
+            }
+        }
+
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tabs li');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            // Remover classe ativa de todas as tabs
+            tabs.forEach(t => t.classList.remove('is-active'));
+            
+            // Esconder todos os conteúdos
+            contents.forEach(c => {
+                c.style.display = 'none';
+                // Garantir que o conteúdo está oculto usando classes também
+                c.classList.remove('is-active');
+            });
+            
+            // Ativar a tab selecionada
+            const activeTab = document.querySelector(`.tabs li a[onclick="switchTab('${tab}')"]`).parentElement;
+            activeTab.classList.add('is-active');
+            
+            // Mostrar o conteúdo da tab selecionada
+            const activeContent = document.getElementById(`${tab}-tab`);
+            activeContent.style.display = 'block';
+            activeContent.classList.add('is-active');
+        }
+
+        document.getElementById('application-file').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || 'Nenhum arquivo selecionado';
+            document.getElementById('file-name').textContent = fileName;
+            document.getElementById('upload-button').disabled = !e.target.files[0];
+        });
+
+        async function uploadApplication() {
+            const fileInput = document.getElementById('application-file');
+            const uploadButton = document.getElementById('upload-button');
+            const file = fileInput.files[0];
+            if (!file) {
+                showToast('Selecione um arquivo para upload', 'warning');
+                return;
+            }
+
+            const service = services[currentDomainConfigIndex];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                uploadButton.classList.add('is-loading');
+                uploadButton.disabled = true;
+                
+                // Adicionar timeout mais longo para arquivos grandes
+                const response = await Promise.race([
+                    fetch(`/api/servicos/${service._id}/upload-application`, {
+                        method: 'POST',
+                        body: formData
+                    }),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout: O upload demorou muito tempo')), 300000)
+                    )
+                ]);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao fazer upload da aplicação');
+                }
+
+                showToast('Upload realizado com sucesso!', 'success');
+                fileInput.value = '';
+                document.getElementById('file-name').textContent = 'Nenhum arquivo selecionado';
+                uploadButton.disabled = true;
+                
+                await loadApplicationsList(service);
+            } catch (error) {
+                console.error('Erro no upload:', error);
+                let errorMessage = error.message;
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Erro de conexão. Verifique o tamanho do arquivo e tente novamente.';
+                }
+                showToast('Erro ao fazer upload: ' + errorMessage, 'danger');
+            } finally {
+                uploadButton.classList.remove('is-loading');
+                uploadButton.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchServices();
+            startMonitoring();
+        });
+
+        async function checkServiceStatus(service) {
+            try {
+                const response = await fetch(`/api/servicos/glassfish/${service._id}/status`);
+                if (!response.ok) {
+                    throw new Error('Erro ao verificar status');
+                }
+                const data = await response.json();
+                
+                const statusIndicator = document.querySelector(`#status-${service._id}`);
+                const statusText = document.querySelector(`#status-text-${service._id}`);
+                
+                if (statusIndicator && statusText) {
+                    if (data.status === 'running') {
+                        statusIndicator.className = 'status-indicator is-success';
+                        statusText.textContent = 'Ativo';
+                    } else if (data.status === 'stopped') {
+                        statusIndicator.className = 'status-indicator is-danger';
+                        statusText.textContent = 'Parado';
+                    } else {
+                        statusIndicator.className = 'status-indicator is-warning';
+                        statusText.textContent = 'Desconhecido';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao verificar status:', error);
+                // Atualizar indicador para amarelo em caso de erro
+                const statusIndicator = document.querySelector(`#status-${service._id}`);
+                const statusText = document.querySelector(`#status-text-${service._id}`);
+                if (statusIndicator && statusText) {
+                    statusIndicator.className = 'status-indicator is-warning';
+                    statusText.textContent = 'Erro na verificação';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

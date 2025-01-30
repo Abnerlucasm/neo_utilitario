@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página Não Encontrada</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <style>
+        body {
+            background-color: #f4f4f4;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .button {
+            margin-top: 20px;
+        }
+        .search-result {
+            margin-top: 20px;
+        }
+        .search-result p {
+            color: #ff3860;
+        }
+        .options {
+            margin-top: 30px;
+        }
+        .options a {
+            display: block;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+    <div class="container has-text-centered">
+        <h1 class="title is-1">404</h1>
+        <h2 class="subtitle">Página não encontrada</h2>
+        <p>A página que você está procurando não existe ou foi movida.</p>
+        <p>Estamos em desenvolvimento! Volte para a página principal ou tente procurar algo semelhante:</p>
+
+        <!-- Botão para voltar à página principal -->
+        <a href="/" class="button is-primary is-large">Voltar para a Página Principal</a>
+        
+        <br><br>
+
+        <!-- Campo de busca -->
+        <input id="searchInput" type="text" class="input" placeholder="Buscar algo...">
+        <button id="searchButton" class="button is-info">Buscar</button>
+
+        <!-- Exibe o resultado da busca -->
+        <div id="searchResult" class="search-result">
+            <p><strong>Desculpe:</strong> Não encontramos resultados para sua busca.</p>
+        </div>
+
+        <!-- Sugestões de arquivos encontrados -->
+        <div id="suggestionsResult" class="search-result">
+            <h3>Sugestões encontradas:</h3>
+            <ul id="suggestionsList"></ul>
+        </div>
+
+        <!-- Outras opções disponíveis -->
+        <div class="options">
+            <h3 class="title is-4">Outras opções:</h3>
+            <a href="/recursos-dev.html" class="button is-link">Recursos em Desenvolvimento</a>
+            <a href="/sugestoes-dev.html" class="button is-warning">Sugestões de Melhorias</a>
+            <a href="/utilitarios.html" class="button is-success">Utilitários</a>
+        </div>
+    </div>
+
+    <script>
+        // Lista de arquivos HTML disponíveis na aplicação
+        const availablePages = [
+            { title: 'Página Inicial', url: '/index.html' },
+            { title: 'Recursos em Desenvolvimento', url: '/recursos-dev.html' },
+            { title: 'Sugestões', url: '/sugestoes-dev.html' },
+            { title: 'Utilitarios', url: '/utilitarios.html' }
+        ];
+
+        // Elementos do DOM
+        const searchButton = document.getElementById('searchButton');
+        const searchInput = document.getElementById('searchInput');
+        const searchResult = document.getElementById('searchResult');
+        const suggestionsList = document.getElementById('suggestionsList');
+        const suggestionsResult = document.getElementById('suggestionsResult');
+
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            suggestionsList.innerHTML = ''; // Limpa a lista de sugestões
+
+            if (query) {
+                // Busca por páginas que contenham o termo pesquisado no título
+                const results = availablePages.filter(page =>
+                    page.title.toLowerCase().includes(query)
+                );
+
+                if (results.length > 0) {
+                    results.forEach(result => {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `<a href="${result.url}">${result.title}</a>`;
+                        suggestionsList.appendChild(listItem);
+                    });
+
+                    suggestionsResult.style.display = 'block'; // Exibe as sugestões
+                    searchResult.style.display = 'none'; // Esconde a mensagem de "não encontrado"
+                } else {
+                    searchResult.style.display = 'block'; // Exibe a mensagem de "não encontrado"
+                    suggestionsResult.style.display = 'none'; // Esconde as sugestões
+                }
+            } else {
+                searchResult.style.display = 'none'; // Esconde a mensagem de "não encontrado"
+                suggestionsResult.style.display = 'none'; // Esconde as sugestões
+            }
+        });
+    </script>
+
+    <script src="/componentes/navbar-component.js"></script>
+</body>
+</html>

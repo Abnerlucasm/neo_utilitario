@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações do Ambiente</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <neo-navbar></neo-navbar>
+    <div class="container mx-auto px-4 py-8">
+        <div class="box shadow-lg rounded-lg">
+            <h1 class="title is-3 has-text-centered text-blue-600">Configurações do Ambiente</h1>
+            
+            <form id="configForm">
+                <div class="columns">
+                    <div class="column">
+                        <h2 class="subtitle is-5 text-gray-800">Conexão</h2>
+                        <div class="field">
+                            <label class="label">IP Local</label>
+                            <div class="control">
+                                <input class="input is-rounded shadow-md" type="text" name="conexao.ipLocal" required>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">IP Servidor</label>
+                            <div class="control">
+                                <input class="input is-rounded shadow-md" type="text" name="conexao.ipServidor" required>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Usuário PostgreSQL</label>
+                            <div class="control">
+                                <input class="input is-rounded shadow-md" type="text" name="conexao.usuarioPostgres" required>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Senha PostgreSQL</label>
+                            <div class="control">
+                                <div class="field has-addons">
+                                    <div class="control is-expanded">
+                                        <input id="senha" class="input is-rounded shadow-md" type="password" name="conexao.senhaPostgres" required>
+                                    </div>
+                                    <div class="control">
+                                        <button type="button" id="togglePassword" class="button is-light is-rounded">
+                                            <i id="passwordIcon" class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <h2 class="subtitle is-5 text-gray-800">Caminhos</h2>
+                        <div class="field">
+                            <label class="label">Caminho PostgreSQL</label>
+                            <div class="control has-icons-right">
+                                <input class="input is-rounded shadow-md" type="text" name="paths.postgres" required>
+                                <span class="icon is-small is-right">
+                                    <i class="fas fa-folder-open"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Caminho GlassFish</label>
+                            <div class="control has-icons-right">
+                                <input class="input is-rounded shadow-md" type="text" name="paths.glassfish">
+                                <span class="icon is-small is-right">
+                                    <i class="fas fa-folder-open"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Caminho Rotinas</label>
+                            <div class="control has-icons-right">
+                                <input class="input is-rounded shadow-md" type="text" name="paths.rotinas" required>
+                                <span class="icon is-small is-right">
+                                    <i class="fas fa-folder-open"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Caminho Backup</label>
+                            <div class="control has-icons-right">
+                                <input class="input is-rounded shadow-md" type="text" name="paths.rotinaBackup" required>
+                                <span class="icon is-small is-right">
+                                    <i class="fas fa-folder-open"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Caminho Manutenção</label>
+                            <div class="control has-icons-right">
+                                <input class="input is-rounded shadow-md" type="text" name="paths.rotinaManutencao" required>
+                                <span class="icon is-small is-right">
+                                    <i class="fas fa-folder-open"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-centered">
+                    <div class="control">
+                        <button type="submit" class="button is-primary is-rounded shadow-lg">
+                            <span class="icon"><i class="fas fa-save"></i></span>
+                            <span>Salvar Configurações</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="config.js"></script>
+    <script src="/componentes/navbar-component.js"></script>
+</body>
+</html>

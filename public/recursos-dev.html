@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recursos em Desenvolvimento</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <style>
+        body {
+            background-color: #f5f5f5;
+        }
+        .hero {
+            background-color: #3273dc;
+            color: white;
+        }
+        .hero .title, .hero .subtitle {
+            color: white;
+        }
+        .status-tag {
+            font-weight: bold;
+            border-radius: 5px;
+            padding: 5px 10px;
+        }
+        .status-in-progress {
+            background-color: #48c774; /* Verde para "Em andamento" */
+            color: white;
+        }
+        .status-not-started {
+            background-color: #f14668; /* Vermelho para "Não iniciado" */
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+    <section class="hero is-primary">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title has-text-centered">Recursos em Desenvolvimento</h1>
+                <p class="subtitle has-text-centered">Acompanhe os recursos, prioridades e status</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="card">
+                <div class="card-content">
+                    <div class="table-container">
+                        <table class="table is-striped is-hoverable is-fullwidth">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Descrição</th>
+                                    <th>Prioridade</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Sub Menu de Rotinas</td>
+                                    <td>Baixa</td>
+                                    <td><span class="status-tag status-not-started">Não iniciado</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Rotina de Manutenção</td>
+                                    <td>Baixa</td>
+                                    <td><span class="status-tag status-not-started">Não iniciado</span></td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>Rotina de Backup Diário</td>
+                                    <td>Baixa</td>
+                                    <td><span class="status-tag status-not-started">Não iniciado</span></td>
+                                </tr>
+                                <tr>
+                                    <td>4</td>
+                                    <td>Rotina Serviço Glassfish</td>
+                                    <td>Baixa</td>
+                                    <td><span class="status-tag status-not-started">Não iniciado</span></td>
+                                </tr>
+                                <tr>
+                                    <td>5</td>
+                                    <td>Deploy Versão Auto Web</td>
+                                    <td>Média</td>
+                                    <td><span class="status-tag status-not-started">Não iniciado</span></td>
+                                </tr>
+                                <tr>
+                                    <td>6</td>
+                                    <td>Comentar na Base de Dados</td>
+                                    <td>Alta</td>
+                                    <td><span class="status-tag status-in-progress">Em andamento</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="index.html" class="button is-primary is-fullwidth">Voltar</a>
+                </div>
+            </div>
+        </div>
+    </section>
+    <script src="/componentes/navbar-component.js"></script>
+</body>
+</html>

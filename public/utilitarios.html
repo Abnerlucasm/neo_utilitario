@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utilitários CorpWeb</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="container">
+        <h1 class="title">Utilitários</h1>
+        <div class="menu-opcoes">
+            <!-- Card NeoCorp -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-cogs fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">NeoCorp Desktop</p>
+                            <p class="subtitle is-6">Acesse os utilitários do NeoCorp.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-neocorp" class="card-footer-item button is-primary">Acessar</button>
+                </footer>
+            </div>
+
+            <!-- Card Neo Chamados -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-comment fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">Neo Chamados</p>
+                            <p class="subtitle is-6">Acompanhe os chamados e suporte.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-neochamados" class="card-footer-item button is-warning" onclick="window.open('https://app.neosistemas.com.br/neo-chamados/', '_blank')">Acessar</button>
+                </footer>
+            </div>
+
+            <!-- Card NeoWeb -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-globe fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">Neocorp Web</p>
+                            <p class="subtitle is-6">Acesse os utilitários do Neocorp Web.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-neoweb" class="card-footer-item button is-link" onclick="window.open('glassfish.html')">Acessar</button>
+                </footer>
+            </div>
+
+            <!-- Card Banco de Dados -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large">
+                                <i class="fas fa-database fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">Banco de Dados</p>
+                            <p class="subtitle is-6">Utilitários relacionados ao banco de dados.</p>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <button id="btn-utilitarios-bd" class="card-footer-item button is-success">Acessar</button>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="componentes/navbar-component.js"></script>
+</body>
+</html>
