@@ -436,6 +436,38 @@ async function deleteServer(serverId) {
     }
 }
 
+// Função para atualizar estatísticas em tempo real
+function updateLoadingStats(progress, currentStep, totalSteps) {
+    const currentServer = document.getElementById('currentServer');
+    const progressBar = document.getElementById('progressBar');
+    
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+    }
+    
+    if (currentServer) {
+        const steps = [
+            'Iniciando conexões...',
+            'Verificando servidores...',
+            'Estabelecendo conexões...',
+            'Listando databases...',
+            'Processando resultados...'
+        ];
+        
+        const stepIndex = Math.floor((progress / 100) * steps.length);
+        const currentStepText = steps[Math.min(stepIndex, steps.length - 1)];
+        
+        currentServer.textContent = currentStepText;
+        
+        if (progress >= 100) {
+            currentServer.innerHTML = `
+                <div class="text-green-600 font-semibold">✓ Concluído!</div>
+                <div class="text-xs mt-1">Processamento finalizado</div>
+            `;
+        }
+    }
+}
+
 // Função para carregar databases dos servidores selecionados
 async function loadDatabases() {
     const selectedServers = getSelectedServers();
@@ -457,23 +489,38 @@ async function loadDatabases() {
     // Mostrar loading no spinner
     const loadingSpinner = document.getElementById('databaseLoading');
     if (loadingSpinner) {
-        loadingSpinner.classList.add('loading');
+        loadingSpinner.style.display = 'inline-block';
     }
     
-    // Adicionar overlay de loading
+    // Adicionar overlay de loading com progresso
     const overlay = document.createElement('div');
     overlay.id = 'loadingOverlay';
     overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
     overlay.innerHTML = `
-        <div class="bg-white rounded-lg p-8 flex flex-col items-center shadow-2xl">
+        <div class="bg-white rounded-lg p-8 flex flex-col items-center shadow-2xl max-w-md w-full mx-4">
             <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mb-4"></div>
-            <p class="text-lg font-semibold text-gray-800">Carregando databases...</p>
-            <p class="text-sm text-gray-600 mt-2 text-center">Aguarde enquanto conectamos aos servidores</p>
+            <p class="text-lg font-semibold text-gray-800 mb-2">Carregando databases...</p>
+            <div id="progressInfo" class="text-sm text-gray-600 text-center space-y-2">
+                <p>Conectando aos servidores selecionados...</p>
+                <div class="progress progress-primary w-full" style="height: 4px;">
+                    <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                </div>
+                <p id="currentServer" class="text-xs text-gray-500"></p>
+            </div>
         </div>
     `;
     document.body.appendChild(overlay);
     
     try {
+        // Simular progresso enquanto a requisição está sendo processada
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
+            
+            updateLoadingStats(progress);
+        }, 500);
+        
         const response = await fetch(`${API_BASE}/servers/list-databases`, {
             method: 'POST',
             headers: {
@@ -485,9 +532,35 @@ async function loadDatabases() {
             })
         });
         
+        clearInterval(progressInterval);
+        
+        // Completar progresso
+        updateLoadingStats(100);
+        
         const data = await response.json();
         
         if (data.success) {
+            // Mostrar resumo dos resultados
+            const totalServers = data.data.length;
+            const successfulServers = data.data.filter(server => server.success).length;
+            const totalDatabases = data.data.reduce((total, server) => {
+                return total + (server.success && server.databases ? server.databases.length : 0);
+            }, 0);
+            
+            const currentServer = document.getElementById('currentServer');
+            if (currentServer) {
+                currentServer.innerHTML = `
+                    <div class="text-green-600 font-semibold">✓ Concluído!</div>
+                    <div class="text-xs mt-1">
+                        ${successfulServers}/${totalServers} servidores conectados<br>
+                        ${totalDatabases} databases encontradas
+                    </div>
+                `;
+            }
+            
+            // Aguardar um pouco para mostrar o resultado
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             displayDatabasesGrid(data.data);
         } else {
             showNotification(data.message || 'Erro ao carregar databases.', 'error');
@@ -502,7 +575,7 @@ async function loadDatabases() {
         
         // Remover loading do spinner
         if (loadingSpinner) {
-            loadingSpinner.classList.remove('loading');
+            loadingSpinner.style.display = 'none';
         }
         
         // Remover overlay de loading
@@ -664,13 +737,111 @@ function renderDatabasesPagination(totalPages) {
 function displayDatabasesGrid(databasesData) {
     allDatabasesData = databasesData;
     currentPage = 1;
+    
+    // Mostrar resumo dos resultados
+    showResultsSummary(databasesData);
+    
     filterAndPaginateDatabases();
+}
+
+// Função para mostrar resumo dos resultados
+function showResultsSummary(databasesData) {
+    const totalServers = databasesData.length;
+    const successfulServers = databasesData.filter(server => server.success).length;
+    const failedServers = totalServers - successfulServers;
+    const totalDatabases = databasesData.reduce((total, server) => {
+        return total + (server.success && server.databases ? server.databases.length : 0);
+    }, 0);
+    
+    // Criar ou atualizar o resumo
+    let summaryHtml = `
+        <div class="alert alert-info mb-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold">Resumo da Busca</h4>
+                    <div class="text-sm space-y-1 mt-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="badge badge-success">${successfulServers}</span>
+                            <span>servidores conectados com sucesso</span>
+                        </div>
+                        ${failedServers > 0 ? `
+                        <div class="flex items-center space-x-2">
+                            <span class="badge badge-error">${failedServers}</span>
+                            <span>servidores com erro</span>
+                        </div>
+                        ` : ''}
+                        <div class="flex items-center space-x-2">
+                            <span class="badge badge-primary">${totalDatabases}</span>
+                            <span>databases encontradas</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-primary">${totalDatabases}</div>
+                    <div class="text-xs text-gray-500">databases</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Adicionar detalhes dos servidores com erro
+    const failedServersList = databasesData.filter(server => !server.success);
+    if (failedServersList.length > 0) {
+        summaryHtml += `
+            <div class="alert alert-warning mb-4">
+                <h4 class="font-bold">Servidores com Problemas:</h4>
+                <div class="text-sm space-y-1 mt-2">
+        `;
+        
+        failedServersList.forEach(server => {
+            summaryHtml += `
+                <div class="flex items-center space-x-2">
+                    <span class="text-error">•</span>
+                    <span class="font-medium">${server.serverName}</span>
+                    <span class="text-gray-500">(${server.serverHost})</span>
+                    <span class="text-xs text-error">${server.error}</span>
+                </div>
+            `;
+        });
+        
+        summaryHtml += `
+                </div>
+            </div>
+        `;
+    }
+    
+    // Inserir o resumo antes da seção de databases
+    const databasesSection = document.getElementById('databasesSection');
+    const existingSummary = document.getElementById('resultsSummary');
+    
+    if (existingSummary) {
+        existingSummary.remove();
+    }
+    
+    const summaryDiv = document.createElement('div');
+    summaryDiv.id = 'resultsSummary';
+    summaryDiv.innerHTML = summaryHtml;
+    
+    // Inserir antes da seção de databases
+    const parentElement = databasesSection.parentElement;
+    parentElement.insertBefore(summaryDiv, databasesSection);
 }
 
 // Função para atualizar a lista de databases
 function refreshDatabases() {
     const databasesSection = document.getElementById('databasesSection');
+    const resultsSummary = document.getElementById('resultsSummary');
+    
+    // Ocultar seções
     databasesSection.style.display = 'none';
+    if (resultsSummary) {
+        resultsSummary.remove();
+    }
+    
+    // Limpar dados
+    allDatabasesData = [];
+    currentPage = 1;
+    
     loadDatabases();
 }
 

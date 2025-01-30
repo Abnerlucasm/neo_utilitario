@@ -2,6 +2,7 @@ const { Server, User } = require('../models/postgresql');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { Sequelize } = require('sequelize');
+const logger = require('../utils/logger'); // Adicionado para logs
 
 // Chave para criptografia (em produção, deve estar em variável de ambiente)
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-secret-key-32-chars-long!';
@@ -489,6 +490,8 @@ class ServerController {
                 });
             }
             
+            logger.info(`Iniciando listagem de databases para ${serverIds.length} servidores`);
+            
             // Buscar servidores
             const servers = await Server.findAll({
                 where: { 
@@ -498,18 +501,24 @@ class ServerController {
             });
             
             if (servers.length === 0) {
+                logger.warn('Nenhum servidor ativo encontrado para os IDs fornecidos');
                 return res.status(404).json({
                     success: false,
                     message: 'Nenhum servidor encontrado'
                 });
             }
             
+            logger.info(`Processando ${servers.length} servidores: ${servers.map(s => s.name).join(', ')}`);
+            
             // Processar servidores em paralelo com timeout
             const results = await Promise.allSettled(
-                servers.map(async (server) => {
+                servers.map(async (server, index) => {
                     return new Promise(async (resolve) => {
+                        logger.info(`[${index + 1}/${servers.length}] Conectando ao servidor: ${server.name} (${server.host})`);
+                        
                         // Timeout de 30 segundos por servidor
                         const timeout = setTimeout(() => {
+                            logger.warn(`[${index + 1}/${servers.length}] Timeout ao conectar com ${server.name}`);
                             resolve({
                                 serverId: server.id,
                                 serverName: server.name,
@@ -522,6 +531,7 @@ class ServerController {
                         try {
                             const decryptedPassword = decryptPassword(server.password);
                             if (!decryptedPassword) {
+                                logger.error(`[${index + 1}/${servers.length}] Erro ao descriptografar senha para ${server.name}`);
                                 clearTimeout(timeout);
                                 resolve({
                                     serverId: server.id,
@@ -537,6 +547,7 @@ class ServerController {
                             
                             switch (server.type) {
                                 case 'postgresql':
+                                    logger.info(`[${index + 1}/${servers.length}] Configurando conexão PostgreSQL para ${server.name}`);
                                     const { Sequelize } = require('sequelize');
                                     sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
                                         host: server.host,
@@ -557,6 +568,7 @@ class ServerController {
                                     break;
                                     
                                 default:
+                                    logger.warn(`[${index + 1}/${servers.length}] Tipo de banco não suportado: ${server.type}`);
                                     clearTimeout(timeout);
                                     resolve({
                                         serverId: server.id,
@@ -568,9 +580,12 @@ class ServerController {
                                     return;
                             }
                             
+                            logger.info(`[${index + 1}/${servers.length}] Autenticando com ${server.name}...`);
                             await sequelize.authenticate();
+                            logger.info(`[${index + 1}/${servers.length}] Conexão estabelecida com ${server.name}`);
                             
                             // Query para listar databases (PostgreSQL) com timeout
+                            logger.info(`[${index + 1}/${servers.length}] Executando query para listar databases em ${server.name}`);
                             const [databases] = await sequelize.query(`
                                 SELECT 
                                     d.datname as name,
@@ -587,6 +602,8 @@ class ServerController {
                             await sequelize.close();
                             clearTimeout(timeout);
                             
+                            logger.info(`[${index + 1}/${servers.length}] ${server.name}: ${databases.length} databases encontradas`);
+                            
                             resolve({
                                 serverId: server.id,
                                 serverName: server.name,
@@ -597,6 +614,7 @@ class ServerController {
                             
                         } catch (error) {
                             clearTimeout(timeout);
+                            logger.error(`[${index + 1}/${servers.length}] Erro ao conectar com ${server.name}: ${error.message}`);
                             resolve({
                                 serverId: server.id,
                                 serverName: server.name,
@@ -614,6 +632,7 @@ class ServerController {
                 if (result.status === 'fulfilled') {
                     return result.value;
                 } else {
+                    logger.error('Erro inesperado no processamento:', result.reason);
                     return {
                         serverId: 'unknown',
                         serverName: 'Unknown',
@@ -624,13 +643,27 @@ class ServerController {
                 }
             });
             
+            // Calcular estatísticas finais
+            const totalServers = processedResults.length;
+            const successfulServers = processedResults.filter(r => r.success).length;
+            const totalDatabases = processedResults.reduce((total, server) => {
+                return total + (server.success && server.databases ? server.databases.length : 0);
+            }, 0);
+            
+            logger.info(`Listagem concluída: ${successfulServers}/${totalServers} servidores conectados, ${totalDatabases} databases encontradas`);
+            
             res.json({
                 success: true,
-                data: processedResults
+                data: processedResults,
+                summary: {
+                    totalServers,
+                    successfulServers,
+                    totalDatabases
+                }
             });
             
         } catch (error) {
-            console.error('Erro ao listar databases:', error);
+            logger.error('Erro ao listar databases:', error);
             res.status(500).json({
                 success: false,
                 message: 'Erro interno do servidor'
