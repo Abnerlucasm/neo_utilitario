@@ -127,6 +127,12 @@
                     <h2 class="title is-4">Nova Sugestão</h2>
                     <form id="suggestionForm">
                         <div class="field">
+                            <label class="label">Solicitante</label>
+                            <div class="control">
+                                <input type="text" id="createdBy" class="input" required>
+                            </div>
+                        </div>
+                        <div class="field">
                             <label class="label">Categoria</label>
                             <div class="control">
                                 <div class="select is-fullwidth">
@@ -228,11 +234,11 @@
             event.preventDefault();
             
             const suggestion = {
+                title: 'Nova Sugestão',
                 description: document.getElementById('description').value,
                 category: document.getElementById('category').value,
                 priority: 'media', // Valor padrão
-                createdBy: 'Usuário', // Valor padrão
-                title: 'Nova Sugestão' // Valor padrão
+                createdBy: document.getElementById('createdBy').value
             };
 
             try {
@@ -293,7 +299,7 @@
         }
 
         // Atualizar função updateStats
-        async function updateStats() {
+        async function updateStats(filterCategory = null) {
             try {
                 const response = await fetch('/api/suggestions');
                 if (!response.ok) {
@@ -313,35 +319,46 @@
                 updateProgressBars(suggestions);
                 
                 // Atualizar lista de sugestões recentes
-                updateSuggestionsList(suggestions);
+                updateSuggestionsList(suggestions, filterCategory);
             } catch (error) {
                 console.error('Erro ao atualizar estatísticas:', error);
                 showToast('Erro ao atualizar estatísticas', 'danger');
             }
         }
 
-        function updateSuggestionsList(suggestions) {
+        function updateSuggestionsList(suggestions, filterCategory = null) {
             const suggestionList = document.getElementById('suggestionList');
             suggestionList.innerHTML = '';
 
-            const recentSuggestions = suggestions
+            let filteredSuggestions = suggestions;
+            if (filterCategory && filterCategory !== 'todas') {
+                filteredSuggestions = suggestions.filter(s => s.category === filterCategory);
+            }
+
+            const recentSuggestions = filteredSuggestions
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                 .slice(0, 5);
 
             recentSuggestions.forEach(suggestion => {
                 const item = document.createElement('div');
-                item.className = 'box';
+                item.className = 'box suggestion-item';
                 item.innerHTML = `
                     <div class="columns is-vcentered">
                         <div class="column">
-                            <p class="is-size-5">${suggestion.description}</p>
+                            <p class="is-size-5">#${suggestion.sequentialNumber} - ${suggestion.description}</p>
                             <p class="is-size-7">
                                 <span class="tag is-${getCategoryClass(suggestion.category)}">${suggestion.category}</span>
                                 <span class="tag is-${getStatusClass(suggestion.status)}">${getStatusText(suggestion.status)}</span>
+                                <span>Solicitante: ${suggestion.createdBy}</span>
                                 <span>Criado em: ${new Date(suggestion.createdAt).toLocaleDateString()}</span>
                             </p>
                         </div>
                         <div class="column is-narrow">
+                            ${suggestion.status === 'pending' ? `
+                                <button class="button is-small is-warning mr-2" onclick="updateSuggestionStatus('${suggestion._id}', 'in_progress')">
+                                    <span class="icon"><i class="fas fa-clock"></i></span>
+                                </button>
+                            ` : ''}
                             ${suggestion.status !== 'implemented' ? `
                                 <button class="button is-small is-success" onclick="updateSuggestionStatus('${suggestion._id}', 'implemented')">
                                     <span class="icon"><i class="fas fa-check"></i></span>
@@ -399,6 +416,22 @@
             };
             return texts[status] || status;
         }
+
+        // Adicionar event listeners para os filtros de categoria
+        document.querySelectorAll('.tag-container .tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                // Remover classe ativa de todas as tags
+                document.querySelectorAll('.tag-container .tag').forEach(t => t.className = 'tag is-light');
+                // Adicionar classe ativa na tag selecionada
+                this.className = 'tag is-info';
+                // Filtrar sugestões
+                const category = this.textContent.toLowerCase() === 'todas' ? null : 
+                    this.textContent.toLowerCase().replace('correções', 'correcao')
+                        .replace('melhorias', 'melhoria')
+                        .replace('novos recursos', 'novo');
+                updateStats(category);
+            });
+        });
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
