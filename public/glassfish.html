@@ -316,6 +316,9 @@
             font-size: 1rem;
             color: #333;
         }
+        #copy-log-button {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body class="has-background-light">
@@ -583,6 +586,7 @@
             </header>
             <section class="modal-card-body">
                 <pre id="logs-content">Carregando logs...</pre>
+                <button id="copy-log-button" class="button is-info mt-3">Copiar Logs</button>
             </section>
             <footer class="modal-card-foot">
                 <button class="button" onclick="closeLogsModal()">Fechar</button>
@@ -1850,6 +1854,26 @@
         document.addEventListener('DOMContentLoaded', () => {
             fetchServices();
             startMonitoring();
+
+            const copyLogButton = document.getElementById('copy-log-button');
+            const logContent = document.getElementById('logs-content');
+
+            copyLogButton.addEventListener('click', () => {
+                const range = document.createRange();
+                range.selectNode(logContent);
+                window.getSelection().removeAllRanges(); // Limpar seleções anteriores
+                window.getSelection().addRange(range);
+
+                try {
+                    const successful = document.execCommand('copy');
+                    const msg = successful ? 'Logs copiados com sucesso!' : 'Falha ao copiar logs';
+                    showToast(msg, successful ? 'success' : 'danger');
+                } catch (err) {
+                    showToast('Erro ao copiar logs', 'danger');
+                }
+
+                window.getSelection().removeAllRanges(); // Limpar seleção após copiar
+            });
         });
 
         async function checkServiceStatus(service) {

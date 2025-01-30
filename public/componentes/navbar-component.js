@@ -8,6 +8,8 @@ class NavbarComponent extends HTMLElement {
         this.render();
         this.addEventListeners();
         this.highlightCurrentPage();
+        this.updateMenuIconColor();
+        window.addEventListener('scroll', () => this.updateMenuIconColor());
     }
 
     render() {
@@ -43,17 +45,36 @@ class NavbarComponent extends HTMLElement {
                     top: 15px;
                     left: 20px;
                     z-index: 1100;
-                    background: none;
+                    background: rgba(255, 255, 255, 0.2);
                     border: none;
                     cursor: pointer;
-                    font-size: 24px;
-                    color: #555;
-                    transition: color 0.2s;
+                    font-size: 28px;
+                    transition: all 0.3s ease;
                     margin-left: 20px; 
                     margin-top: 20px;
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    backdrop-filter: blur(5px);
+                    -webkit-backdrop-filter: blur(5px);
+                }
+                .menu-toggle.light {
+                    color: #ffffff;
+                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+                    background: rgba(255, 255, 255, 0.15);
+                }
+                .menu-toggle.dark {
+                    color: #555555;
+                    text-shadow: none;
+                    background: rgba(0, 0, 0, 0.05);
                 }
                 .menu-toggle:hover {
-                    color: #333; 
+                    transform: scale(1.1);
+                }
+                .menu-toggle.light:hover {
+                    background: rgba(255, 255, 255, 0.25);
+                }
+                .menu-toggle.dark:hover {
+                    background: rgba(0, 0, 0, 0.1);
                 }
                 .menu-list {
                     list-style: none;
@@ -186,6 +207,42 @@ class NavbarComponent extends HTMLElement {
                 link.classList.remove('active'); // Remove a classe 'active' de outros itens
             }
         });
+    }
+
+    updateMenuIconColor() {
+        const menuToggle = this.shadowRoot.querySelector('.menu-toggle');
+        const rect = menuToggle.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        
+        // Criar um elemento temporário para capturar a cor de fundo
+        const temp = document.createElement('div');
+        temp.style.position = 'absolute';
+        temp.style.height = '1px';
+        temp.style.width = '1px';
+        temp.style.top = `${y}px`;
+        temp.style.left = `${x}px`;
+        temp.style.pointerEvents = 'none';
+        document.body.appendChild(temp);
+        
+        // Obter a cor de fundo
+        const bgColor = window.getComputedStyle(temp).backgroundColor;
+        document.body.removeChild(temp);
+        
+        // Converter a cor para RGB e calcular o brilho
+        const rgb = bgColor.match(/\d+/g);
+        if (rgb) {
+            const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+            
+            // Ajustar a classe com base no brilho
+            if (brightness > 128) {
+                menuToggle.classList.remove('light');
+                menuToggle.classList.add('dark');
+            } else {
+                menuToggle.classList.remove('dark');
+                menuToggle.classList.add('light');
+            }
+        }
     }
 }
 
