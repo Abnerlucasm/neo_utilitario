@@ -171,7 +171,7 @@
             color: rgb(255, 255, 255);
         }
         .category-badge.is-info {
-            background-color: #000000;
+            background-color: transparent;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -254,6 +254,15 @@
                         </span>
                         <p class="heading">Servidores Ativos</p>
                         <p class="title" id="activeServers">0</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="stat-box">
+                        <span class="icon has-text-danger">
+                            <i class="fas fa-server"></i>
+                        </span>
+                        <p class="heading">Servidores Inativos</p>
+                        <p class="title" id="inactiveServers">0</p>
                     </div>
                 </div>
                 <div class="column">
@@ -452,8 +461,18 @@ Status do Cluster: Ativo
                 </div>
             </section>
             <footer class="modal-card-foot">
-                <button class="button is-success" onclick="saveGlassfish()">Salvar</button>
-                <button class="button" onclick="closeAddModal()">Cancelar</button>
+                <button class="button is-success" onclick="saveGlassfish()">
+                    <span class="icon">
+                        <i class="fas fa-save"></i>
+                    </span>
+                    <span>Salvar</span>
+                </button>
+                <button class="button" onclick="closeAddModal()">
+                    <span class="icon">
+                        <i class="fas fa-times"></i>
+                    </span>
+                    <span>Cancelar</span>
+                </button>
             </footer>
         </div>
     </div>
@@ -543,7 +562,12 @@ Status do Cluster: Ativo
                     </span>
                     <span>Executar Limpeza</span>
                 </button>
-                <button class="button" onclick="closeMaintenanceModal()">Cancelar</button>
+                <button class="button" onclick="closeMaintenanceModal()">
+                    <span class="icon">
+                        <i class="fas fa-times"></i>
+                    </span>
+                    <span>Cancelar</span>
+                </button>
             </footer>
         </div>
     </div>
@@ -570,6 +594,7 @@ Status do Cluster: Ativo
                             <a onclick="switchTab('applications')">
                                 <span class="icon is-small"><i class="fas fa-cube"></i></span>
                                 <span>Aplicações</span>
+                                <span class="tag is-warning is-light ml-2">Beta</span>
                             </a>
                         </li>
                     </ul>
@@ -667,8 +692,18 @@ Status do Cluster: Ativo
                 </div>
             </section>
             <footer class="modal-card-foot">
-                <button class="button is-success" onclick="saveDomainConfig()">Salvar</button>
-                <button class="button" onclick="closeDomainConfigModal()">Cancelar</button>
+                <button class="button is-success" onclick="saveDomainConfig()">
+                    <span class="icon">
+                        <i class="fas fa-save"></i>
+                    </span>
+                    <span>Salvar</span>
+                </button>
+                <button class="button" onclick="closeDomainConfigModal()">
+                    <span class="icon">
+                        <i class="fas fa-times"></i>
+                    </span>
+                    <span>Cancelar</span>
+                </button>
             </footer>
         </div>
     </div>
@@ -711,26 +746,24 @@ Status do Cluster: Ativo
                 const service = services[i];
                 try {
                     const response = await fetch(`/api/servicos/${service._id}/status`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
+                        method: 'GET'  // Mudado para GET ao invés de POST
                     });
                     const data = await response.json();
                     
                     const statusIndicator = document.querySelector(`#status-${service._id}`);
                     if (statusIndicator) {
                         if (response.ok) {
-                            statusIndicator.className = `status-indicator ${data.status === 'ativo' ? 'status-active' : 'status-inactive'}`;
-                            services[i].status = data.status === 'ativo' ? 'active' : 'inactive';
+                            statusIndicator.className = `status-indicator ${data.status === 'active' ? 'status-active' : 'status-inactive'}`;
+                            services[i].status = data.status === 'active' ? 'active' : 'inactive';
                         } else {
                             console.warn(`Aviso ao verificar status do serviço ${service.name}:`, data.error);
-                            // Mantém o status visual atual em caso de erro
                         }
                     }
                 } catch (error) {
                     console.error(`Erro ao verificar status do serviço ${service.name}:`, error);
-                    // Não altera o status visual em caso de erro
                 }
             }
+            updateDashboardStats();
         }
 
         function openAddModal(editIndex = null) {
@@ -881,84 +914,47 @@ Status do Cluster: Ativo
         // Funções de manipulação de status
         async function startService(index) {
             const service = services[index];
-            console.log('Iniciando serviço:', service);
-            
-            // Obter referências aos botões
-            const startButton = document.getElementById(`start-btn-${service._id}`);
-            const stopButton = document.getElementById(`stop-btn-${service._id}`);
-            
             try {
-                // Desabilitar botões e mostrar loading
-                startButton.classList.add('is-loading');
-                startButton.disabled = true;
-                stopButton.disabled = true;
-
-                const response = await fetch(`/api/servicos/glassfish/${service._id}/start`, {
+                const response = await fetch(`/api/servicos/${service._id}/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
-                
-                const data = await response.json();
+
                 if (!response.ok) {
-                    throw new Error(data.error || 'Erro ao iniciar serviço');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao iniciar serviço');
                 }
-                
-                showToast('Serviço iniciado com sucesso!', 'success');
-                await checkAllServicesStatus();
+
+                const data = await response.json();
+                showToast(data.message, 'success');
+                await checkServiceStatus(service);
             } catch (error) {
-                console.error('Erro ao iniciar serviço:', error);
                 showToast(error.message, 'danger');
-            } finally {
-                // Reabilitar botões e remover loading
-                startButton.classList.remove('is-loading');
-                startButton.disabled = false;
-                stopButton.disabled = false;
             }
         }
 
         async function stopService(index) {
             const service = services[index];
-            
-            // Obter referências aos botões
-            const startButton = document.getElementById(`start-btn-${service._id}`);
-            const stopButton = document.getElementById(`stop-btn-${service._id}`);
-            
             try {
-                // Desabilitar botões e mostrar loading
-                stopButton.classList.add('is-loading');
-                startButton.disabled = true;
-                stopButton.disabled = true;
-
-                const response = await fetch(`/api/servicos/glassfish/${service._id}/stop`, {
+                const response = await fetch(`/api/servicos/${service._id}/stop`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
-                
+
                 if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data.error || 'Erro ao parar serviço');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao parar serviço');
                 }
-                
-                showToast('Serviço parado com sucesso!', 'success');
-                await checkAllServicesStatus();
+
+                const data = await response.json();
+                showToast(data.message, 'success');
+                await checkServiceStatus(service);
             } catch (error) {
-                let errorMessage = error.message;
-                if (error.name === 'AbortError') {
-                    errorMessage = 'Timeout ao tentar parar o serviço';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMessage = 'Não foi possível conectar ao servidor. Verifique se o serviço está rodando.';
-                }
-                console.error('Erro ao parar serviço:', error);
-                showToast(errorMessage, 'danger');
-            } finally {
-                // Reabilitar botões e remover loading
-                stopButton.classList.remove('is-loading');
-                startButton.disabled = false;
-                stopButton.disabled = false;
+                showToast(error.message, 'danger');
             }
         }
 
-        // Atualizar a função de restart também
+        // Atualizar a função restart
         async function restartService(index) {
             const service = services[index];
             
@@ -973,9 +969,9 @@ Status do Cluster: Ativo
                 startButton.disabled = true;
                 stopButton.disabled = true;
                 restartButton.disabled = true;
-  
+
                 // Parar o serviço diretamente
-                const stopResponse = await fetch(`/api/servicos/glassfish/${service._id}/stop`, {
+                const stopResponse = await fetch(`/api/servicos/${service._id}/stop`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -989,7 +985,7 @@ Status do Cluster: Ativo
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 // Iniciar o serviço diretamente
-                const startResponse = await fetch(`/api/servicos/glassfish/${service._id}/start`, {
+                const startResponse = await fetch(`/api/servicos/${service._id}/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -999,6 +995,7 @@ Status do Cluster: Ativo
                     throw new Error(data.error || 'Erro ao iniciar serviço');
                 }
                 
+                const data = await startResponse.json();
                 showToast('Serviço reiniciado com sucesso!', 'success');
                 await checkAllServicesStatus();
             } catch (error) {
@@ -1087,7 +1084,7 @@ Status do Cluster: Ativo
             currentServiceId = index;
             try {
                 const service = services[index];
-                const response = await fetch(`/api/servicos/glassfish/${service._id}/logs`);
+                const response = await fetch(`/api/servicos/${service._id}/logs`);
                 const data = await response.json();
                 if (data.error) {
                     alert(data.error);
@@ -1209,7 +1206,6 @@ Status do Cluster: Ativo
         // Atualizar a função updateDashboardStats para refletir as sugestões
         async function updateDashboardStats() {
             try {
-                // Buscar estatísticas gerais
                 const response = await fetch('/api/servicos/stats/overview');
                 
                 if (!response.ok) {
@@ -1221,6 +1217,8 @@ Status do Cluster: Ativo
 
                 // Atualizar contadores e barras de progresso
                 document.getElementById('activeServers').textContent = overview.activeServers;
+                document.getElementById('inactiveServers').textContent = 
+                    overview.totalServers - overview.activeServers;
                 document.getElementById('avgRamUsage').textContent = `${overview.averageMemory}%`;
                 document.getElementById('avgCpuUsage').textContent = `${overview.averageCpu}%`;
 
@@ -1243,6 +1241,7 @@ Status dos Servidores
 --------------------
 Total de Servidores: ${overview.totalServers}
 Servidores Ativos: ${overview.activeServers}
+Servidores Inativos: ${overview.totalServers - overview.activeServers}
 RAM Média: ${overview.averageMemory}%
 CPU Média: ${overview.averageCpu}%
 Última Atualização: ${new Date().toLocaleString()}
@@ -1250,6 +1249,7 @@ CPU Média: ${overview.averageCpu}%
 Detalhes por Servidor:
 ${overview.serverDetails.map(server => 
     `${server.name}:
+    Status: ${server.status}
     RAM: ${server.memory}%
     CPU: ${server.cpu}%
 `).join('\n')}
@@ -1258,16 +1258,6 @@ ${overview.serverDetails.map(server =>
             } catch (error) {
                 console.error('Erro ao atualizar estatísticas:', error);
                 showToast('Erro ao atualizar estatísticas: ' + error.message, 'danger');
-                
-                // Limpar os valores em caso de erro
-                document.getElementById('activeServers').textContent = 'N/A';
-                document.getElementById('avgRamUsage').textContent = 'N/A';
-                document.getElementById('avgCpuUsage').textContent = 'N/A';
-                
-                const ramProgress = document.getElementById('ramProgress');
-                const cpuProgress = document.getElementById('cpuProgress');
-                ramProgress.value = 0;
-                cpuProgress.value = 0;
             }
         }
 
@@ -1322,14 +1312,23 @@ ${overview.serverDetails.map(server =>
 
         async function executeMaintenanceTasks() {
             const service = services[currentMaintenanceIndex];
-            const tasks = {
-                cleanApplications: document.getElementById('clean-applications').checked,
-                cleanLogs: document.getElementById('clean-logs').checked,
-                cleanGenerated: document.getElementById('clean-generated').checked,
-                cleanAutodeploy: document.getElementById('clean-autodeploy').checked
-            };
+            const tasks = [];
 
-            if (!tasks.cleanApplications && !tasks.cleanLogs && !tasks.cleanGenerated && !tasks.cleanAutodeploy) {
+            // Coletar todas as tarefas selecionadas
+            if (document.getElementById('clean-applications').checked) {
+                tasks.push('cleanApplications');
+            }
+            if (document.getElementById('clean-logs').checked) {
+                tasks.push('cleanLogs');
+            }
+            if (document.getElementById('clean-generated').checked) {
+                tasks.push('cleanGenerated');
+            }
+            if (document.getElementById('clean-autodeploy').checked) {
+                tasks.push('cleanAutodeploy');
+            }
+
+            if (tasks.length === 0) {
                 showToast('Selecione pelo menos uma opção de limpeza', 'warning');
                 return;
             }
@@ -1340,46 +1339,33 @@ ${overview.serverDetails.map(server =>
             cleanButton.disabled = true;
 
             try {
-                const response = await fetch(`/api/servicos/glassfish/${service._id}/maintenance`, {
+                const response = await fetch(`/api/servicos/${service._id}/maintenance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(tasks)
+                    body: JSON.stringify({ tasks })
                 });
 
-                const result = await response.json();
-                
                 if (!response.ok) {
-                    throw new Error(result.error || 'Erro na manutenção');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro na manutenção');
                 }
 
-                // Criar modal para mostrar o log
-                const logModal = document.createElement('div');
-                logModal.className = 'modal is-active';
-                logModal.innerHTML = `
-                    <div class="modal-background"></div>
-                    <div class="modal-card">
-                        <header class="modal-card-head">
-                            <p class="modal-card-title">Resultado da Manutenção</p>
-                            <button class="delete" aria-label="close" onclick="this.closest('.modal').remove()"></button>
-                        </header>
-                        <section class="modal-card-body">
-                            <pre style="max-height: 400px; overflow-y: auto;">${result.log}</pre>
-                        </section>
-                        <footer class="modal-card-foot">
-                            <button class="button" onclick="this.closest('.modal').remove()">Fechar</button>
-                        </footer>
-                    </div>
-                `;
-                document.body.appendChild(logModal);
-
+                const data = await response.json();
+                
+                // Mostrar resultados
+                let message = 'Tarefas executadas:\n';
+                data.results.forEach(result => {
+                    message += `\n${result.task}: ${result.success ? '✓' : '✗'} ${result.message}`;
+                });
+                
                 showToast('Manutenção concluída com sucesso', 'success');
+                closeMaintenanceModal();
             } catch (error) {
                 console.error('Erro na manutenção:', error);
                 showToast(`Erro na manutenção: ${error.message}`, 'danger');
             } finally {
                 cleanButton.classList.remove('is-loading');
                 cleanButton.disabled = false;
-                closeMaintenanceModal();
             }
         }
 
@@ -1583,27 +1569,33 @@ ${overview.serverDetails.map(server =>
                 uploadButton.classList.add('is-loading');
                 uploadButton.disabled = true;
                 
-                // Adicionar timeout mais longo para arquivos grandes
-                const response = await Promise.race([
-                    fetch(`/api/servicos/${service._id}/upload-application`, {
-                        method: 'POST',
-                        body: formData
-                    }),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Timeout: O upload demorou muito tempo')), 300000)
-                    )
-                ]);
+                // Corrigir a URL para usar o ID correto do serviço
+                const response = await fetch(`/api/servicos/${service._id}/upload-application`, {
+                    method: 'POST',
+                    body: formData
+                });
 
+                // Verificar se a resposta não é OK antes de tentar parsear JSON
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erro ao fazer upload da aplicação');
+                    const contentType = response.headers.get('content-type');
+                    let errorMessage;
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || 'Erro ao fazer upload da aplicação';
+                    } else {
+                        errorMessage = `Erro ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
                 }
 
+                const data = await response.json();
                 showToast('Upload realizado com sucesso!', 'success');
                 fileInput.value = '';
                 document.getElementById('file-name').textContent = 'Nenhum arquivo selecionado';
                 uploadButton.disabled = true;
                 
+                // Recarregar lista de aplicações
                 await loadApplicationsList(service);
             } catch (error) {
                 console.error('Erro no upload:', error);
@@ -1625,36 +1617,38 @@ ${overview.serverDetails.map(server =>
 
         async function checkServiceStatus(service) {
             try {
-                const response = await fetch(`/api/servicos/glassfish/${service._id}/status`);
+                const response = await fetch(`/api/servicos/${service._id}/status`);
                 if (!response.ok) {
-                    throw new Error('Erro ao verificar status');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao verificar status');
                 }
                 const data = await response.json();
                 
                 const statusIndicator = document.querySelector(`#status-${service._id}`);
                 const statusText = document.querySelector(`#status-text-${service._id}`);
+                const startButton = document.getElementById(`start-btn-${service._id}`);
+                const stopButton = document.getElementById(`stop-btn-${service._id}`);
                 
                 if (statusIndicator && statusText) {
-                    if (data.status === 'running') {
+                    if (data.status === 'active') {
                         statusIndicator.className = 'status-indicator is-success';
                         statusText.textContent = 'Ativo';
-                    } else if (data.status === 'stopped') {
-                        statusIndicator.className = 'status-indicator is-danger';
-                        statusText.textContent = 'Parado';
+                        if (startButton && stopButton) {
+                            startButton.disabled = true;
+                            stopButton.disabled = false;
+                        }
                     } else {
-                        statusIndicator.className = 'status-indicator is-warning';
-                        statusText.textContent = 'Desconhecido';
+                        statusIndicator.className = 'status-indicator is-danger';
+                        statusText.textContent = 'Inativo';
+                        if (startButton && stopButton) {
+                            startButton.disabled = false;
+                            stopButton.disabled = true;
+                        }
                     }
                 }
             } catch (error) {
                 console.error('Erro ao verificar status:', error);
-                // Atualizar indicador para amarelo em caso de erro
-                const statusIndicator = document.querySelector(`#status-${service._id}`);
-                const statusText = document.querySelector(`#status-text-${service._id}`);
-                if (statusIndicator && statusText) {
-                    statusIndicator.className = 'status-indicator is-warning';
-                    statusText.textContent = 'Erro na verificação';
-                }
+                throw error;
             }
         }
     </script>

@@ -242,3 +242,40 @@ body.dark .tabs a:hover {
     border-bottom-color: #4a4a4a;
     color: #dbdbdb;
 }
+
+/* Estilo do card de novidade */
+.new-feature-card {
+    border: 1px solid #3e8ed0;
+    box-shadow: 0 4px 8px rgba(62, 142, 208, 0.1);
+    transition: all 0.3s ease;
+}
+
+.new-feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(62, 142, 208, 0.2);
+}
+
+.new-feature-card .card-footer-item {
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.new-feature-card .card-footer-item:hover {
+    background-color: #3e8ed0;
+    color: white;
+}
+
+/* Ajuste para tema escuro */
+body.dark .new-feature-card {
+    border-color: #66b3ff;
+    background-color: #2c2c2c;
+}
+
+body.dark .new-feature-card .card-footer-item:hover {
+    background-color: #66b3ff;
+}
+
+/* Seção de novidades */
+.section.mt-6 {
+    margin-top: 3rem !important;
+}

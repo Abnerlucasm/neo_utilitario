@@ -52,41 +52,38 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // Configurar botões com redirecionamento direto
-    const buttons = {
-        config: document.getElementById('btn-config'),
-        rotinas: document.getElementById('btn-rotinas'),
-        utilitarios: document.getElementById('btn-utilitarios'),
-        recursosDev: document.getElementById('btn-recursos-dev'),
-        sugestoesDev: document.getElementById('btn-sugestoes-dev'),
-        userNameButton: document.getElementById('userNameButton'),
+    // Configurar botões de navegação
+    const navigationButtons = {
+        'btn-config': 'config.html',
+        'btn-rotinas': 'rotinas.html',
+        'btn-utilitarios': 'utilitarios.html',
+        'btn-recursos-dev': 'recursos-dev.html',
+        'btn-sugestoes-dev': 'sugestoes-dev.html'
     };
 
-    // Adicionar event listeners para redirecionamento direto
-    Object.entries(buttons).forEach(([key, button]) => {
-        if (!button) return;
-        
-        switch(key) {
-            case 'userNameButton':
-                button.addEventListener('click', showUserModal);
-                break;
-            case 'recursosDev':
-                button.addEventListener('click', () => window.location.href = 'recursos-dev.html');
-                break;
-            case 'sugestoesDev':
-                button.addEventListener('click', () => window.location.href = 'sugestoes-dev.html');
-                break;
-            case 'config':
-                button.addEventListener('click', () => window.location.href = 'config.html');
-                break;
-            case 'rotinas':
-                button.addEventListener('click', () => window.location.href = 'rotinas.html');
-                break;
-            case 'utilitarios':
-                button.addEventListener('click', () => window.location.href = 'utilitarios.html');
-                break;
+    // Adicionar event listeners para navegação
+    Object.entries(navigationButtons).forEach(([id, url]) => {
+        const button = document.getElementById(id);
+        if (button) {
+            button.addEventListener('click', () => window.location.href = url);
         }
     });
+
+    // Configurar botão de configurações e modal
+    setupUserSettingsModal();
+
+    // Inicializar tema
+    const savedTheme = userSettings.getSetting('theme') || 'light';
+    updateTheme(savedTheme);
+
+    // Mostrar saudação se houver nome salvo
+    const userName = userSettings.getSetting('userName');
+    if (userName) {
+        const greetingElement = document.getElementById('greeting');
+        if (greetingElement) {
+            greetingElement.textContent = `${getGreeting()}, ${userName}!`;
+        }
+    }
 
     // Opcional: restaurar apenas a última aba aberta
     const lastOpenedTabs = userSettings.getSetting('lastOpenedTabs') || [];
@@ -106,6 +103,62 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Função para configurar o modal e seus event listeners
+function setupUserSettingsModal() {
+    // Botão que abre o modal
+    const settingsButton = document.getElementById('openSettingsButton');
+    if (settingsButton) {
+        settingsButton.addEventListener('click', showSettingsModal);
+    }
+
+    // Botão Salvar
+    const saveButton = document.getElementById('saveSettings');
+    if (saveButton) {
+        saveButton.addEventListener('click', () => {
+            const input = document.getElementById('userNameInput');
+            const themeSelect = document.getElementById('themeSelect');
+            const newName = input.value.trim();
+            
+            if (newName) {
+                userSettings.updateSetting('userName', newName);
+                userSettings.updateSetting('theme', themeSelect.value);
+                const greetingElement = document.getElementById('greeting');
+                if (greetingElement) {
+                    greetingElement.textContent = `${getGreeting()}, ${newName}!`;
+                }
+                updateTheme(themeSelect.value);
+                closeModal();
+            } else {
+                showToast('Por favor, insira seu nome.');
+            }
+        });
+    }
+
+    // Botão Cancelar
+    const cancelButton = document.getElementById('cancelSettings');
+    if (cancelButton) {
+        cancelButton.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+
+    // Botão X (fechar) do modal
+    const modalClose = document.querySelector('#userSettingsModal .modal-close');
+    if (modalClose) {
+        modalClose.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+
+    // Background do modal
+    const modalBackground = document.querySelector('#userSettingsModal .modal-background');
+    if (modalBackground) {
+        modalBackground.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+}
+
 function getGreeting() {
     const now = new Date();
     const hours = now.getHours();
@@ -122,20 +175,33 @@ function getGreeting() {
     return greeting;
 }
 
-function showUserModal() {
-    const modal = document.getElementById('nameModal');
+function showSettingsModal() {
+    const modal = document.getElementById('userSettingsModal');
     const input = document.getElementById('userNameInput');
-    input.value = userSettings.getSetting('userName') || '';
-    modal.classList.add('is-active');
+    const themeSelect = document.getElementById('themeSelect');
+
+    if (modal && input && themeSelect) {
+        input.value = userSettings.getSetting('userName') || '';
+        themeSelect.value = userSettings.getSetting('theme') || 'light';
+        modal.classList.add('is-active');
+    }
 }
 
 function closeModal() {
-    const modal = document.getElementById('nameModal');
-    modal.classList.remove('is-active');
+    const modal = document.getElementById('userSettingsModal');
+    if (modal) {
+        modal.classList.remove('is-active');
+    }
 }
 
-function showToast() {
+function showToast(message = 'Por favor, preencha todos os campos obrigatórios.') {
     const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    
+    if (toastMessage) {
+        toastMessage.textContent = message;
+    }
+    
     toast.classList.remove('is-hidden');
     setTimeout(function() {
         toast.classList.add('is-hidden');
@@ -147,51 +213,19 @@ function hideToast() {
     toast.classList.add('is-hidden');
 }
 
-const userName = localStorage.getItem('userName');
-const greetingElement = document.getElementById('greeting');
-
-if (!userName) {
-    showUserModal();
-} else {
-    greetingElement.textContent = `${getGreeting()}, ${userName}!`;
-}
-
-document.getElementById('submitName').addEventListener('click', () => {
-    const input = document.getElementById('userNameInput');
-    const newName = input.value.trim();
-    
-    if (newName) {
-        userSettings.updateSetting('userName', newName);
-        document.getElementById('greeting').textContent = `${getGreeting()}, ${newName}!`;
-        closeModal();
-    } else {
-        showToast();
-    }
-});
-
-document.getElementById('closeModal').addEventListener('click', closeModal);
-
 // Alteração de tema claro/escuro
 const themeToggleButton = document.getElementById('theme-toggle');
 const themeIcon = document.getElementById('theme-icon');
 
 function updateTheme(theme) {
-    document.body.classList.remove('light', 'dark');
-    document.body.classList.add(theme);
-    themeIcon.classList.remove('fa-sun', 'fa-moon');
-    themeIcon.classList.add(theme === 'dark' ? 'fa-moon' : 'fa-sun');
-    userSettings.updateSetting('theme', theme);
+    try {
+        document.body.classList.remove('light', 'dark');
+        document.body.classList.add(theme);
+        userSettings.updateSetting('theme', theme);
+    } catch (error) {
+        console.error('Erro ao atualizar tema:', error);
+    }
 }
-
-// Inicializar tema
-const savedTheme = userSettings.getSetting('theme') || 'light';
-updateTheme(savedTheme);
-
-// Alternar tema ao clicar no botão
-themeToggleButton.addEventListener('click', () => {
-    const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
-    updateTheme(newTheme);
-});
 
 // Adicionar função viewLogs
 async function viewLogs(index) {

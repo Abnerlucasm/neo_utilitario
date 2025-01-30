@@ -115,23 +115,36 @@
                 </footer>
             </div>
 
-            <!-- Modal -->
-            <div class="modal" id="nameModal">
+            <!-- Modal de Configurações do Usuário -->
+            <div class="modal" id="userSettingsModal">
                 <div class="modal-background"></div>
                 <div class="modal-content">
                     <div class="box">
-                        <h2 class="title is-4">Bem-vindo, como posso te chamar?</h2>
+                        <h2 class="title is-4">Configurações do Usuário</h2>
                         <div class="field">
+                            <label class="label">Nome de Exibição</label>
                             <div class="control">
-                                <input id="userNameInput" class="input" type="text" placeholder="Digite seu nome">
+                                <input id="userNameInput" class="input" type="text" placeholder="Como deseja ser chamado?">
                             </div>
                         </div>
-                        <div class="buttons">
-                            <button class="button is-primary" id="submitName">Salvar</button>
+                        <div class="field">
+                            <label class="label">Tema</label>
+                            <div class="control">
+                                <div class="select">
+                                    <select id="themeSelect">
+                                        <option value="light">Claro</option>
+                                        <option value="dark">Escuro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="buttons is-right mt-4">
+                            <button class="button" id="cancelSettings">Cancelar</button>
+                            <button class="button is-primary" id="saveSettings">Salvar</button>
                         </div>
                     </div>
                 </div>
-                <button class="modal-close is-large" id="closeModal"></button>
+                <button class="modal-close is-large" aria-label="close"></button>
             </div>
 
             <!-- Toast Notification -->
@@ -142,14 +155,58 @@
 
             <!-- User Settings -->
             <div class="user-settings">
-                <button id="userNameButton"><i class="fas fa-user"></i></button>
-                <button id="theme-toggle"><i class="fas fa-adjust" id="theme-icon"></i></button>
+                <button id="openSettingsButton" title="Configurações do Usuário">
+                    <i class="fas fa-user"></i>
+                </button>
             </div>
         </div>
-        <!-- User Settings -->
-        <div class="user-settings">
-            <button id="userNameButton"><i class="fas fa-user"></i></button> <!-- Ícone de usuário -->
-            <button id="theme-toggle"><i class="fas fa-adjust" id="theme-icon"></i></button>
+
+        <!-- Seção de Novidades -->
+        <div class="section mt-6">
+            <h2 class="title is-4">
+                <span class="icon-text">
+                    <span class="icon has-text-info">
+                        <i class="fas fa-star"></i>
+                    </span>
+                    <span>Novidades</span>
+                </span>
+            </h2>
+            
+            <!-- Card do Glassfish -->
+            <div class="card new-feature-card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon is-large has-text-info">
+                                <i class="fas fa-server fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">
+                                Gerenciador Glassfish
+                                <span class="tag is-info is-light ml-2">Novo</span>
+                            </p>
+                            <p class="subtitle is-6">Gerencie seus servidores Glassfish de forma simplificada.</p>
+                        </div>
+                    </div>
+                    <div class="content">
+                        <ul>
+                            <li>Controle múltiplos servidores</li>
+                            <li>Monitoramento em tempo real</li>
+                            <li>Deploy de aplicações</li>
+                            <li>Manutenção simplificada</li>
+                        </ul>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <a href="glassfish.html" class="card-footer-item button is-info is-light">
+                        <span class="icon">
+                            <i class="fas fa-external-link-alt"></i>
+                        </span>
+                        <span>Acessar Gerenciador</span>
+                    </a>
+                </footer>
+            </div>
         </div>
     </div>
 

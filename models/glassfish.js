@@ -31,7 +31,7 @@ const glassfishSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'inactive'],
+        enum: ['active', 'inactive', 'stopped'],
         default: 'inactive'
     },
     pid: {
@@ -39,7 +39,9 @@ const glassfishSchema = new mongoose.Schema({
     },
     logsPath: {
         type: String,
-        default: 'glassfish6.2.5/glassfish/domains/neosistemas/logs'
+        default: function() {
+            return `glassfish6.2.5/glassfish/domains/${this.domain}/logs`;
+        }
     },
     installPath: {
         type: String,
