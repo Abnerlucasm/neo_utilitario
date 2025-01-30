@@ -695,42 +695,30 @@
                 <div id="database-tab" class="tab-content" style="display: block;">
                     <h3 class="title is-5">Configuração do Banco de Dados</h3>
                     <div class="field">
-                        <label class="label">Servidor</label>
+                        <label class="label">Servidor do Banco</label>
                         <div class="control">
-                            <input class="input" type="text" id="db-server" placeholder="Carregando..." disabled>
-                            <span id="db-server-loading" class="icon is-small is-right loading-icon">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </span>
+                            <input class="input" type="text" id="db-server" placeholder="Ex: localhost">
                         </div>
                     </div>
                     
                     <div class="field">
                         <label class="label">Usuário</label>
                         <div class="control">
-                            <input class="input" type="text" id="db-user" placeholder="Carregando..." disabled>
-                            <span id="db-user-loading" class="icon is-small is-right loading-icon">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </span>
+                            <input class="input" type="text" id="db-user" placeholder="Ex: postgres">
                         </div>
                     </div>
                     
                     <div class="field">
                         <label class="label">Senha</label>
                         <div class="control">
-                            <input class="input" type="password" id="db-password" placeholder="Carregando..." disabled>
-                            <span id="db-password-loading" class="icon is-small is-right loading-icon">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </span>
+                            <input class="input" type="password" id="db-password">
                         </div>
                     </div>
                     
                     <div class="field">
                         <label class="label">Nome do Banco</label>
                         <div class="control">
-                            <input class="input" type="text" id="db-name" placeholder="Carregando..." disabled>
-                            <span id="db-name-loading" class="icon is-small is-right loading-icon">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </span>
+                            <input class="input" type="text" id="db-name" placeholder="Ex: neocorp">
                         </div>
                     </div>
                 </div>
@@ -1726,30 +1714,58 @@
         }
 
         async function saveDomainConfig() {
-            const service = services[currentDomainConfigIndex];
-            const config = {
-                serverName: document.getElementById('db-server').value,
-                user: document.getElementById('db-user').value,
-                password: document.getElementById('db-password').value,
-                databaseName: document.getElementById('db-name').value
-            };
-
             try {
-                const response = await fetch(`/api/servicos/${service._id}/domain-config`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
-                });
-
-                if (!response.ok) {
-                    throw new Error('Erro ao salvar configurações');
+                const service = services[currentDomainConfigIndex];
+                if (!service) {
+                    throw new Error('Serviço não encontrado');
                 }
 
-                showToast('Configurações salvas com sucesso!', 'success');
-                closeDomainConfigModal();
+                // Coletar os valores dos campos
+                const config = {
+                    serverName: document.getElementById('db-server').value.trim(),
+                    user: document.getElementById('db-user').value.trim(),
+                    password: document.getElementById('db-password').value.trim(),
+                    databaseName: document.getElementById('db-name').value.trim()
+                };
+
+                // Validar se todos os campos estão preenchidos
+                if (!config.serverName || !config.user || !config.password || !config.databaseName) {
+                    showToast('Por favor, preencha todos os campos', 'warning');
+                    return;
+                }
+
+                // Adicionar loading state
+                const saveButton = document.querySelector('#domain-config-modal .button.is-success');
+                saveButton.classList.add('is-loading');
+                saveButton.disabled = true;
+
+                try {
+                    const response = await fetch(`/api/servicos/${service._id}/domain-config`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || errorData.details || 'Erro ao salvar configurações');
+                    }
+
+                    const data = await response.json();
+                    showToast('Configurações salvas com sucesso!', 'success');
+                    closeDomainConfigModal();
+                } catch (error) {
+                    console.error('Erro ao salvar configurações:', error);
+                    showToast(error.message, 'danger');
+                    throw error;
+                } finally {
+                    // Remover loading state
+                    saveButton.classList.remove('is-loading');
+                    saveButton.disabled = false;
+                }
             } catch (error) {
                 console.error('Erro ao salvar configurações:', error);
-                showToast('Erro ao salvar configurações', 'danger');
+                showToast(error.message, 'danger');
             }
         }
 
