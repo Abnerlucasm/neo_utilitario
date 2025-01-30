@@ -5,10 +5,9 @@ body {
     color: var(--text-color);
     margin: 0;
     padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     transition: all 0.3s ease;
 }
 
@@ -29,12 +28,10 @@ body.dark {
 
 /* Container Principal */
 .container {
+    width: 100%;
     max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    position: relative;
+    margin: 0 auto;
+    padding: 0 1.5rem;
 }
 
 /* Título */
@@ -45,9 +42,11 @@ body.dark {
 
 /* Menu Opções */
 .menu-opcoes {
+    margin-top: 2rem;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem;
 }
 
 /* Cartões */
@@ -56,10 +55,14 @@ body.dark {
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .card-content {
+    flex: 1;
     padding: 20px;
 }
 
@@ -67,6 +70,7 @@ body.dark {
     background-color: #f5f5f5;
     text-align: center;
     padding: 10px;
+    margin-top: auto;
 }
 
 .card-footer-item {
@@ -278,4 +282,135 @@ body.dark .new-feature-card .card-footer-item:hover {
 /* Seção de novidades */
 .section.mt-6 {
     margin-top: 3rem !important;
+}
+
+/* Animação de entrada para o título */
+.brand-title {
+    font-size: 4rem;
+    font-weight: 700;
+    letter-spacing: -2px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: white;
+}
+
+.brand-logo {
+    height: 4rem;
+    width: auto;
+    animation: fadeInDown 1s ease-out;
+}
+
+.brand-text {
+    background: linear-gradient(45deg, #ffffff, #E0E0E0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: fadeInDown 1s ease-out 0.2s;
+}
+
+.brand-subtitle {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Estilização moderna para os cards */
+.card {
+    border: none;
+    background: white;
+    border-radius: 12px;
+}
+
+.card-content {
+    padding: 2rem;
+}
+
+.media-left .icon {
+    color: #3498DB;
+    transition: color 0.3s ease;
+}
+
+.card:hover .media-left .icon {
+    color: #2C3E50;
+}
+
+/* Responsividade */
+@media screen and (max-width: 768px) {
+    .brand-title {
+        font-size: 3rem;
+    }
+    
+    .brand-logo {
+        height: 3rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 1.25rem;
+    }
+
+    .welcome-section {
+        margin-top: -2rem;
+        margin-left: 1rem;
+        margin-right: 1rem;
+    }
+}
+
+/* Ajustes de layout e alinhamento */
+.hero.is-neohub {
+    background: linear-gradient(135deg, #2C3E50 0%, #3498DB 100%);
+    color: white;
+    width: 100%;
+}
+
+.hero-brand {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+}
+
+.welcome-section {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-top: -4rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.neo-logo {
+    height: 2rem;
+    width: auto;
+    margin-left: 0.5rem;
+    vertical-align: middle;
 }

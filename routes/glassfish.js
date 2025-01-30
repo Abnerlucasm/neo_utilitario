@@ -107,7 +107,7 @@ async function executeSSHCommand(service, command, timeout = 30000) {
         if (result.stderr && result.stderr.includes('No such file or directory')) {
             throw new Error(`Diretório ou arquivo não encontrado: ${result.stderr}`);
         }
-
+        
         return {
             code: result.code || 0,
             stdout: result.stdout || '',
@@ -151,24 +151,24 @@ async function checkGlassfishStatus(service) {
                 await executeSSHCommand(service, portCommand);
                 
                 // 3. Verificar com asadmin list-domains para confirmação extra
-                const statusCommand = `
+        const statusCommand = `
                     cd ${installPath}/glassfish/bin &&
-                    ./asadmin list-domains | grep "${service.domain}"
-                `;
-                const domainStatus = await executeSSHCommand(service, statusCommand);
+            ./asadmin list-domains | grep "${service.domain}"
+        `;
+        const domainStatus = await executeSSHCommand(service, statusCommand);
                 
                 // Se o processo existe e a porta está escutando, consideramos ativo
-                return {
-                    status: 'active',
+            return {
+                status: 'active',
                     pid: parseInt(pid),
                     details: {
                         asadminStatus: domainStatus.stdout.trim()
-                    }
-                };
+        }
+        };
             } catch (portError) {
                 logger.warn(`Processo existe mas porta não está escutando para ${service.name}:`, portError);
-                return {
-                    status: 'inactive',
+        return {
+            status: 'inactive',
                     pid: parseInt(pid),
                     details: {
                         error: 'port_not_listening'
@@ -203,17 +203,17 @@ async function checkGlassfishStatus(service) {
             logger.debug(`Verificação final falhou para ${service.name}:`, finalError);
         }
 
-        return {
-            status: 'inactive',
+                    return {
+                        status: 'inactive',
             pid: null
-        };
-    } catch (error) {
+                };
+            } catch (error) {
         logger.error('Erro ao verificar status:', {
             service: service.name,
             error: error.message
         });
-        return {
-            status: 'error',
+                return {
+                    status: 'error',
             pid: null,
             details: {
                 error: 'check_failed',
@@ -318,7 +318,7 @@ router.post('/servicos', async (req, res) => {
             sshPassword, 
             installPath,
             status,
-            categoria
+            setor
         } = req.body;
 
         // Validação dos campos obrigatórios
@@ -348,7 +348,7 @@ router.post('/servicos', async (req, res) => {
             sshPassword,
             installPath: installPath || '/srv/glassfish6.2.5',
             status: status || 'inactive',
-            categoria: categoria || 'Cliente'
+            setor: setor || 'Setor Sup. Externo'
         });
 
         await newService.save();
@@ -379,7 +379,7 @@ router.put('/servicos/:id', async (req, res) => {
         const allowedUpdates = [
             'name', 'ip', 'port', 'domain', 'password', 
             'sshUsername', 'sshPassword', 'installPath', 
-            'status', 'categoria'
+            'status', 'setor'
         ];
         
         const updates = {};
@@ -487,7 +487,7 @@ router.get('/servicos/:id/status', async (req, res) => {
         logger.error('Erro ao verificar status:', error);
         res.status(500).json({ 
             error: 'Erro ao verificar status',
-            details: error.message
+            details: error.message 
         });
     }
 });
@@ -520,7 +520,7 @@ async function collectServerStats(service) {
         const cpuResult = await executeSSHCommand(service, cpuCommand);
         const cpuUsage = parseInt(cpuResult.stdout) || 0;
 
-        return {
+            return { 
             memory: memoryUsage,
             cpu: cpuUsage
         };
@@ -669,12 +669,12 @@ router.get('/servicos/:id/domain-config', async (req, res) => {
         }
 
         try {
-            const result = await tryReadDomainXml(service);
-            const parser = new xml2js.Parser({
-                explicitArray: true,
-                mergeAttrs: false,
-                attrkey: '$'
-            });
+        const result = await tryReadDomainXml(service);
+        const parser = new xml2js.Parser({
+            explicitArray: true,
+            mergeAttrs: false,
+            attrkey: '$'
+        });
 
             const xmlData = await parser.parseStringPromise(result.stdout);
             
@@ -699,21 +699,21 @@ router.get('/servicos/:id/domain-config', async (req, res) => {
             };
 
             if (pool.property) {
-                pool.property.forEach(prop => {
+            pool.property.forEach(prop => {
                     if (prop && prop.$) {
                         switch (prop.$.name) {
-                            case 'serverName':
+                    case 'serverName':
                                 config.serverName = prop.$.value;
-                                break;
-                            case 'user':
+                        break;
+                    case 'user':
                                 config.user = prop.$.value;
-                                break;
-                            case 'password':
+                        break;
+                    case 'password':
                                 config.password = prop.$.value;
-                                break;
-                            case 'databaseName':
+                        break;
+                    case 'databaseName':
                                 config.databaseName = prop.$.value;
-                                break;
+                        break;
                         }
                     }
                 });
@@ -740,7 +740,7 @@ router.get('/servicos/:id/domain-config', async (req, res) => {
     }
 });
 
-// Rota para salvar configurações no domain.xml
+// Rota para atualizar configurações do domínio
 router.put('/servicos/:id/domain-config', async (req, res) => {
     try {
         const service = await Glassfish.findById(req.params.id);
@@ -748,9 +748,47 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
 
-        // Ler o arquivo atual
-        const result = await tryReadDomainXml(service);
+        const { serverName, user, password, databaseName } = req.body;
+
+        // Validar os dados recebidos
+        if (!serverName || !user || !password || !databaseName) {
+            return res.status(400).json({ 
+                error: 'Dados incompletos',
+                details: 'Todos os campos são obrigatórios'
+            });
+        }
+
+        logger.info('Iniciando atualização do domain.xml:', {
+            serviceId: service._id,
+            serviceName: service.name,
+            domainPath: `${service.installPath}/glassfish/domains/${service.domain}`
+        });
+
+        // 2. Atualizar o domain.xml
+        const domainXmlPath = `${service.installPath}/glassfish/domains/${service.domain}/config/domain.xml`;
         
+        // Ler o arquivo atual
+        const readCommand = `cat "${domainXmlPath}"`;
+        logger.debug('Executando comando de leitura:', { command: readCommand });
+
+        const result = await executeRemoteCommand(
+            service.ip,
+            service.sshUsername,
+            service.sshPassword,
+            readCommand
+        );
+
+        if (result.code !== 0) {
+            logger.error('Erro ao ler domain.xml:', {
+                stderr: result.stderr,
+                code: result.code,
+                path: domainXmlPath
+            });
+            throw new Error(`Erro ao ler domain.xml: ${result.stderr}`);
+        }
+
+        logger.debug('Arquivo domain.xml lido com sucesso');
+
         // Parsear o XML existente
         const parser = new xml2js.Parser({ explicitArray: false });
         const xmlData = await parser.parseStringPromise(result.stdout);
@@ -766,8 +804,13 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
         );
 
         if (!jdbcPool) {
+            logger.error('Pool de conexão não encontrado no XML:', {
+                availablePools: pools.map(p => p.$.name).join(', ')
+            });
             throw new Error('Pool de conexão não encontrado');
         }
+
+        logger.debug('Pool de conexão encontrado, atualizando propriedades');
 
         // Atualizar as propriedades
         const properties = Array.isArray(jdbcPool.property) ? jdbcPool.property : [jdbcPool.property];
@@ -775,16 +818,16 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
             if (prop && prop.$) {
                 switch (prop.$.name) {
                     case 'serverName':
-                        prop.$.value = req.body.serverName;
+                        prop.$.value = serverName;
                         break;
                     case 'user':
-                        prop.$.value = req.body.user;
+                        prop.$.value = user;
                         break;
                     case 'password':
-                        prop.$.value = req.body.password;
+                        prop.$.value = password;
                         break;
                     case 'databaseName':
-                        prop.$.value = req.body.databaseName;
+                        prop.$.value = databaseName;
                         break;
                 }
             }
@@ -796,8 +839,14 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
 
         // Criar arquivo temporário e mover para o local correto
         const tempFile = '/tmp/domain.xml.tmp';
-        const writeCommand = `echo '${updatedXml.replace(/'/g, '\'\\\'\'')}' > ${tempFile} && sudo mv ${tempFile} "${result.filePath}"`;
+        const writeCommand = `
+            echo '${updatedXml.replace(/'/g, '\'\\\'\'')}' > ${tempFile} && 
+            echo '${service.sshPassword}' | sudo -S mv ${tempFile} "${domainXmlPath}" &&
+            echo '${service.sshPassword}' | sudo -S chown glassfish:glassfish "${domainXmlPath}"
+        `;
         
+        logger.debug('Executando comando de escrita');
+
         const writeResult = await executeRemoteCommand(
             service.ip,
             service.sshUsername,
@@ -806,17 +855,46 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
         );
 
         if (writeResult.code !== 0) {
-            throw new Error(`Erro ao salvar arquivo: ${writeResult.stderr}`);
+            logger.error('Erro ao salvar domain.xml:', {
+                stderr: writeResult.stderr,
+                code: writeResult.code
+            });
+            throw new Error(`Erro ao salvar domain.xml: ${writeResult.stderr}`);
         }
 
-        logger.info('Configurações salvas com sucesso');
-        res.json({ message: 'Configurações atualizadas com sucesso' });
+        logger.debug('Arquivo domain.xml atualizado com sucesso');
+
+        // 1. Atualizar no MongoDB
+        service.domainConfig = {
+            serverName,
+            user,
+            password,
+            databaseName
+        };
+
+        // 3. Salvar as alterações no MongoDB
+        await service.save();
+
+        logger.info('Configurações do domínio atualizadas com sucesso');
+
+        res.json({ 
+            message: 'Configurações atualizadas com sucesso',
+            service: {
+                id: service._id,
+                name: service.name,
+                domainConfig: service.domainConfig
+            }
+        });
 
     } catch (error) {
-        logger.error('Erro ao salvar configurações:', error);
-        res.status(500).json({ 
-            error: 'Erro ao salvar configurações',
-            details: error.message 
+        logger.error('Erro ao atualizar configurações do domínio:', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            error: 'Erro ao atualizar configurações',
+            details: error.message
         });
     }
 });
@@ -848,7 +926,7 @@ router.get('/servicos/:id/applications', async (req, res) => {
                 xmlData.domain.applications[0].application.forEach(app => {
                     if (app.$['object-type'] === 'user') {
                         applications.push({
-                            name: app.$.name,
+                    name: app.$.name,
                             engine: app.$['enable'] === 'true' ? 'enabled' : 'disabled',
                             status: 'deployed',
                             location: app.$.location || `${installPath}/glassfish/domains/${service.domain}/applications/${app.$.name}`
@@ -881,7 +959,7 @@ router.get('/servicos/:id/applications', async (req, res) => {
         
         res.status(500).json({ 
             error: 'Erro ao listar aplicações',
-            details: error.message
+            details: error.message 
         });
     }
 });
@@ -1049,6 +1127,232 @@ router.post('/test-ssh', async (req, res) => {
         res.status(500).json({
             success: false,
             error: errorMessage,
+            details: error.message
+        });
+    }
+});
+
+// Rota para marcar serviço como em uso
+router.post('/servicos/:id/in-use', async (req, res) => {
+    try {
+        const { user } = req.body;
+        const service = await Glassfish.findById(req.params.id);
+        if (!service) {
+            return res.status(404).json({ error: 'Serviço não encontrado' });
+        }
+
+        service.inUse = true;
+        service.currentUser = user || 'Desconhecido';
+        await service.save();
+
+        res.json({ message: 'Serviço marcado como em uso', currentUser: service.currentUser });
+    } catch (error) {
+        logger.error('Erro ao marcar serviço como em uso:', error);
+        res.status(500).json({ error: 'Erro ao marcar serviço como em uso' });
+    }
+});
+
+// Rota para marcar serviço como disponível
+router.post('/servicos/:id/available', async (req, res) => {
+    try {
+        const service = await Glassfish.findById(req.params.id);
+        if (!service) {
+            return res.status(404).json({ error: 'Serviço não encontrado' });
+        }
+
+        service.inUse = false;
+        service.currentUser = '';
+        await service.save();
+
+        res.json({ message: 'Serviço marcado como disponível' });
+    } catch (error) {
+        logger.error('Erro ao marcar serviço como disponível:', error);
+        res.status(500).json({ error: 'Erro ao marcar serviço como disponível' });
+    }
+});
+
+// Rota para iniciar o serviço
+router.post('/servicos/:id/start', async (req, res) => {
+    try {
+        const service = await Glassfish.findById(req.params.id);
+        if (!service) {
+            return res.status(404).json({ error: 'Serviço não encontrado' });
+        }
+
+        // Comando para iniciar o domínio específico
+        const startCommand = `
+            echo '${service.sshPassword}' | sudo -S bash -c '
+                cd ${service.installPath}/glassfish/bin &&
+                ./asadmin start-domain ${service.domain}
+            '
+        `;
+        
+        const result = await executeRemoteCommand(
+            service.ip,
+            service.sshUsername,
+            service.sshPassword,
+            startCommand,
+            30000
+        );
+
+        if (result.code !== 0) {
+            throw new Error(result.stderr || 'Erro ao iniciar serviço');
+        }
+
+        // Atualizar status para active
+        service.status = 'active';
+        await service.save();
+
+        res.json({ message: 'Serviço iniciado com sucesso' });
+    } catch (error) {
+        logger.error('Erro ao iniciar serviço:', error);
+        res.status(500).json({
+            error: 'Erro ao iniciar serviço',
+            details: error.message
+        });
+    }
+});
+
+// Rota para executar manutenção no serviço
+router.post('/servicos/:id/maintenance', async (req, res) => {
+    try {
+        const service = await Glassfish.findById(req.params.id);
+        if (!service) {
+            return res.status(404).json({ error: 'Serviço não encontrado' });
+        }
+
+        const basePath = `${service.installPath}/glassfish/domains/${service.domain}`;
+        const results = [];
+
+        // Função auxiliar para limpar diretório
+        async function cleanDirectory(dirPath, taskName) {
+            // Primeiro, verificar se o diretório existe e listar seu conteúdo
+            const checkCommand = `
+                echo '${service.sshPassword}' | sudo -S bash -c '
+                    if [ -d "${dirPath}" ]; then
+                        echo "Conteúdo antes da limpeza:"
+                        ls -la "${dirPath}"
+                        echo "---"
+                    else
+                        echo "Diretório não encontrado: ${dirPath}"
+                        exit 1
+                    fi
+                '
+            `;
+
+            const checkResult = await executeRemoteCommand(
+                service.ip,
+                service.sshUsername,
+                service.sshPassword,
+                checkCommand
+            );
+
+            logger.debug(`Verificação do diretório ${taskName}:`, {
+                output: checkResult.stdout,
+                error: checkResult.stderr
+            });
+
+            const command = `
+                echo '${service.sshPassword}' | sudo -S bash -c '
+                    if [ -d "${dirPath}" ]; then
+                        rm -rf "${dirPath}"/* "${dirPath}"/.[!.]* 2>/dev/null || true &&
+                        echo "Diretório ${taskName} limpo com sucesso"
+                    else
+                        echo "Diretório ${taskName} não encontrado"
+                        exit 1
+                    fi
+                '
+            `;
+
+            logger.debug(`Executando comando de limpeza para ${taskName}:`, {
+                directory: dirPath,
+                command: command
+            });
+
+            const result = await executeRemoteCommand(
+                service.ip,
+                service.sshUsername,
+                service.sshPassword,
+                command
+            );
+
+            // Verificar o conteúdo após a limpeza
+            const verifyCommand = `
+                echo '${service.sshPassword}' | sudo -S bash -c '
+                    echo "Conteúdo após a limpeza:"
+                    ls -la "${dirPath}"
+                    echo "---"
+                '
+            `;
+
+            const verifyResult = await executeRemoteCommand(
+                service.ip,
+                service.sshUsername,
+                service.sshPassword,
+                verifyCommand
+            );
+
+            logger.debug(`Verificação após limpeza do diretório ${taskName}:`, {
+                output: verifyResult.stdout,
+                error: verifyResult.stderr
+            });
+
+            return {
+                task: taskName,
+                success: result.code === 0,
+                message: result.stdout || result.stderr,
+                details: {
+                    before: checkResult.stdout,
+                    after: verifyResult.stdout
+                }
+            };
+        }
+
+        // Executar limpeza para cada diretório selecionado
+        const tasks = req.body.tasks || [];
+        
+        for (const task of tasks) {
+            let result;
+            switch (task) {
+                case 'cleanApplications':
+                    result = await cleanDirectory(`${basePath}/applications`, 'Applications');
+                    break;
+                case 'cleanLogs':
+                    result = await cleanDirectory(`${basePath}/logs`, 'Logs');
+                    break;
+                case 'cleanGenerated':
+                    result = await cleanDirectory(`${basePath}/generated`, 'Generated');
+                    break;
+                case 'cleanAutodeploy':
+                    result = await cleanDirectory(`${basePath}/autodeploy`, 'Autodeploy');
+                    break;
+            }
+            if (result) {
+                results.push(result);
+            }
+        }
+
+        // Registrar a manutenção no log
+        logger.info('Manutenção executada:', {
+            serviceId: service._id,
+            serviceName: service.name,
+            tasks: tasks,
+            results: results
+        });
+
+        res.json({
+            message: 'Manutenção executada com sucesso',
+            results: results
+        });
+
+    } catch (error) {
+        logger.error('Erro na manutenção:', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            error: 'Erro ao executar manutenção',
             details: error.message
         });
     }

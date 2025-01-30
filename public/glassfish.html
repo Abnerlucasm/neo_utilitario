@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00d1b2">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
     <title>Gerenciamento Glassfish</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -232,6 +235,87 @@
         .server-detail .tag {
             margin-left: 0.5rem;
         }
+        .card {
+            position: relative;
+            border-radius: 15px;
+        }
+        .card.is-warning {
+            background-color: #fff3cd;
+        }
+        .card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .user-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .log-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+            margin-left: 1rem;
+            margin-right: 1rem;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .log-controls {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .log-viewer {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            border-top: 1px solid #333;
+            padding: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            display: none; /* Inicialmente oculto */
+        }
+        .log-entry {
+            margin-bottom: 0.5rem;
+        }
+        .log-entry.info {
+            color: #9cdcfe; /* Azul claro para info */
+        }
+        .log-entry.error {
+            color: #f44747; /* Vermelho para error */
+        }
+        .log-entry.warning {
+            color: #ffdd57; /* Amarelo para warning */
+        }
+        .add-button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .system-info-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+            margin-left: 1rem;
+            margin-right: 1rem;
+        }
+        .system-info {
+            font-size: 1rem;
+            color: #333;
+        }
     </style>
 </head>
 <body class="has-background-light">
@@ -301,19 +385,6 @@
                 <!-- Detalhes dos servidores serão inseridos aqui -->
             </div>
 
-            <!-- System Info -->
-            <div class="system-info">
-                <div class="box">
-                    <h2 class="title is-5">Informações do Sistema</h2>
-                    <pre id="systemInfo">
-Versão Glassfish: 6.2.5
-Ambiente: Produção
-Status do Cluster: Ativo
-Última Verificação: ${new Date().toLocaleString()}
-                    </pre>
-                </div>
-            </div>
-
             <!-- Filtros e Controles -->
             <div class="filter-section">
                 <div class="columns is-vcentered">
@@ -340,6 +411,12 @@ Status do Cluster: Ativo
                                 </span>
                                 <span>Status</span>
                             </button>
+                            <button class="button is-info is-small" onclick="sortCards('setor')">
+                                <span class="icon">
+                                    <i class="fas fa-building"></i>
+                                </span>
+                                <span>Setor</span>
+                            </button>
                         </div>
                     </div>
                     <div class="column">
@@ -365,8 +442,11 @@ Status do Cluster: Ativo
         </div>
 
         <!-- Botão para adicionar -->
-        <div class="add-button" onclick="openAddModal()">
-            <i class="fas fa-plus"></i>
+        <div class="add-button-container">
+            <button class="button is-primary" onclick="openAddModal()">
+                <span class="icon"><i class="fas fa-plus"></i></span>
+                <span>Adicionar Serviço</span>
+            </button>
         </div>
     </section>
 
@@ -388,7 +468,7 @@ Status do Cluster: Ativo
                 <div class="field">
                     <label class="label">IP</label>
                     <div class="control">
-                        <input class="input" type="text" id="service-ip" placeholder="IP do servidor">
+                        <input class="input" type="text" id="service-ip" required>
                     </div>
                 </div>
                 <div class="field">
@@ -406,12 +486,12 @@ Status do Cluster: Ativo
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label">Categoria</label>
+                    <label class="label">Setor</label>
                     <div class="control">
                         <div class="select is-fullwidth">
                             <select id="service-category">
-                                <option value="Cliente">Cliente</option>
-                                <option value="Neo">Neo</option>
+                                <option value="Setor Sup. Externo">Setor Sup. Externo</option>
+                                <option value="Setor Sup. Interno">Setor Sup. Interno</option>
                             </select>
                         </div>
                     </div>
@@ -428,16 +508,13 @@ Status do Cluster: Ativo
                 <div class="field">
                     <label class="label">Usuário SSH</label>
                     <div class="control">
-                        <input class="input" type="text" id="service-ssh-username" placeholder="Usuário SSH">
+                        <input class="input" type="text" id="service-ssh-username" required>
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">Senha SSH</label>
                     <div class="control">
-                        <div class="input-group">
-                            <input class="input" type="password" id="service-ssh-password" placeholder="Senha SSH">
-                            <button type="button" onclick="toggleSSHPasswordVisibility()"><i class="fas fa-eye" id="ssh-eye-icon"></i></button>
-                        </div>
+                        <input class="input" type="password" id="service-ssh-password" required>
                     </div>
                 </div>
                 <div class="field">
@@ -570,7 +647,7 @@ Status do Cluster: Ativo
                 </div>
             </section>
             <footer class="modal-card-foot">
-                <button class="button is-danger" onclick="executeMaintenanceTasks()">
+                <button class="button is-danger" onclick="executeMaintenanceFromModal(this)">
                     <span class="icon">
                         <i class="fas fa-broom"></i>
                     </span>
@@ -722,9 +799,67 @@ Status do Cluster: Ativo
         </div>
     </div>
 
+    <!-- Modal para selecionar o nome do usuário -->
+    <div class="modal" id="user-name-modal">
+        <div class="modal-background" onclick="closeUserNameModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Selecione seu Nome</p>
+                <button class="delete" aria-label="close" onclick="closeUserNameModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Nome do Usuário</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" id="modal-user-name" placeholder="Digite seu nome">
+                        <span class="icon is-left">
+                            <i class="fas fa-user"></i>
+                        </span>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" onclick="confirmUserName()">
+                    <span class="icon"><i class="fas fa-check"></i></span>
+                    <span>Confirmar</span>
+                </button>
+                <button class="button" onclick="closeUserNameModal()">
+                    <span class="icon"><i class="fas fa-times"></i></span>
+                    <span>Cancelar</span>
+                </button>
+            </footer>
+        </div>
+    </div>
+
     <div id="toast" class="toast"></div>
 
+    <div class="log-container">
+        <div class="log-header">
+            <h2 class="title is-5">Visualizador de Log</h2>
+        </div>
+        <div id="log-viewer" class="log-viewer">
+            <!-- As mensagens de log serão inseridas aqui -->
+        </div>
+        <div class="log-controls">
+            <button class="button is-small" onclick="toggleLogViewer()">Ativar/Desativar Log</button>
+            <button class="button is-small" onclick="clearLogViewer()">Limpar Log</button>
+        </div>
+    </div>
+
     <script>
+        // Registrar o Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker registrado com sucesso:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('Falha ao registrar o ServiceWorker:', error);
+                    });
+            });
+        }
+
         const cardsContainer = document.getElementById('cards-container');
         const emptyMessage = document.getElementById('empty-message');
         const resultsCount = document.getElementById('results-count');
@@ -736,6 +871,7 @@ Status do Cluster: Ativo
         let statusCheckInterval = null;
         let currentMaintenanceIndex = null;
         let currentDomainConfigIndex = null;
+        let logViewerActive = false;
 
         // Função para obter os dados do MongoDB
         async function fetchServices() {
@@ -747,7 +883,6 @@ Status do Cluster: Ativo
                 services = await response.json();
                 renderCards(services);
                 await checkAllServicesStatus(); // Verificar status inicial
-                updateDashboardStats(); // Atualizar estatísticas iniciais
             } catch (error) {
                 console.error('Erro ao carregar serviços:', error);
                 showToast('Erro ao carregar serviços. Por favor, recarregue a página.', 'danger');
@@ -776,7 +911,7 @@ Status do Cluster: Ativo
                 document.getElementById('service-ssh-username').value = service.sshUsername;
                 document.getElementById('service-ssh-password').value = service.sshPassword;
                 document.getElementById('service-install-path').value = service.installPath;
-                document.getElementById('service-category').value = service.categoria || 'Cliente';
+                document.getElementById('service-category').value = service.setor || 'Cliente';
                 document.getElementById('service-access-type').value = service.accessType || 'local';
                 modalTitle.textContent = 'Editar Glassfish';
             } else {
@@ -801,7 +936,6 @@ Status do Cluster: Ativo
 
         // Função para salvar ou editar serviço no MongoDB
         async function saveGlassfish() {
-            try {
                 const service = {
                     name: document.getElementById('service-name').value,
                     ip: document.getElementById('service-ip').value,
@@ -811,8 +945,7 @@ Status do Cluster: Ativo
                     sshUsername: document.getElementById('service-ssh-username').value,
                     sshPassword: document.getElementById('service-ssh-password').value,
                     installPath: document.getElementById('service-install-path').value || '/srv/glassfish6.2.5',
-                    status: 'inactive',
-                    categoria: document.getElementById('service-category').value,
+                setor: document.getElementById('service-category').value,
                     accessType: document.getElementById('service-access-type').value
                 };
 
@@ -844,10 +977,6 @@ Status do Cluster: Ativo
                 showToast('Serviço salvo com sucesso!', 'success');
                 closeAddModal();
                 await fetchServices(); // Recarrega a lista de serviços
-            } catch (error) {
-                console.error('Erro ao salvar serviço:', error);
-                showToast(error.message, 'danger');
-            }
         }
 
         async function renderCards(servicesData) {
@@ -859,21 +988,22 @@ Status do Cluster: Ativo
                 card.className = 'column is-one-third';
                 
                 // Garantir que a categoria tenha um valor padrão se não estiver definida
-                const categoria = service.categoria || 'Cliente';
+                const categoria = service.setor || 'Cliente';
                 
                 card.innerHTML = `
-                    <div class="card" onclick="openAddModal(${index})">
+                    <div class="card ${service.inUse ? 'is-warning' : ''}" onclick="handleCardClick(event, ${index})">
                         <div class="card-content has-text-centered">
                             <span id="status-${service._id}" class="status-indicator ${service.status === 'active' ? 'status-active' : 'status-inactive'}"></span>
-                            <div class="category-badge ${categoria === 'Neo' ? 'is-info' : 'is-warning'}">
-                                ${categoria === 'Neo' ? 
-                                  '<img src="/assets/neo-logo-small.png" alt="Neo" style="height: 20px;">' : 
-                                  'Cliente'}
+                            <div class="category-badge is-info">
+                                <img src="/assets/neo-logo-small.png" alt="Neo" style="height: 20px;">
                             </div>
                             <span class="card-icon"><i class="fas fa-server"></i></span>
                             <p class="title is-4">${service.name}</p>
                             <p class="subtitle is-6">
                                 IP: ${service.ip}
+                            </p>
+                            <p class="subtitle is-6">
+                                Usuário Atual: ${service.currentUser || 'Nenhum'}
                             </p>
                             <div class="card-actions">
                                 <button class="button is-small is-success" onclick="startService(${index})" title="Iniciar Serviço"
@@ -898,6 +1028,14 @@ Status do Cluster: Ativo
                                 </button>
                                 <button class="button is-small is-info" onclick="openDomainConfigModal(${index})" title="Configurar Domain">
                                     <span class="icon"><i class="fas fa-cog"></i></span>
+                                </button>
+                            </div>
+                            <div class="user-buttons">
+                                <button class="button is-small is-info" onclick="openUserNameModal(${index})" title="Marcar como em uso">
+                                    <span class="icon"><i class="fas fa-user-check"></i></span>
+                                </button>
+                                <button class="button is-small is-success" onclick="markServiceAvailable(${index})" title="Marcar como disponível">
+                                    <span class="icon"><i class="fas fa-user-times"></i></span>
                                 </button>
                             </div>
                         </div>
@@ -1016,25 +1154,24 @@ Status do Cluster: Ativo
                 return;
             }
             
-            try {
-                const response = await fetch(`/api/servicos/${service._id}`, {
+                try {
+                    const response = await fetch(`/api/servicos/${service._id}`, { 
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json'
                     }
-                });
-
-                if (!response.ok) {
+                    });
+                    
+                    if (!response.ok) {
                     const data = await response.json();
                     throw new Error(data.details || data.error || 'Erro ao excluir serviço');
-                }
-
+                    }
+                    
                 services.splice(index, 1);
                 renderCards(services);
                 showToast(`Serviço "${service.name}" removido com sucesso`, 'success');
-                updateDashboardStats();
-            } catch (error) {
-                console.error('Erro ao excluir serviço:', error);
+                } catch (error) {
+                    console.error('Erro ao excluir serviço:', error);
                 showToast(`Erro ao excluir serviço: ${error.message}`, 'danger');
             }
         }
@@ -1053,6 +1190,8 @@ Status do Cluster: Ativo
                     return a.name.localeCompare(b.name);
                 } else if (criteria === 'status') {
                     return a.status.localeCompare(b.status);
+                } else if (criteria === 'setor') {
+                    return a.setor.localeCompare(b.setor);
                 }
                 return 0;
             });
@@ -1147,60 +1286,64 @@ Status do Cluster: Ativo
             const ip = document.getElementById('service-ip').value;
             const username = document.getElementById('service-ssh-username').value;
             const password = document.getElementById('service-ssh-password').value;
-            const resultElement = document.getElementById('ssh-test-result');
 
+            // Validar se todos os campos estão preenchidos
             if (!ip || !username || !password) {
-                resultElement.className = 'help is-danger';
-                resultElement.textContent = 'Preencha todos os campos de conexão SSH';
+                showToast('Por favor, preencha todos os campos SSH', 'warning');
                 return;
             }
 
             try {
-                resultElement.className = 'help is-warning';
-                resultElement.textContent = 'Testando conexão...';
-
-                console.log('Enviando teste SSH para:', {
-                    host: ip,
-                    username
-                });
-
                 const response = await fetch('/api/test-ssh', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ host: ip, username, password })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ip: ip,
+                        username: username,
+                        password: password
+                    })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.text();
-                    console.error('Resposta de erro:', errorData);
-                    throw new Error(errorData);
-                }
-
                 const data = await response.json();
-                console.log('Resposta do teste SSH:', data);
 
-                if (data.success) {
-                    resultElement.className = 'help is-success';
-                    resultElement.textContent = 'Conexão SSH estabelecida com sucesso!';
+                if (response.ok) {
+                    showToast('Conexão SSH testada com sucesso', 'success');
                 } else {
-                    resultElement.className = 'help is-danger';
-                    resultElement.textContent = `Erro: ${data.error}`;
+                    showToast(data.error || 'Erro ao testar conexão SSH', 'danger');
                 }
             } catch (error) {
-                console.error('Erro ao testar conexão SSH:', error);
-                resultElement.className = 'help is-danger';
-                resultElement.textContent = `Erro ao testar conexão: ${error.message}`;
+                showToast('Erro ao testar conexão SSH: ' + error.message, 'danger');
             }
         }
 
-        function showToast(message, type = 'success') {
+        function showToast(message, type) {
+            if (type === 'success' || type === 'info') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = `toast is-${type} show`;
             
             setTimeout(() => {
-                toast.classList.remove('show');
+                    toast.className = toast.className.replace('show', '');
             }, 3000);
+            }
+
+            // Adicionar ao log para todos os tipos de mensagem
+            addLogEntry(message, type);
+        }
+
+        function addLogEntry(message, type) {
+            if (!logViewerActive) return; // Não adicionar logs se o visualizador estiver desativado
+
+            const logViewer = document.getElementById('log-viewer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${type.toUpperCase()}: ${message}`;
+            logViewer.appendChild(logEntry);
+
+            // Manter o scroll no final
+            logViewer.scrollTop = logViewer.scrollHeight;
         }
 
         function openAdminPanel() {
@@ -1233,8 +1376,8 @@ Status do Cluster: Ativo
                 if (ramProgress && cpuProgress) {
                     ramProgress.value = overview.averageMemory || 0;
                     cpuProgress.value = overview.averageCpu || 0;
-                    updateProgressColor(ramProgress, overview.averageMemory);
-                    updateProgressColor(cpuProgress, overview.averageCpu);
+                updateProgressColor(ramProgress, overview.averageMemory);
+                updateProgressColor(cpuProgress, overview.averageCpu);
                 }
 
                 // Atualizar detalhes dos servidores
@@ -1336,6 +1479,14 @@ Status do Cluster: Ativo
         function openMaintenanceModal(index) {
             event.stopPropagation(); // Evita que o modal de edição abra
             currentMaintenanceIndex = index;
+            const service = services[index];
+            if (!service) {
+                showToast('Serviço não encontrado', 'danger');
+                return;
+            }
+            // Armazenar o ID do serviço no botão de execução
+            const executeButton = document.querySelector('#maintenance-modal .button.is-danger');
+            executeButton.setAttribute('data-service-id', service._id);
             // Limpa os checkboxes
             document.getElementById('clean-applications').checked = false;
             document.getElementById('clean-logs').checked = false;
@@ -1350,11 +1501,15 @@ Status do Cluster: Ativo
             currentMaintenanceIndex = null;
         }
 
-        async function executeMaintenanceTasks() {
-            const service = services[currentMaintenanceIndex];
-            const tasks = [];
-
+        async function executeMaintenanceFromModal(button) {
+            const serviceId = button.getAttribute('data-service-id');
+            if (!serviceId) {
+                showToast('ID do serviço não encontrado', 'danger');
+                return;
+            }
+            
             // Coletar todas as tarefas selecionadas
+            const tasks = [];
             if (document.getElementById('clean-applications').checked) {
                 tasks.push('cleanApplications');
             }
@@ -1367,45 +1522,63 @@ Status do Cluster: Ativo
             if (document.getElementById('clean-autodeploy').checked) {
                 tasks.push('cleanAutodeploy');
             }
-
+            
+            // Verificar se pelo menos uma tarefa foi selecionada
             if (tasks.length === 0) {
                 showToast('Selecione pelo menos uma opção de limpeza', 'warning');
                 return;
             }
-
+            
             // Adicionar loading state
-            const cleanButton = document.querySelector('#maintenance-modal .button.is-danger');
-            cleanButton.classList.add('is-loading');
-            cleanButton.disabled = true;
-
+            button.classList.add('is-loading');
+            button.disabled = true;
+            
             try {
-                const response = await fetch(`/api/servicos/${service._id}/maintenance`, {
+                await executeMaintenanceTasks(serviceId, tasks);
+                closeMaintenanceModal();
+            } catch (error) {
+                showToast(error.message, 'danger');
+            } finally {
+                button.classList.remove('is-loading');
+                button.disabled = false;
+            }
+        }
+
+        async function executeMaintenanceTasks(serviceId, tasks) {
+            try {
+                // Primeiro, obter o serviço
+                const service = services.find(s => s._id === serviceId);
+                if (!service) {
+                    throw new Error('Serviço não encontrado');
+                }
+
+                // Executar a manutenção
+                const response = await fetch(`/api/servicos/${serviceId}/maintenance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tasks })
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erro na manutenção');
+                    throw new Error(`Erro HTTP! status: ${response.status}`);
                 }
 
                 const data = await response.json();
+                console.log('Resposta da manutenção:', data);
                 
-                // Mostrar resultados
+                // Mostrar resultados detalhados
                 let message = 'Tarefas executadas:\n';
                 data.results.forEach(result => {
                     message += `\n${result.task}: ${result.success ? '✓' : '✗'} ${result.message}`;
                 });
+                showToast(message, 'success');
                 
-                showToast('Manutenção concluída com sucesso', 'success');
-                closeMaintenanceModal();
+                // Atualizar o status do serviço
+                await fetchServices();
+                
             } catch (error) {
                 console.error('Erro na manutenção:', error);
-                showToast(`Erro na manutenção: ${error.message}`, 'danger');
-            } finally {
-                cleanButton.classList.remove('is-loading');
-                cleanButton.disabled = false;
+                showToast('Erro ao executar a manutenção: ' + error.message, 'danger');
             }
         }
 
@@ -1453,7 +1626,7 @@ Status do Cluster: Ativo
                 if (!response.ok) {
                     throw new Error(data.error || 'Erro ao carregar configurações');
                 }
-
+                
                 // Atualizar os campos com os valores
                 document.getElementById('db-server').value = data.serverName || '';
                 document.getElementById('db-user').value = data.user || '';
@@ -1504,8 +1677,8 @@ Status do Cluster: Ativo
             const contentEl = document.getElementById('applications-content');
             
             try {
-                loadingEl.classList.remove('is-hidden');
-                contentEl.classList.add('is-hidden');
+            loadingEl.classList.remove('is-hidden');
+            contentEl.classList.add('is-hidden');
 
                 const response = await fetch(`/api/servicos/${service._id}/applications`);
                 const data = await response.json();
@@ -1513,7 +1686,7 @@ Status do Cluster: Ativo
                 if (!response.ok) {
                     throw new Error(data.details || data.error || 'Erro ao listar aplicações');
                 }
-
+                
                 let content = '';
                 if (data.error) {
                     content = `
@@ -1529,12 +1702,12 @@ Status do Cluster: Ativo
                     `;
                 } else {
                     content = data.applications.map(app => `
-                        <div class="box">
-                            <strong>${app.name}</strong>
+                            <div class="box">
+                                <strong>${app.name}</strong>
                             <p class="help">Status: ${app.status}</p>
                             <p class="help">Engine: ${app.engine}</p>
-                            <p class="help">Localização: ${app.location}</p>
-                        </div>
+                                <p class="help">Localização: ${app.location}</p>
+                            </div>
                     `).join('');
                 }
                 
@@ -1704,6 +1877,109 @@ Status do Cluster: Ativo
                     error: error.message
                 };
             }
+        }
+
+        async function markServiceInUse(index, userName) {
+            const service = services[index];
+            try {
+                const response = await fetch(`/api/servicos/${service._id}/in-use`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user: userName })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao marcar serviço como em uso');
+                }
+
+                const data = await response.json();
+                showToast(`${data.message} por ${data.currentUser}`, 'success');
+                service.inUse = true;
+                service.currentUser = data.currentUser;
+                renderCards(services);
+            } catch (error) {
+                showToast(error.message, 'danger');
+            }
+        }
+
+        async function markServiceAvailable(index) {
+            const service = services[index];
+            try {
+                const response = await fetch(`/api/servicos/${service._id}/available`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao marcar serviço como disponível');
+                }
+
+                const data = await response.json();
+                showToast(data.message, 'success');
+                service.inUse = false;
+                service.currentUser = '';
+                renderCards(services);
+            } catch (error) {
+                showToast(error.message, 'danger');
+            }
+        }
+
+        function openUserNameModal(index) {
+            const modal = document.getElementById('user-name-modal');
+            modal.classList.add('is-active');
+
+            // Tentar buscar o nome do usuário do localStorage
+            const storedUserName = localStorage.getItem('userName');
+            if (storedUserName) {
+                document.getElementById('modal-user-name').value = storedUserName;
+            }
+
+            // Armazenar o índice do serviço atual para uso posterior
+            modal.dataset.serviceIndex = index;
+        }
+
+        function closeUserNameModal() {
+            const modal = document.getElementById('user-name-modal');
+            modal.classList.remove('is-active');
+        }
+
+        function confirmUserName() {
+            const modal = document.getElementById('user-name-modal');
+            const userName = document.getElementById('modal-user-name').value.trim();
+
+            if (userName) {
+                // Salvar o nome do usuário no localStorage
+                localStorage.setItem('userName', userName);
+
+                // Obter o índice do serviço e marcar como em uso
+                const serviceIndex = modal.dataset.serviceIndex;
+                markServiceInUse(serviceIndex, userName);
+
+                closeUserNameModal();
+                    } else {
+                showToast('Por favor, insira seu nome', 'warning');
+            }
+        }
+
+        function handleCardClick(event, index) {
+            // Verificar se o clique foi em um botão
+            if (event.target.closest('button')) {
+                return; // Não fazer nada se o clique foi em um botão
+            }
+            openAddModal(index); // Abrir o modal se o clique não foi em um botão
+        }
+
+        function toggleLogViewer() {
+            logViewerActive = !logViewerActive;
+            const logViewer = document.getElementById('log-viewer');
+            logViewer.style.display = logViewerActive ? 'block' : 'none';
+        }
+
+        function clearLogViewer() {
+            const logViewer = document.getElementById('log-viewer');
+            logViewer.innerHTML = '';
         }
     </script>
 </body>

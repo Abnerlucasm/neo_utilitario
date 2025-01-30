@@ -1,0 +1,21 @@
+{
+  "name": "Gerenciamento Glassfish",
+  "short_name": "Glassfish",
+  "description": "Aplicativo para gerenciamento de servidores Glassfish",
+  "start_url": "https://localhost:3010/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#00d1b2",
+  "icons": [
+    {
+      "src": "public/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "public/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 

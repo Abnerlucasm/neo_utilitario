@@ -9,12 +9,12 @@ const { exec } = require('child_process');
 const Glassfish = require('./models/glassfish');
 const connectToDatabase = require('./db');
 const { NodeSSH } = require('node-ssh');
-const WebSocket = require('ws');
 const xml2js = require('xml2js');
 const fsPromises = require('fs').promises;
 const multer = require('multer');
 const logger = require('./utils/logger');
 const mongoose = require('mongoose');
+const http = require('http');
 
 // Importar routers
 const glassfishRouter = require('./routes/glassfish');
@@ -23,8 +23,8 @@ const suggestionsRouter = require('./routes/suggestions'); // Outros routers, se
 const app = express();
 const ssh = new NodeSSH();
 
-// Criar servidor WebSocket
-const wss = new WebSocket.Server({ noServer: true });
+// Criar servidor HTTP
+const server = http.createServer(app);
 
 // Utilitários de leitura e escrita de arquivos
 const readFileAsync = promisify(fs.readFile);
@@ -130,7 +130,12 @@ app.post('/suggestions', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
+// Rota específica para o service worker
+app.get('/sw.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
+
+const PORT = process.env.PORT || 3010;
 
 // Conectar ao MongoDB antes de iniciar o servidor
 connectToDatabase()
@@ -150,20 +155,6 @@ connectToDatabase()
             });
         });
 
-        // Configurar CORS para o WebSocket
-        wss.on('connection', (ws, req) => {
-            logger.info('Nova conexão WebSocket:', {
-                ip: req.socket.remoteAddress
-            });
-        });
-
-        // Configurar upgrade de conexão para WebSocket
-        server.on('upgrade', (request, socket, head) => {
-            wss.handleUpgrade(request, socket, head, ws => {
-                wss.emit('connection', ws, request);
-            });
-        });
-
         // Tratamento de erros do servidor
         server.on('error', (error) => {
             logger.error('Erro no servidor:', {
@@ -176,7 +167,6 @@ connectToDatabase()
                 process.exit(1);
             }
         });
-
     })
     .catch(error => {
         logger.error('Falha ao iniciar servidor:', {

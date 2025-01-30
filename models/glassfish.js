@@ -48,16 +48,30 @@ const glassfishSchema = new mongoose.Schema({
         required: [true, 'Caminho de instalação é obrigatório'],
         default: '/srv/glassfish6.2.5'
     },
-    categoria: {
+    setor: {
         type: String,
-        enum: ['Cliente', 'Neo'],
-        required: [true, 'Categoria é obrigatória'],
-        default: 'Cliente'
+        enum: ['Setor Sup. Externo', 'Setor Sup. Interno'],
+        required: [true, 'Setor é obrigatório'],
+        default: 'Setor Sup. Externo'
     },
     accessType: {
         type: String,
         enum: ['local', 'external'],
         default: 'local'
+    },
+    inUse: {
+        type: Boolean,
+        default: false
+    },
+    currentUser: {
+        type: String,
+        default: ''
+    },
+    domainConfig: {
+        serverName: String,
+        user: String,
+        password: String,
+        databaseName: String
     }
 }, {
     timestamps: true
