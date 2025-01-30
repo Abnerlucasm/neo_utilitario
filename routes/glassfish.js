@@ -1213,6 +1213,48 @@ router.post('/servicos/:id/start', async (req, res) => {
     }
 });
 
+// Rota para reiniciar o serviço
+router.post('/servicos/:id/restart', async (req, res) => {
+    try {
+        const service = await Glassfish.findById(req.params.id);
+        if (!service) {
+            return res.status(404).json({ error: 'Serviço não encontrado' });
+        }
+
+        // Comando para reiniciar o domínio específico
+        const restartCommand = `
+            echo '${service.sshPassword}' | sudo -S bash -c '
+                cd ${service.installPath}/glassfish/bin &&
+                ./asadmin restart-domain ${service.domain}
+            '
+        `;
+        
+        const result = await executeRemoteCommand(
+            service.ip,
+            service.sshUsername,
+            service.sshPassword,
+            restartCommand,
+            30000
+        );
+
+        if (result.code !== 0) {
+            throw new Error(result.stderr || 'Erro ao reiniciar serviço');
+        }
+
+        // Atualizar status para active
+        service.status = 'active';
+        await service.save();
+
+        res.json({ message: 'Serviço reiniciado com sucesso' });
+    } catch (error) {
+        logger.error('Erro ao reiniciar serviço:', error);
+        res.status(500).json({
+            error: 'Erro ao reiniciar serviço',
+            details: error.message
+        });
+    }
+});
+
 // Rota para executar manutenção no serviço
 router.post('/servicos/:id/maintenance', async (req, res) => {
     try {

@@ -1095,34 +1095,24 @@
                 stopButton.disabled = true;
                 restartButton.disabled = true;
 
-                // Parar o serviço diretamente
-                const stopResponse = await fetch(`/api/servicos/${service._id}/stop`, {
+                // Usar a rota de restart
+                const response = await fetch(`/api/servicos/${service._id}/restart`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
                 
-                if (!stopResponse.ok) {
-                    const data = await stopResponse.json();
-                    throw new Error(data.error || 'Erro ao parar serviço');
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Erro ao reiniciar serviço');
                 }
                 
-                // Pequeno delay para garantir que o serviço parou completamente
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                // Iniciar o serviço diretamente
-                const startResponse = await fetch(`/api/servicos/${service._id}/start`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                if (!startResponse.ok) {
-                    const data = await startResponse.json();
-                    throw new Error(data.error || 'Erro ao iniciar serviço');
-                }
-                
-                const data = await startResponse.json();
+                const data = await response.json();
                 showToast('Serviço reiniciado com sucesso!', 'success');
-                await checkAllServicesStatus();
+                
+                // Atualizar status após alguns segundos
+                setTimeout(() => {
+                    checkServiceStatus(service);
+                }, 5000);
             } catch (error) {
                 console.error('Erro ao reiniciar serviço:', error);
                 showToast('Erro ao reiniciar serviço: ' + error.message, 'danger');
