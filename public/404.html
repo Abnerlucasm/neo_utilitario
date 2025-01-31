@@ -3,116 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Página Não Encontrada</title>
+    <title>Página Não Encontrada</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <style>
         body {
-            background-color: #f4f4f4;
+            background-color: #f0f4f8; 
+            background-size: cover;
+            background-position: center;
+            font-family: 'Arial', sans-serif;
+        }
+        .hero {
+            background-color: rgba(105, 179, 92, 0.9); 
+            color: white;
+            border-radius: 8px;
+            padding: 40px 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
         .container {
             margin-top: 50px;
         }
+        .svg-container {
+            margin: 20px 0;
+            max-width: 400px; /* Aumentar o tamanho da ilustração */
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .logo-container {
+            margin-top: 20px;
+            text-align: center; 
+        }
         .button {
-            margin-top: 20px;
+            border: 2px solid #ffffff; 
+            background-color: transparent; 
+            color: #ffffff; 
+            margin: 5px; 
+            transition: background-color 0.3s, color 0.3s; 
         }
-        .search-result {
-            margin-top: 20px;
+        .button:hover {
+            background-color: rgba(41, 41, 41, 0.996);
+            color:  rgba(255, 255, 255, 0.996);
+            border: 2px solid rgba(41, 41, 41, 0.996); 
         }
-        .search-result p {
-            color: #ff3860;
-        }
-        .options {
+        .suggestions-section {
+            background-color: white; 
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             margin-top: 30px;
         }
-        .options a {
-            display: block;
-            margin: 10px 0;
+        h1.title, h2.subtitle {
+            margin: 0;
+        }
+        h1.title {
+            font-size: 3rem; 
+        }
+        h2.subtitle {
+            font-size: 1.5rem; 
         }
     </style>
 </head>
 <body>
-    <neo-navbar></neo-navbar>
-    <div class="container has-text-centered">
-        <h1 class="title is-1">404</h1>
-        <h2 class="subtitle">Página não encontrada</h2>
-        <p>A página que você está procurando não existe ou foi movida.</p>
-        <p>Estamos em desenvolvimento! Volte para a página principal ou tente procurar algo semelhante:</p>
-
-        <!-- Botão para voltar à página principal -->
-        <a href="/" class="button is-primary is-large">Voltar para a Página Principal</a>
-        
-        <br><br>
-
-        <!-- Campo de busca -->
-        <input id="searchInput" type="text" class="input" placeholder="Buscar algo...">
-        <button id="searchButton" class="button is-info">Buscar</button>
-
-        <!-- Exibe o resultado da busca -->
-        <div id="searchResult" class="search-result">
-            <p><strong>Desculpe:</strong> Não encontramos resultados para sua busca.</p>
+    <nav class="navbar is-fixed-top">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="/">
+                <img src="/assets/neo-logo-small.png" alt="NeoHub">
+            </a>
         </div>
-
-        <!-- Sugestões de arquivos encontrados -->
-        <div id="suggestionsResult" class="search-result">
-            <h3>Sugestões encontradas:</h3>
-            <ul id="suggestionsList"></ul>
+        <div class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="/">Início</a>
+                <a class="navbar-item" href="/recursos-dev.html">Recursos</a>
+                <a class="navbar-item" href="/sugestoes-dev.html">Sugestões</a>
+                <a class="navbar-item" href="/utilitarios.html">Utilitários</a>
+            </div>
         </div>
+    </nav>
 
-        <!-- Outras opções disponíveis -->
-        <div class="options">
-            <h3 class="title is-4">Outras opções:</h3>
-            <a href="/recursos-dev.html" class="button is-link">Recursos em Desenvolvimento</a>
-            <a href="/sugestoes-dev.html" class="button is-warning">Sugestões de Melhorias</a>
-            <a href="/utilitarios.html" class="button is-success">Utilitários</a>
+    <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-top: 70px;">
+        <ul>
+            <li><a href="/">Início</a></li>
+            <li class="is-active"><a href="#" aria-current="page">404</a></li>
+        </ul>
+    </nav>
+
+    <section class="hero is-large">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <h1 class="title is-1">404</h1>
+                <h2 class="subtitle is-3">Página Não Encontrada</h2>
+                <p>Desculpe, mas a página que você está procurando não existe.</p>
+                <p>Você pode voltar à página principal ou tentar procurar algo semelhante:</p>
+                
+                <!-- Adicionando o SVG -->
+                <div class="svg-container">
+                    <img src="/assets/404.svg" alt="Ilustração 404" style="max-width: 100%; height: auto;">
+                </div>
+
+                <!-- Adicionando o logo da Neo -->
+                <div class="logo-container">
+                    <img src="/assets/neo-logo-small.png" alt="Logo da Neo" style="max-width: 150px; height: auto;">
+                </div>
+
+                <!-- Botões abaixo do logo, centralizados na parte verde -->
+                <div class="buttons" style="margin-top: 20px; justify-content: center;">
+                    <a href="/" class="button">Voltar para a Página Inicial</a>
+                    <a href="/recursos-dev.html" class="button">Recursos em Desenvolvimento</a>
+                    <a href="/sugestoes-dev.html" class="button">Sugestões de Melhorias</a>
+                    <a href="/utilitarios.html" class="button">Utilitários</a>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <script>
-        // Lista de arquivos HTML disponíveis na aplicação
-        const availablePages = [
-            { title: 'Página Inicial', url: '/index.html' },
-            { title: 'Recursos em Desenvolvimento', url: '/recursos-dev.html' },
-            { title: 'Sugestões', url: '/sugestoes-dev.html' },
-            { title: 'Utilitarios', url: '/utilitarios.html' }
-        ];
-
-        // Elementos do DOM
-        const searchButton = document.getElementById('searchButton');
-        const searchInput = document.getElementById('searchInput');
-        const searchResult = document.getElementById('searchResult');
-        const suggestionsList = document.getElementById('suggestionsList');
-        const suggestionsResult = document.getElementById('suggestionsResult');
-
-        searchButton.addEventListener('click', () => {
-            const query = searchInput.value.toLowerCase().trim();
-            suggestionsList.innerHTML = ''; // Limpa a lista de sugestões
-
-            if (query) {
-                // Busca por páginas que contenham o termo pesquisado no título
-                const results = availablePages.filter(page =>
-                    page.title.toLowerCase().includes(query)
-                );
-
-                if (results.length > 0) {
-                    results.forEach(result => {
-                        const listItem = document.createElement('li');
-                        listItem.innerHTML = `<a href="${result.url}">${result.title}</a>`;
-                        suggestionsList.appendChild(listItem);
-                    });
-
-                    suggestionsResult.style.display = 'block'; // Exibe as sugestões
-                    searchResult.style.display = 'none'; // Esconde a mensagem de "não encontrado"
-                } else {
-                    searchResult.style.display = 'block'; // Exibe a mensagem de "não encontrado"
-                    suggestionsResult.style.display = 'none'; // Esconde as sugestões
-                }
-            } else {
-                searchResult.style.display = 'none'; // Esconde a mensagem de "não encontrado"
-                suggestionsResult.style.display = 'none'; // Esconde as sugestões
-            }
-        });
-    </script>
-
-    <script src="/componentes/navbar-component.js"></script>
+    </section>
 </body>
 </html>

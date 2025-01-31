@@ -2,14 +2,27 @@ class NavbarComponent extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
+        this.navigationHistory = [];
+        // Definir a estrutura de navegação
+        this.navigationStructure = {
+            'index.html': { title: 'Início', parent: null },
+            'utilitarios.html': { title: 'Utilitários', parent: 'index.html' },
+            'glassfish.html': { title: 'Utilitário Web', parent: 'utilitarios.html' },
+            'utilitarios-neodesktop.html': { title: 'Neocorp Desktop', parent: 'utilitarios.html' },
+            'utilitarios-bd.html': { title: 'Banco de Dados', parent: 'utilitarios.html' },
+            'utilitarios-chamados.html': { title: 'Neo Chamados', parent: 'utilitarios.html' },
+            'config.html': { title: 'Configurar Ambiente', parent: 'index.html' },
+            'rotinas.html': { title: 'Rotinas', parent: 'index.html' },
+            'recursos-dev.html': { title: 'Recursos em Desenvolvimento', parent: 'index.html' },
+            'sugestoes-dev.html': { title: 'Sugestões de Desenvolvimento', parent: 'index.html' }
+        };
     }
 
     connectedCallback() {
         this.render();
         this.addEventListeners();
         this.highlightCurrentPage();
-        this.updateMenuIconColor();
-        window.addEventListener('scroll', () => this.updateMenuIconColor());
+        this.updateBreadcrumb();
     }
 
     render() {
@@ -20,137 +33,270 @@ class NavbarComponent extends HTMLElement {
                     margin: 0;
                     padding: 0;
                 }
-                .sidebar {
-                    height: 100vh;
-                    width: 250px;
+
+                /* Navbar Styles */
+                .navbar {
+                    background: white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    padding: 0.5rem 1rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 60px;
                     position: fixed;
                     top: 0;
-                    left: 0;
-                    background: #f5f5f5;
-                    transform: translateX(-100%);
-                    transition: transform 0.3s ease-in-out, background 0.2s;
+                    width: 100%;
                     z-index: 1000;
-                    padding: 20px;
-                    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
-                    overflow-y: auto;
-                    border-top-right-radius: 16px;
-                    border-bottom-right-radius: 16px;
-                    padding-top: 100px;
                 }
-                .sidebar.active {
+
+                .navbar-brand {
+                    display: flex;
+                    align-items: center;
+                    cursor: pointer;
+                    transition: transform 0.2s ease;
+                }
+
+                .navbar-brand:hover {
+                    transform: scale(1.02);
+                }
+
+                .navbar-brand img {
+                    height: 40px;
+                }
+
+                /* Breadcrumb Styles */
+                .breadcrumb-container {
+                    background: #f8f9fa;
+                    padding: 0.8rem 1rem;
+                    margin-top: 60px;
+                    border-bottom: 1px solid #e9ecef;
+                }
+
+                .breadcrumb {
+                    list-style: none;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-size: 0.95rem;
+                    flex-wrap: wrap;
+                    padding: 0;
+                    margin: 0;
+                }
+
+                .breadcrumb li {
+                    display: flex;
+                    align-items: center;
+                }
+
+                .breadcrumb li:not(:last-child)::after {
+                    content: '›';
+                    margin: 0 0.5rem;
+                    color: #6c757d;
+                    font-size: 1.4rem;
+                    line-height: 1;
+                }
+
+                .breadcrumb a {
+                    color:rgb(106, 160, 12);
+                    text-decoration: none;
+                    transition: all 0.2s ease;
+                    padding: 0.3rem 0.6rem;
+                    border-radius: 4px;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                }
+
+                .breadcrumb a:not(.is-active)::before {
+                    content: '←';
+                    opacity: 0;
+                    transition: all 0.2s ease;
+                    transform: translateX(5px);
+                }
+
+                .breadcrumb a:hover::before {
+                    opacity: 1;
                     transform: translateX(0);
                 }
+
+                .breadcrumb a:hover {
+                    background-color: rgba(33, 150, 243, 0.1);
+                    transform: translateX(-3px);
+                }
+
+                .breadcrumb .is-active a {
+                    color: #333;
+                    font-weight: 500;
+                    pointer-events: none;
+                }
+
+                /* Menu Toggle Button aprimorado */
                 .menu-toggle {
-                    position: absolute;
-                    top: 15px;
-                    left: 20px;
-                    z-index: 1100;
-                    background: rgba(255, 255, 255, 0.2);
-                    border: none;
-                    cursor: pointer;
-                    font-size: 28px;
-                    transition: all 0.3s ease;
-                    margin-left: 20px; 
-                    margin-top: 20px;
-                    padding: 8px 12px;
+                    background: rgba(33, 150, 243, 0.1);
+                    border: 2px solid rgb(45, 45, 45);
                     border-radius: 8px;
-                    backdrop-filter: blur(5px);
-                    -webkit-backdrop-filter: blur(5px);
+                    font-size: 20px;
+                    color: rgb(45, 45, 45);
+                    cursor: pointer;
+                    padding: 8px 12px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
-                .menu-toggle.light {
-                    color: #ffffff;
-                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-                    background: rgba(255, 255, 255, 0.15);
-                }
-                .menu-toggle.dark {
-                    color: #555555;
-                    text-shadow: none;
-                    background: rgba(0, 0, 0, 0.05);
-                }
+
                 .menu-toggle:hover {
-                    transform: scale(1.1);
+                    background:rgb(140, 200, 105);
+                    color: white;
+                    transform: scale(1.05);
                 }
-                .menu-toggle.light:hover {
-                    background: rgba(255, 255, 255, 0.25);
+
+                /* Sidebar Styles Aprimorados */
+                .sidebar {
+                    height: 100vh;
+                    width: 280px;
+                    position: fixed;
+                    top: 0;
+                    right: -280px;
+                    background: white;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    z-index: 1001;
+                    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+                    padding: 1rem;
+                    padding-top: 60px;
+                    overflow-y: auto;
+                    border-top-left-radius: 16px;
+                    border-bottom-left-radius: 16px;
                 }
-                .menu-toggle.dark:hover {
-                    background: rgba(0, 0, 0, 0.1);
+
+                .sidebar.active {
+                    right: 0;
+                    transform: translateX(0);
                 }
+
+                .close-sidebar {
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    background: none;
+                    border: none;
+                    font-size: 28px;
+                    color: #333;
+                    cursor: pointer;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                .close-sidebar:hover {
+                    background: rgba(0, 0, 0, 0.05);
+                    transform: rotate(90deg);
+                }
+
+                /* Menu List atualizado - removendo dots */
                 .menu-list {
                     list-style: none;
                     padding: 0;
+                    margin: 0;
                 }
+
+                .menu-list li {
+                    margin: 8px 0;
+                }
+
                 .menu-list a {
                     display: flex;
                     align-items: center;
-                    gap: 10px;
-                    padding: 12px;
+                    gap: 0.8rem;
+                    padding: 12px 16px;
+                    color: #333;
                     text-decoration: none;
-                    color: #555; /* Cor neutra */
-                    font-weight: 500;
-                    font-size: 1rem;
                     border-radius: 8px;
-                    transition: background-color 0.3s, transform 0.2s;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    font-size: 1.1rem;
+                    font-weight: 500;
+                    letter-spacing: 0.3px;
                 }
+
                 .menu-list a:hover {
-                    background-color: #e0e0e0;
+                    background: rgba(33, 150, 243, 0.1);
                     transform: translateX(5px);
+                    color: #2196F3;
                 }
+
                 .menu-list a.active {
-                    background-color: #b0bec5;
-                    color: #fff;
-                    font-weight: bold;
+                    background: #2196F3;
+                    color: white;
+                    font-weight: 600;
                 }
+
+                .menu-list .icon {
+                    font-size: 1.3rem;
+                    min-width: 24px;
+                    text-align: center;
+                }
+
+                /* Submenu atualizado */
+                .submenu {
+                    margin-left: 2.5rem; /* Aumentado para alinhar com o texto do item pai */
+                    border-left: 2px solid #e0e0e0;
+                    margin-top: 0.5rem;
+                    margin-bottom: 0.5rem;
+                    padding-left: 0;
+                }
+
+                .submenu li {
+                    margin: 4px 0;
+                }
+
+                .submenu a {
+                    font-size: 1rem;
+                    padding: 8px 16px;
+                }
+
+                /* Overlay Animation */
                 .overlay {
                     position: fixed;
                     top: 0;
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background: rgba(0, 0, 0, 0.5);
-                    display: none;
-                    z-index: 999;
+                    background: rgba(0,0,0,0.5);
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    z-index: 1000;
+                    backdrop-filter: blur(3px);
                 }
+
                 .overlay.active {
-                    display: block;
-                }
-                .close-sidebar {
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    background: none;
-                    border: none;
-                    font-size: 24px;
-                    color: #555;
-                    cursor: pointer;
-                    transition: transform 0.2s;
-                }
-                .close-sidebar:hover {
-                    transform: rotate(90deg);
-                }
-                .submenu {
-                    max-height: 0;
-                    overflow: hidden;
-                    transition: max-height 0.3s ease;
-                    padding-left: 16px;
-                }
-                .submenu-parent:hover .submenu {
-                    max-height: 300px;
-                }
-                .submenu a {
-                    font-size: 0.9rem;
-                }
-                .icon {
-                    font-size: 1.2rem;
+                    opacity: 1;
+                    visibility: visible;
                 }
             </style>
-            
-            <button class="menu-toggle">☰</button>
-            
+
+            <nav class="navbar">
+                <div class="navbar-brand" id="logo-home">
+                    <img src="/assets/neo-logo-small.png" alt="NeoHub">
+                </div>
+                <button class="menu-toggle">☰</button>
+            </nav>
+
+            <div class="breadcrumb-container">
+                <ul class="breadcrumb">
+                    <li><a href="/">Início</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">Página Atual</a></li>
+                </ul>
+            </div>
+
             <div class="overlay"></div>
-            
+
             <div class="sidebar">
-                <button class="close-sidebar">&times;</button>
+                <button class="close-sidebar">×</button>
                 <nav>
                     <ul class="menu-list">
                         <li><a href="index.html"><span class="icon">🏠</span>Menu Principal</a></li>
@@ -171,6 +317,52 @@ class NavbarComponent extends HTMLElement {
                 </nav>
             </div>
         `;
+
+        // Adicionar índices aos itens do menu para animação
+        const menuItems = this.shadowRoot.querySelectorAll('.menu-list li');
+        menuItems.forEach((item, index) => {
+            item.style.setProperty('--index', index);
+        });
+    }
+
+    updateBreadcrumb() {
+        const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+        const breadcrumbPath = this.getBreadcrumbPath(currentPath);
+        const breadcrumbList = this.shadowRoot.querySelector('.breadcrumb');
+
+        breadcrumbList.innerHTML = breadcrumbPath
+            .map((item, index) => {
+                const isLast = index === breadcrumbPath.length - 1;
+                return `
+                    <li class="${isLast ? 'is-active' : ''}">
+                        <a href="/${item.path}" ${isLast ? 'aria-current="page"' : ''} 
+                           title="${isLast ? 'Página atual' : 'Voltar para ' + item.title}">
+                            ${item.title}
+                        </a>
+                    </li>
+                `;
+            })
+            .join('');
+    }
+
+    getBreadcrumbPath(currentPath) {
+        const path = [];
+        let current = currentPath;
+
+        // Construir o caminho do breadcrumb
+        while (current) {
+            const pageInfo = this.navigationStructure[current];
+            if (!pageInfo) break;
+
+            path.unshift({
+                path: current,
+                title: pageInfo.title
+            });
+
+            current = pageInfo.parent;
+        }
+
+        return path;
     }
 
     addEventListeners() {
@@ -193,6 +385,27 @@ class NavbarComponent extends HTMLElement {
             sidebar.classList.remove('active');
             overlay.classList.remove('active');
         });
+
+        // Atualizar os listeners do breadcrumb
+        const breadcrumbLinks = this.shadowRoot.querySelectorAll('.breadcrumb a');
+        breadcrumbLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const path = link.getAttribute('href');
+                window.location.href = path; // Navegação real para a página
+            });
+        });
+
+        // Observar mudanças na navegação
+        window.addEventListener('popstate', () => {
+            this.updateBreadcrumb();
+        });
+
+        // Adicionar evento de clique no logo
+        const logoHome = this.shadowRoot.querySelector('#logo-home');
+        logoHome.addEventListener('click', () => {
+            window.location.href = '/';
+        });
     }
 
     highlightCurrentPage() {
@@ -200,49 +413,13 @@ class NavbarComponent extends HTMLElement {
         const links = this.shadowRoot.querySelectorAll('.menu-list a');
         
         links.forEach(link => {
-            const href = link.getAttribute('href').split('/').pop(); // Só pega o nome do arquivo da URL
+            const href = link.getAttribute('href').split('/').pop();
             if (href === currentPath) {
                 link.classList.add('active');
             } else {
-                link.classList.remove('active'); // Remove a classe 'active' de outros itens
+                link.classList.remove('active');
             }
         });
-    }
-
-    updateMenuIconColor() {
-        const menuToggle = this.shadowRoot.querySelector('.menu-toggle');
-        const rect = menuToggle.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-        
-        // Criar um elemento temporário para capturar a cor de fundo
-        const temp = document.createElement('div');
-        temp.style.position = 'absolute';
-        temp.style.height = '1px';
-        temp.style.width = '1px';
-        temp.style.top = `${y}px`;
-        temp.style.left = `${x}px`;
-        temp.style.pointerEvents = 'none';
-        document.body.appendChild(temp);
-        
-        // Obter a cor de fundo
-        const bgColor = window.getComputedStyle(temp).backgroundColor;
-        document.body.removeChild(temp);
-        
-        // Converter a cor para RGB e calcular o brilho
-        const rgb = bgColor.match(/\d+/g);
-        if (rgb) {
-            const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
-            
-            // Ajustar a classe com base no brilho
-            if (brightness > 128) {
-                menuToggle.classList.remove('light');
-                menuToggle.classList.add('dark');
-            } else {
-                menuToggle.classList.remove('dark');
-                menuToggle.classList.add('light');
-            }
-        }
     }
 }
 

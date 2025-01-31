@@ -135,6 +135,17 @@ app.get('/sw.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 
+// Rota para 404 - Not Found
+app.use((req, res, next) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
+// Rota para 500 - Internal Server Error
+app.use((err, req, res, next) => {
+    console.error(err.stack); // Log do erro no console
+    res.status(500).sendFile(path.join(__dirname, 'public', '500.html'));
+});
+
 const PORT = process.env.PORT || 3010;
 
 // Conectar ao MongoDB antes de iniciar o servidor

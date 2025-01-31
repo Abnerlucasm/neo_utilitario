@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>500 - Erro Interno do Servidor</title>
+    <title>Erro Interno do Servidor</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <style>
         body {
-            background-color: #f4f4f4;
+            background-color: #e0f7fa; /* Azul claro */
+        }
+        .hero {
+            background-color: rgba(255, 221, 87, 0.8); /* Cor menos chamativa com transparência */
+            color: black;
         }
         .container {
             margin-top: 50px;
@@ -18,12 +22,19 @@
     </style>
 </head>
 <body>
-    <div class="container has-text-centered">
-        <h1 class="title is-1">500</h1>
-        <h2 class="subtitle">Erro Interno do Servidor</h2>
-        <p>Ocorreu um erro inesperado no servidor. Estamos trabalhando para resolver isso.</p>
-        <p>Você pode voltar à página principal ou tentar novamente mais tarde.</p>
-        <a href="/" class="button is-primary is-large">Voltar para a Página Principal</a>
-    </div>
+    <section class="hero is-large">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <h1 class="title">500</h1>
+                <h2 class="subtitle">Erro Interno do Servidor</h2>
+                <p>Desculpe, ocorreu um erro inesperado. Estamos trabalhando para resolver isso.</p>
+                <p>Você pode voltar à página principal ou tentar novamente mais tarde.</p>
+                <a href="/" class="button is-light">Voltar para a Página Inicial</a>
+                <br><br>
+                <h3 class="title is-4">O que fazer agora:</h3>
+                <p>Se o problema persistir, entre em contato com o suporte.</p>
+            </div>
+        </div>
+    </section>
 </body>
 </html>
