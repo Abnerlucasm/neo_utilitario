@@ -1,7 +1,7 @@
 {
     "conexao": {
-        "ipLocal": "192.168.1.72",
-        "ipServidor": "192.168.1.72",
+        "ipLocal": "192.168.1.246",
+        "ipServidor": "192.168.1.252",
         "usuarioPostgres": "postgres",
         "senhaPostgres": "09042003"
     },
@@ -9,7 +9,7 @@
         "postgres": "C:\\Program Files\\PostgreSQL\\16\\bin",
         "glassfish": "C:\\glassfish6.2.5",
         "rotinas": "C:\\NeoCorp\\Rotinas",
-        "rotinaBackup": "C:\\NeoCorp\\Bkp",
+        "rotinaBackup": "C:\\Users\\Suporte\\Desktop\\BKP",
         "rotinaManutencao": "C:\\NeoCorp\\Manutencao"
     }
 }

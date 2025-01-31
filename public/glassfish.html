@@ -475,11 +475,17 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label">Porta</label>
+                    <label class="label">Porta Admin</label>
                     <div class="control input-number">
                         <button onclick="adjustPort('decrease')">-</button>
-                        <input class="input" type="number" id="service-port" value="8080">
+                        <input class="input" type="number" id="service-port" value="4848">
                         <button onclick="adjustPort('increase')">+</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Porta Produção</label>
+                    <div class="control">
+                        <input class="input" type="number" id="production-port" placeholder="Porta de Produção" value="8091">
                     </div>
                 </div>
                 <div class="field">
@@ -551,6 +557,14 @@
                             <i class="fas fa-external-link-alt"></i>
                         </span>
                         <span>Acessar Painel Admin</span>
+                    </button>
+                </div>
+                <div class="field">
+                    <button class="button is-link" onclick="accessNeoWeb()">
+                        <span class="icon">
+                            <i class="fas fa-external-link-alt"></i>
+                        </span>
+                        <span>Acessar NeoWeb</span>
                     </button>
                 </div>
             </section>
@@ -905,6 +919,7 @@
                 document.getElementById('service-install-path').value = service.installPath;
                 document.getElementById('service-category').value = service.setor || 'Cliente';
                 document.getElementById('service-access-type').value = service.accessType || 'local';
+                document.getElementById('production-port').value = service.productionPort || '8081';
                 modalTitle.textContent = 'Editar Glassfish';
             } else {
                 document.getElementById('service-name').value = '';
@@ -916,6 +931,7 @@
                 document.getElementById('service-install-path').value = '/glassfish6.2.5';
                 document.getElementById('service-category').value = 'Cliente';
                 document.getElementById('service-access-type').value = 'local';
+                document.getElementById('production-port').value = '8081';
                 modalTitle.textContent = 'Adicionar Glassfish';
             }
             document.getElementById('add-modal').classList.add('is-active');
@@ -937,7 +953,8 @@
                     sshUsername: document.getElementById('service-ssh-username').value,
                     sshPassword: document.getElementById('service-ssh-password').value,
                     installPath: document.getElementById('service-install-path').value || '/srv/glassfish6.2.5',
-                setor: document.getElementById('service-category').value,
+                    productionPort: parseInt(document.getElementById('production-port').value),
+                    setor: document.getElementById('service-category').value,
                     accessType: document.getElementById('service-access-type').value
                 };
 
@@ -1489,7 +1506,7 @@
                 showToast('ID do serviço não encontrado', 'danger');
                 return;
             }
-            
+
             // Coletar todas as tarefas selecionadas
             const tasks = [];
             if (document.getElementById('clean-applications').checked) {
@@ -1504,13 +1521,13 @@
             if (document.getElementById('clean-autodeploy').checked) {
                 tasks.push('cleanAutodeploy');
             }
-            
+
             // Verificar se pelo menos uma tarefa foi selecionada
             if (tasks.length === 0) {
                 showToast('Selecione pelo menos uma opção de limpeza', 'warning');
                 return;
             }
-            
+
             // Adicionar loading state
             button.classList.add('is-loading');
             button.disabled = true;
@@ -1709,13 +1726,13 @@
 
         async function saveDomainConfig() {
             try {
-                const service = services[currentDomainConfigIndex];
+            const service = services[currentDomainConfigIndex];
                 if (!service) {
                     throw new Error('Serviço não encontrado');
                 }
 
                 // Coletar os valores dos campos
-                const config = {
+            const config = {
                     serverName: document.getElementById('db-server').value.trim(),
                     user: document.getElementById('db-user').value.trim(),
                     password: document.getElementById('db-password').value.trim(),
@@ -1733,23 +1750,23 @@
                 saveButton.classList.add('is-loading');
                 saveButton.disabled = true;
 
-                try {
-                    const response = await fetch(`/api/servicos/${service._id}/domain-config`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(config)
-                    });
+            try {
+                const response = await fetch(`/api/servicos/${service._id}/domain-config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
 
-                    if (!response.ok) {
+                if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(errorData.error || errorData.details || 'Erro ao salvar configurações');
-                    }
+                }
 
                     const data = await response.json();
-                    showToast('Configurações salvas com sucesso!', 'success');
-                    closeDomainConfigModal();
-                } catch (error) {
-                    console.error('Erro ao salvar configurações:', error);
+                showToast('Configurações salvas com sucesso!', 'success');
+                closeDomainConfigModal();
+            } catch (error) {
+                console.error('Erro ao salvar configurações:', error);
                     showToast(error.message, 'danger');
                     throw error;
                 } finally {
@@ -2010,6 +2027,19 @@
         function clearLogViewer() {
             const logViewer = document.getElementById('log-viewer');
             logViewer.innerHTML = '';
+        }
+
+        function accessNeoWeb() {
+            const ip = document.getElementById('service-ip').value.trim();
+            const productionPort = document.getElementById('production-port').value.trim();
+
+            if (!ip || !productionPort) {
+                showToast('Por favor, preencha o IP e a Porta de Produção', 'warning');
+                return;
+            }
+
+            const url = `https://${ip}:${productionPort}/neocorp`;
+            window.open(url, '_blank');
         }
     </script>
 </body>

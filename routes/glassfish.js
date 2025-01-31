@@ -318,7 +318,9 @@ router.post('/servicos', async (req, res) => {
             sshPassword, 
             installPath,
             status,
-            setor
+            setor,
+            productionPort,
+            accessType
         } = req.body;
 
         // Validação dos campos obrigatórios
@@ -348,7 +350,9 @@ router.post('/servicos', async (req, res) => {
             sshPassword,
             installPath: installPath || '/srv/glassfish6.2.5',
             status: status || 'inactive',
-            setor: setor || 'Setor Sup. Externo'
+            setor: setor || 'Setor Sup. Externo',
+            productionPort: productionPort,
+            accessType: accessType
         });
 
         await newService.save();
@@ -379,7 +383,7 @@ router.put('/servicos/:id', async (req, res) => {
         const allowedUpdates = [
             'name', 'ip', 'port', 'domain', 'password', 
             'sshUsername', 'sshPassword', 'installPath', 
-            'status', 'setor'
+            'status', 'setor', 'productionPort', 'accessType'
         ];
         
         const updates = {};
@@ -766,7 +770,7 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
 
         // 2. Atualizar o domain.xml
         const domainXmlPath = `${service.installPath}/glassfish/domains/${service.domain}/config/domain.xml`;
-        
+
         // Ler o arquivo atual
         const readCommand = `cat "${domainXmlPath}"`;
         logger.debug('Executando comando de leitura:', { command: readCommand });
@@ -788,7 +792,7 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
         }
 
         logger.debug('Arquivo domain.xml lido com sucesso');
-
+        
         // Parsear o XML existente
         const parser = new xml2js.Parser({ explicitArray: false });
         const xmlData = await parser.parseStringPromise(result.stdout);
@@ -846,7 +850,7 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
         `;
         
         logger.debug('Executando comando de escrita');
-
+        
         const writeResult = await executeRemoteCommand(
             service.ip,
             service.sshUsername,
@@ -892,9 +896,9 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
             stack: error.stack
         });
 
-        res.status(500).json({
+        res.status(500).json({ 
             error: 'Erro ao atualizar configurações',
-            details: error.message
+            details: error.message 
         });
     }
 });

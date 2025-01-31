@@ -44,6 +44,9 @@ mongoose.set('debug', true);
 // Servir arquivos estáticos ANTES das rotas da API
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Configurar o middleware para servir arquivos estáticos da pasta uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Logger middleware
 app.use((req, res, next) => {
     logger.info(`[REQUEST] ${req.method} ${req.url}`);

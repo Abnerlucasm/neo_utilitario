@@ -11,7 +11,7 @@ const glassfishSchema = new mongoose.Schema({
     },
     port: {
         type: Number,
-        default: 8080
+        default: 4848
     },
     domain: {
         type: String,
@@ -72,6 +72,10 @@ const glassfishSchema = new mongoose.Schema({
         user: String,
         password: String,
         databaseName: String
+    },
+    productionPort: {
+        type: Number,
+        default: 8091
     }
 }, {
     timestamps: true

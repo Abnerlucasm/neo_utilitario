@@ -159,6 +159,13 @@
                         </div>
 
                         <div class="field">
+                            <label class="label">Anexar Imagem</label>
+                            <div class="control">
+                                <input type="file" id="imageUpload" class="input" accept="image/*">
+                            </div>
+                        </div>
+
+                        <div class="field">
                             <div class="control">
                                 <button type="submit" class="button is-primary is-fullwidth">
                                     Enviar Sugestão
@@ -239,18 +246,19 @@
             event.preventDefault();
             
             try {
-                const formData = {
-                    description: document.getElementById('description').value,
-                    category: document.getElementById('category').value,
-                    createdBy: document.getElementById('createdBy').value
-                };
+                const formData = new FormData();
+                formData.append('description', document.getElementById('description').value);
+                formData.append('category', document.getElementById('category').value);
+                formData.append('createdBy', document.getElementById('createdBy').value);
+                
+                const imageFile = document.getElementById('imageUpload').files[0];
+                if (imageFile) {
+                    formData.append('image', imageFile);
+                }
 
                 const response = await fetch('/api/suggestions', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
+                    body: formData
                 });
 
                 if (!response.ok) {

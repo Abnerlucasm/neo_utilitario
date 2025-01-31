@@ -1,6 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const Suggestion = require('../models/suggestion');
+const multer = require('multer');
+const path = require('path');
+
+// Configuração do multer para armazenar imagens
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/'); // Diretório onde as imagens serão armazenadas
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname)); // Nome único para o arquivo
+    }
+});
+
+const upload = multer({ storage: storage });
 
 // Listar todas as sugestões
 router.get('/suggestions', async (req, res) => {
@@ -44,9 +58,10 @@ router.get('/suggestions', async (req, res) => {
 });
 
 // Criar nova sugestão
-router.post('/suggestions', async (req, res) => {
+router.post('/suggestions', upload.single('image'), async (req, res) => {
     try {
         const { description, category, createdBy } = req.body;
+        const imageUrl = req.file ? req.file.path : ''; // Caminho da imagem
         
         console.log('Dados recebidos:', { description, category, createdBy });
         
@@ -76,7 +91,8 @@ router.post('/suggestions', async (req, res) => {
             description,
             category,
             createdBy,
-            status: 'pending'
+            status: 'pending',
+            imageUrl // Salvar o caminho da imagem
         });
         
         // Validar a sugestão antes de salvar

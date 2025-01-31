@@ -54,7 +54,11 @@ const suggestionSchema = new mongoose.Schema({
             type: Date,
             default: Date.now
         }
-    }]
+    }],
+    imageUrl: {
+        type: String,
+        default: ''
+    }
 });
 
 // Middleware para gerar número sequencial
