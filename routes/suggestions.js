@@ -46,34 +46,85 @@ router.get('/suggestions', async (req, res) => {
 // Criar nova sugestão
 router.post('/suggestions', async (req, res) => {
     try {
-        const { title, description, category, priority, createdBy } = req.body;
+        const { description, category, createdBy } = req.body;
+        
+        console.log('Dados recebidos:', { description, category, createdBy });
         
         // Verificar se todos os campos obrigatórios estão presentes
-        if (!title || !description || !category || !priority || !createdBy) {
+        if (!description || !category || !createdBy) {
             return res.status(400).json({ error: 'Todos os campos obrigatórios devem ser preenchidos' });
         }
 
         // Gerar número sequencial
-        const lastSuggestion = await Suggestion.findOne({}, {}, { sort: { sequentialNumber: -1 } });
-        const sequentialNumber = lastSuggestion ? lastSuggestion.sequentialNumber + 1 : 1;
+        let sequentialNumber = 1;
+        try {
+            const lastSuggestion = await Suggestion.findOne()
+                .sort({ sequentialNumber: -1 })
+                .select('sequentialNumber');
+                
+            if (lastSuggestion) {
+                sequentialNumber = (lastSuggestion.sequentialNumber || 0) + 1;
+            }
+            console.log('Número sequencial gerado:', sequentialNumber);
+        } catch (error) {
+            console.error('Erro ao gerar número sequencial:', error);
+        }
 
+        // Criar nova sugestão
         const suggestion = new Suggestion({
             sequentialNumber,
-            title,
             description,
             category,
-            priority,
             createdBy,
-            status: 'pending',
-            createdAt: new Date(),
-            updatedAt: new Date()
+            status: 'pending'
         });
         
-        await suggestion.save();
-        res.status(201).json(suggestion);
+        // Validar a sugestão antes de salvar
+        const validationError = suggestion.validateSync();
+        if (validationError) {
+            console.error('Erro de validação:', validationError);
+            return res.status(400).json({ 
+                error: 'Erro de validação', 
+                details: validationError.message 
+            });
+        }
+
+        // Salvar a sugestão
+        const savedSuggestion = await suggestion.save();
+        console.log('Sugestão salva com sucesso:', {
+            id: savedSuggestion._id,
+            sequentialNumber: savedSuggestion.sequentialNumber,
+            category: savedSuggestion.category
+        });
+
+        res.status(201).json(savedSuggestion);
     } catch (error) {
-        console.error('Erro ao criar sugestão:', error); // Adicionar log de erro
-        res.status(500).json({ error: 'Erro ao criar sugestão' });
+        console.error('Erro detalhado ao criar sugestão:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        
+        // Verificar se é um erro de validação do Mongoose
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ 
+                error: 'Erro de validação',
+                details: error.message 
+            });
+        }
+        
+        // Verificar se é um erro de duplicação
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                error: 'Número sequencial duplicado',
+                details: 'Tente novamente' 
+            });
+        }
+
+        res.status(500).json({ 
+            error: 'Erro ao criar sugestão',
+            details: error.message 
+        });
     }
 });
 

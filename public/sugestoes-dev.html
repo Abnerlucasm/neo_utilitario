@@ -229,35 +229,40 @@
         }
 
         // Corrigir o formulário de envio
-        const form = document.getElementById('suggestionForm');
-        form.addEventListener('submit', async (event) => {
+        document.getElementById('suggestionForm').addEventListener('submit', async (event) => {
             event.preventDefault();
             
-            const suggestion = {
-                title: 'Nova Sugestão',
-                description: document.getElementById('description').value,
-                category: document.getElementById('category').value,
-                priority: 'media', // Valor padrão
-                createdBy: document.getElementById('createdBy').value
-            };
-
             try {
+                const formData = {
+                    description: document.getElementById('description').value,
+                    category: document.getElementById('category').value,
+                    createdBy: document.getElementById('createdBy').value
+                };
+
                 const response = await fetch('/api/suggestions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(suggestion)
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
                 });
 
                 if (!response.ok) {
-                    throw new Error('Erro ao salvar sugestão');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao salvar sugestão');
                 }
 
-                form.reset();
-                await updateStats();
+                const result = await response.json();
                 showToast('Sugestão enviada com sucesso!', 'success');
+                
+                // Limpar formulário
+                event.target.reset();
+                
+                // Atualizar lista de sugestões
+                updateStats();
             } catch (error) {
                 console.error('Erro:', error);
-                showToast('Erro ao enviar sugestão', 'danger');
+                showToast(error.message, 'danger');
             }
         });
 

@@ -3,12 +3,7 @@ const mongoose = require('mongoose');
 const suggestionSchema = new mongoose.Schema({
     sequentialNumber: {
         type: Number,
-        required: true,
         unique: true
-    },
-    title: {
-        type: String,
-        required: true
     },
     description: {
         type: String,
@@ -23,11 +18,6 @@ const suggestionSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'in_progress', 'implemented'],
         default: 'pending'
-    },
-    priority: {
-        type: String,
-        enum: ['baixa', 'media', 'alta'],
-        required: true
     },
     createdBy: {
         type: String,
@@ -67,17 +57,22 @@ const suggestionSchema = new mongoose.Schema({
     }]
 });
 
-// Adicionar pré-save hook para gerar número sequencial
+// Middleware para gerar número sequencial
 suggestionSchema.pre('save', async function(next) {
-    if (!this.sequentialNumber) {
-        try {
-            const lastSuggestion = await this.constructor.findOne({}, {}, { sort: { sequentialNumber: -1 } });
-            this.sequentialNumber = lastSuggestion ? lastSuggestion.sequentialNumber + 1 : 1;
-        } catch (error) {
-            return next(error);
+    try {
+        if (!this.sequentialNumber) {
+            const lastSuggestion = await this.constructor.findOne()
+                .sort({ sequentialNumber: -1 })
+                .select('sequentialNumber');
+                
+            this.sequentialNumber = lastSuggestion ? (lastSuggestion.sequentialNumber + 1) : 1;
+            console.log('Número sequencial definido:', this.sequentialNumber);
         }
+        next();
+    } catch (error) {
+        console.error('Erro no middleware de sequentialNumber:', error);
+        next(error);
     }
-    next();
 });
 
 const Suggestion = mongoose.model('Suggestion', suggestionSchema);
