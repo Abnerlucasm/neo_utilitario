@@ -147,10 +147,11 @@ router.post('/suggestions', upload.single('image'), async (req, res) => {
 // Atualizar status da sugestão
 router.patch('/suggestions/:id/status', async (req, res) => {
     try {
+        const { status } = req.body; // Obter o novo status do corpo da requisição
         const suggestion = await Suggestion.findByIdAndUpdate(
             req.params.id,
             { 
-                status: req.body.status,
+                status: status,
                 updatedAt: new Date()
             },
             { new: true }

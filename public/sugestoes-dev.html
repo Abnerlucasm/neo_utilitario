@@ -12,62 +12,63 @@
             margin-bottom: 2rem;
         }
         
-        .stats-container {
-            margin-bottom: 2rem;
-        }
-        
-        .stat-box {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        
-        .stat-box .icon {
-            font-size: 2rem;
+        .filter-container {
             margin-bottom: 1rem;
-            color: #3273dc;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        
+
+        .filter-container .tag {
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .filter-container .tag.is-light:hover {
+            background-color: #f5f5f5;
+        }
+
+        .filter-container .tag.is-active {
+            background-color: #3273dc;
+            color: white;
+        }
+
         .suggestion-list {
             margin-top: 2rem;
+            max-height: 400px; /* Limitar a altura da lista */
+            overflow-y: auto; /* Adicionar rolagem se necessário */
         }
-        
+
         .suggestion-item {
             border-left: 4px solid #3273dc;
             margin-bottom: 1rem;
         }
-        
+
         .suggestion-item.is-warning {
             border-left-color: #ffdd57;
         }
-        
+
         .suggestion-item.is-danger {
             border-left-color: #ff3860;
         }
-        
-        .tag-container {
-            margin-bottom: 1rem;
-        }
-        
-        .progress-section {
-            margin: 2rem 0;
-        }
-        
-        .notification {
-            animation: slideIn 0.5s ease-out;
+
+        /* Estilização da barra de rolagem */
+        .suggestion-list::-webkit-scrollbar {
+            width: 8px; /* Largura da barra de rolagem */
         }
 
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+        .suggestion-list::-webkit-scrollbar-track {
+            background: #f1f1f1; /* Cor do fundo da barra de rolagem */
+            border-radius: 10px; /* Bordas arredondadas */
+        }
+
+        .suggestion-list::-webkit-scrollbar-thumb {
+            background: #3273dc; /* Cor da barra de rolagem */
+            border-radius: 10px; /* Bordas arredondadas */
+        }
+
+        .suggestion-list::-webkit-scrollbar-thumb:hover {
+            background: #0056b3; /* Cor da barra de rolagem ao passar o mouse */
         }
     </style>
 </head>
@@ -95,40 +96,65 @@
     </section>
 
     <div class="container">
-        <!-- Stats Section -->
-        <div class="columns stats-container">
-            <div class="column">
-                <div class="stat-box">
-                    <span class="icon">
-                        <i class="fas fa-lightbulb"></i>
-                    </span>
-                    <p class="heading">Total de Sugestões</p>
-                    <p class="title" id="totalSuggestions">0</p>
-                </div>
-            </div>
-            <div class="column">
-                <div class="stat-box">
-                    <span class="icon">
-                        <i class="fas fa-check-circle"></i>
-                    </span>
-                    <p class="heading">Implementadas</p>
-                    <p class="title" id="implementedSuggestions">0</p>
-                </div>
-            </div>
-            <div class="column">
-                <div class="stat-box">
-                    <span class="icon">
-                        <i class="fas fa-clock"></i>
-                    </span>
-                    <p class="heading">Em Análise</p>
-                    <p class="title" id="pendingSuggestions">0</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Form Section -->
         <div class="columns">
             <div class="column is-6">
+                <!-- Últimas Sugestões -->
+                <div class="box">
+                    <h2 class="title is-4">Últimas Sugestões</h2>
+                    <div class="filter-container">
+                        <label class="label">Filtrar por Status:</label>
+                        <span class="tag is-light status-tag" data-value="pending">Em Análise</span>
+                        <span class="tag is-light status-tag" data-value="in_progress">Em Progresso</span>
+                        <span class="tag is-light status-tag" data-value="implemented">Implementado</span>
+                    </div>
+                    <div class="filter-container">
+                        <label class="label">Filtrar por Categoria:</label>
+                        <span class="tag is-light category-tag" data-value="correcao">Correções</span>
+                        <span class="tag is-light category-tag" data-value="melhoria">Melhorias</span>
+                        <span class="tag is-light category-tag" data-value="novo">Novos Recursos</span>
+                    </div>
+                    <div id="suggestionList" class="suggestion-list">
+                        <!-- Sugestões serão carregadas aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="column is-6">
+                <div class="box">
+                    <h2 class="title is-4">Estatísticas</h2>
+                    <div class="columns stats-container">
+                        <div class="column">
+                            <div class="stat-box">
+                                <span class="icon">
+                                    <i class="fas fa-lightbulb"></i>
+                                </span>
+                                <p class="heading">Total de Sugestões</p>
+                                <p class="title" id="totalSuggestions">0</p>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="stat-box">
+                                <span class="icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </span>
+                                <p class="heading">Implementadas</p>
+                                <p class="title" id="implementedSuggestions">0</p>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="stat-box">
+                                <span class="icon">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <p class="heading">Em Análise</p>
+                                <p class="title" id="pendingSuggestions">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Section -->
                 <div class="box">
                     <h2 class="title is-4">Nova Sugestão</h2>
                     <form id="suggestionForm">
@@ -175,288 +201,267 @@
                     </form>
                 </div>
             </div>
+        </div>
 
-            <!-- Recent Suggestions Section -->
-            <div class="column is-6">
-                <div class="box">
-                    <h2 class="title is-4">Últimas Sugestões</h2>
-                    <div class="tag-container">
-                        <span class="tag is-info">Todas</span>
-                        <span class="tag is-light">Correções</span>
-                        <span class="tag is-light">Melhorias</span>
-                        <span class="tag is-light">Novos Recursos</span>
+        <!-- Modal para alterar o status -->
+        <div class="modal" id="statusModal">
+            <div class="modal-background" onclick="closeStatusModal()"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Alterar Status da Sugestão</p>
+                    <button class="delete" aria-label="close" onclick="closeStatusModal()"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="field">
+                        <label class="label">Selecione o novo status:</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="newStatus">
+                                    <option value="pending">Em Análise</option>
+                                    <option value="in_progress">Em Progresso</option>
+                                    <option value="implemented">Implementado</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div id="suggestionList" class="suggestion-list">
-                        <!-- Suggestions will be added here dynamically -->
-                    </div>
-                </div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button is-success" id="confirmStatusChange">Confirmar</button>
+                    <button class="button" onclick="closeStatusModal()">Cancelar</button>
+                </footer>
             </div>
         </div>
 
-        <!-- Progress Section -->
-        <div class="box progress-section">
-            <h2 class="title is-4">Status de Implementação</h2>
-            <div class="columns is-multiline">
-                <div class="column is-12">
-                    <p class="subtitle is-6">Correções de Bugs</p>
-                    <progress class="progress is-danger" value="70" max="100">70%</progress>
-                </div>
-                <div class="column is-12">
-                    <p class="subtitle is-6">Melhorias</p>
-                    <progress class="progress is-warning" value="45" max="100">45%</progress>
-                </div>
-                <div class="column is-12">
-                    <p class="subtitle is-6">Novos Recursos</p>
-                    <progress class="progress is-info" value="30" max="100">30%</progress>
-                </div>
-            </div>
-        </div>
-    </div>
+        <script src="/componentes/navbar-component.js"></script>
+        <script>
+            let currentSuggestionId = null;
+            let allSuggestions = []; // Variável global para armazenar todas as sugestões
 
-    <script src="/componentes/navbar-component.js"></script>
-    <script>
-        // Adicionar função showToast
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `notification is-${type}`;
-            toast.style.position = 'fixed';
-            toast.style.bottom = '20px';
-            toast.style.right = '20px';
-            toast.style.zIndex = '1000';
-            toast.innerHTML = `
-                <button class="delete" onclick="this.parentElement.remove()"></button>
-                ${message}
-            `;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        // Adicionar função getProgressBarClass
-        function getProgressBarClass(category) {
-            const classes = {
-                correcao: 'danger',
-                melhoria: 'warning',
-                novo: 'info'
-            };
-            return classes[category] || 'info';
-        }
-
-        // Corrigir o formulário de envio
-        document.getElementById('suggestionForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            
-            try {
-                const formData = new FormData();
-                formData.append('description', document.getElementById('description').value);
-                formData.append('category', document.getElementById('category').value);
-                formData.append('createdBy', document.getElementById('createdBy').value);
-                
-                const imageFile = document.getElementById('imageUpload').files[0];
-                if (imageFile) {
-                    formData.append('image', imageFile);
-                }
-
-                const response = await fetch('/api/suggestions', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erro ao salvar sugestão');
-                }
-
-                const result = await response.json();
-                showToast('Sugestão enviada com sucesso!', 'success');
-                
-                // Limpar formulário
-                event.target.reset();
-                
-                // Atualizar lista de sugestões
-                updateStats();
-            } catch (error) {
-                console.error('Erro:', error);
-                showToast(error.message, 'danger');
-            }
-        });
-
-        // Atualizar função updateProgressBars
-        function updateProgressBars(suggestions) {
-            const categories = {
-                correcao: { total: 0, implemented: 0 },
-                melhoria: { total: 0, implemented: 0 },
-                novo: { total: 0, implemented: 0 }
-            };
-
-            suggestions.forEach(s => {
-                if (categories[s.category]) {
-                    categories[s.category].total++;
-                    if (s.status === 'implemented') {
-                        categories[s.category].implemented++;
-                    }
-                }
-            });
-
-            // Atualizar as barras de progresso
-            const progressElements = document.querySelectorAll('.progress-section .progress');
-            let index = 0;
-            
-            Object.entries(categories).forEach(([category, stats]) => {
-                const percentage = stats.total > 0 
-                    ? Math.round((stats.implemented / stats.total) * 100)
-                    : 0;
-                
-                if (progressElements[index]) {
-                    progressElements[index].value = percentage;
-                    const textElement = progressElements[index].nextElementSibling;
-                    if (textElement) {
-                        textElement.textContent = `${percentage}%`;
-                    }
-                }
-                index++;
-            });
-        }
-
-        // Atualizar função updateStats
-        async function updateStats(filterCategory = null) {
-            try {
-                const response = await fetch('/api/suggestions');
-                if (!response.ok) {
-                    throw new Error('Erro ao buscar sugestões');
-                }
-                
-                const suggestions = await response.json();
-
-                // Atualizar contadores
-                document.getElementById('totalSuggestions').textContent = suggestions.length;
-                document.getElementById('implementedSuggestions').textContent = 
-                    suggestions.filter(s => s.status === 'implemented').length;
-                document.getElementById('pendingSuggestions').textContent = 
-                    suggestions.filter(s => s.status === 'pending').length;
-
-                // Atualizar barras de progresso
-                updateProgressBars(suggestions);
-                
-                // Atualizar lista de sugestões recentes
-                updateSuggestionsList(suggestions, filterCategory);
-            } catch (error) {
-                console.error('Erro ao atualizar estatísticas:', error);
-                showToast('Erro ao atualizar estatísticas', 'danger');
-            }
-        }
-
-        function updateSuggestionsList(suggestions, filterCategory = null) {
-            const suggestionList = document.getElementById('suggestionList');
-            suggestionList.innerHTML = '';
-
-            let filteredSuggestions = suggestions;
-            if (filterCategory && filterCategory !== 'todas') {
-                filteredSuggestions = suggestions.filter(s => s.category === filterCategory);
-            }
-
-            const recentSuggestions = filteredSuggestions
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                .slice(0, 5);
-
-            recentSuggestions.forEach(suggestion => {
-                const item = document.createElement('div');
-                item.className = 'box suggestion-item';
-                item.innerHTML = `
-                    <div class="columns is-vcentered">
-                        <div class="column">
-                            <p class="is-size-5">#${suggestion.sequentialNumber} - ${suggestion.description}</p>
-                            <p class="is-size-7">
-                                <span class="tag is-${getCategoryClass(suggestion.category)}">${suggestion.category}</span>
-                                <span class="tag is-${getStatusClass(suggestion.status)}">${getStatusText(suggestion.status)}</span>
-                                <span>Solicitante: ${suggestion.createdBy}</span>
-                                <span>Criado em: ${new Date(suggestion.createdAt).toLocaleDateString()}</span>
-                            </p>
-                        </div>
-                        <div class="column is-narrow">
-                            ${suggestion.status === 'pending' ? `
-                                <button class="button is-small is-warning mr-2" onclick="updateSuggestionStatus('${suggestion._id}', 'in_progress')">
-                                    <span class="icon"><i class="fas fa-clock"></i></span>
-                                </button>
-                            ` : ''}
-                            ${suggestion.status !== 'implemented' ? `
-                                <button class="button is-small is-success" onclick="updateSuggestionStatus('${suggestion._id}', 'implemented')">
-                                    <span class="icon"><i class="fas fa-check"></i></span>
-                                </button>
-                            ` : ''}
-                        </div>
-                    </div>
+            // Função para mostrar mensagens toast
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `notification is-${type}`;
+                toast.style.position = 'fixed';
+                toast.style.bottom = '20px';
+                toast.style.right = '20px';
+                toast.style.zIndex = '1000';
+                toast.innerHTML = `
+                    <button class="delete" onclick="this.parentElement.remove()"></button>
+                    ${message}
                 `;
-                suggestionList.appendChild(item);
-            });
-        }
-
-        async function updateSuggestionStatus(id, status) {
-            try {
-                const response = await fetch(`/api/suggestions/${id}/status`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
-                });
-
-                if (!response.ok) throw new Error('Erro ao atualizar status');
-
-                updateStats();
-                showToast('Status atualizado com sucesso', 'success');
-            } catch (error) {
-                console.error('Erro:', error);
-                showToast('Erro ao atualizar status', 'danger');
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
             }
-        }
 
-        // Funções auxiliares
-        function getStatusClass(status) {
-            const classes = {
-                pending: 'warning',
-                in_progress: 'info',
-                implemented: 'success'
-            };
-            return classes[status] || 'light';
-        }
+            // Função para obter a classe CSS da categoria
+            function getCategoryClass(category) {
+                const classes = {
+                    'correcao': 'danger',
+                    'melhoria': 'warning',
+                    'novo': 'info'
+                };
+                return classes[category] || 'light';
+            }
 
-        function getCategoryClass(category) {
-            const classes = {
-                correcao: 'danger',
-                melhoria: 'warning',
-                novo: 'info'
-            };
-            return classes[category] || 'light';
-        }
+            // Função para obter a classe CSS do status
+            function getStatusClass(status) {
+                const classes = {
+                    'pending': 'warning',
+                    'in_progress': 'info',
+                    'implemented': 'success'
+                };
+                return classes[status] || 'light';
+            }
 
-        function getStatusText(status) {
-            const texts = {
-                pending: 'Pendente',
-                in_progress: 'Em Progresso',
-                implemented: 'Implementado'
-            };
-            return texts[status] || status;
-        }
+            // Função para carregar as sugestões iniciais
+            async function loadSuggestions() {
+                try {
+                    const response = await fetch('/api/suggestions');
+                    if (!response.ok) throw new Error('Erro ao buscar sugestões');
+                    
+                    allSuggestions = await response.json();
+                    updateSuggestionsList(allSuggestions);
+                    updateStats();
+                } catch (error) {
+                    console.error('Erro:', error);
+                    showToast('Erro ao carregar sugestões', 'danger');
+                }
+            }
 
-        // Adicionar event listeners para os filtros de categoria
-        document.querySelectorAll('.tag-container .tag').forEach(tag => {
-            tag.addEventListener('click', function() {
-                // Remover classe ativa de todas as tags
-                document.querySelectorAll('.tag-container .tag').forEach(t => t.className = 'tag is-light');
-                // Adicionar classe ativa na tag selecionada
-                this.className = 'tag is-info';
-                // Filtrar sugestões
-                const category = this.textContent.toLowerCase() === 'todas' ? null : 
-                    this.textContent.toLowerCase().replace('correções', 'correcao')
-                        .replace('melhorias', 'melhoria')
-                        .replace('novos recursos', 'novo');
-                updateStats(category);
+            // Função para abrir o modal de status
+            function openStatusModal(suggestionId) {
+                currentSuggestionId = suggestionId;
+                const modal = document.getElementById('statusModal');
+                modal.classList.add('is-active');
+            }
+
+            // Função para fechar o modal de status
+            function closeStatusModal() {
+                const modal = document.getElementById('statusModal');
+                modal.classList.remove('is-active');
+            }
+
+            // Confirmar a alteração de status
+            document.getElementById('confirmStatusChange').addEventListener('click', async () => {
+                const newStatus = document.getElementById('newStatus').value;
+                await updateSuggestionStatus(currentSuggestionId, newStatus);
+                closeStatusModal();
             });
-        });
 
-        // Inicializar
-        document.addEventListener('DOMContentLoaded', () => {
-            updateStats();
-            setInterval(updateStats, 30000); // Atualizar a cada 30 segundos
-        });
-    </script>
-</body>
+            async function updateSuggestionStatus(id, status) {
+                try {
+                    const response = await fetch(`/api/suggestions/${id}/status`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status })
+                    });
+
+                    if (!response.ok) throw new Error('Erro ao atualizar status');
+
+                    updateStats(); // Recarregar as estatísticas
+                    showToast('Status atualizado com sucesso', 'success');
+                } catch (error) {
+                    console.error('Erro:', error);
+                    showToast('Erro ao atualizar status', 'danger');
+                }
+            }
+
+            // Filtro por status
+            document.querySelectorAll('.status-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    const selectedStatus = this.getAttribute('data-value');
+                    // Alternar classe ativa
+                    this.classList.toggle('is-active');
+                    
+                    // Pegar todos os status selecionados
+                    const selectedStatuses = Array.from(document.querySelectorAll('.status-tag.is-active'))
+                        .map(tag => tag.getAttribute('data-value'));
+                    
+                    // Filtrar sugestões
+                    updateSuggestionsList(allSuggestions, selectedStatuses);
+                });
+            });
+
+            // Filtro por categoria
+            document.querySelectorAll('.category-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    const selectedCategory = this.getAttribute('data-value');
+                    // Alternar classe ativa
+                    this.classList.toggle('is-active');
+                    
+                    // Pegar todas as categorias selecionadas
+                    const selectedCategories = Array.from(document.querySelectorAll('.category-tag.is-active'))
+                        .map(tag => tag.getAttribute('data-value'));
+                    
+                    // Filtrar sugestões
+                    updateSuggestionsList(allSuggestions, null, selectedCategories);
+                });
+            });
+
+            function updateSuggestionsList(suggestions, filterStatus = null, filterCategories = null) {
+                const suggestionList = document.getElementById('suggestionList');
+                suggestionList.innerHTML = '';
+
+                let filteredSuggestions = suggestions;
+
+                // Filtrar por status
+                if (filterStatus && filterStatus.length > 0) {
+                    filteredSuggestions = filteredSuggestions.filter(s => filterStatus.includes(s.status));
+                }
+
+                // Filtrar por categoria
+                if (filterCategories && filterCategories.length > 0) {
+                    filteredSuggestions = filteredSuggestions.filter(s => filterCategories.includes(s.category));
+                }
+
+                filteredSuggestions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'box suggestion-item';
+                    item.innerHTML = `
+                        <div class="columns is-vcentered">
+                            <div class="column" onclick="openStatusModal('${suggestion._id}')">
+                                <p class="is-size-5">#${suggestion.sequentialNumber} - ${suggestion.description}</p>
+                                <p class="is-size-7">
+                                    <span class="tag is-${getCategoryClass(suggestion.category)}">${suggestion.category}</span>
+                                    <span class="tag is-${getStatusClass(suggestion.status)}">${getStatusText(suggestion.status)}</span>
+                                    <span>Solicitante: ${suggestion.createdBy}</span>
+                                    <span>Criado em: ${new Date(suggestion.createdAt).toLocaleDateString()}</span>
+                                </p>
+                            </div>
+                            <div class="column is-narrow">
+                                <button class="button is-small is-warning" onclick="openStatusModal('${suggestion._id}')">
+                                    <span class="icon"><i class="fas fa-edit"></i></span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    suggestionList.appendChild(item);
+                });
+            }
+
+            // Função para converter status para texto
+            function getStatusText(status) {
+                const statusMap = {
+                    'pending': 'Em Análise',
+                    'in_progress': 'Em Progresso',
+                    'implemented': 'Implementado'
+                };
+                return statusMap[status] || status;
+            }
+
+            // Função para atualizar as estatísticas
+            function updateStats() {
+                if (!allSuggestions) return;
+
+                document.getElementById('totalSuggestions').textContent = allSuggestions.length;
+                document.getElementById('implementedSuggestions').textContent = 
+                    allSuggestions.filter(s => s.status === 'implemented').length;
+                document.getElementById('pendingSuggestions').textContent = 
+                    allSuggestions.filter(s => s.status === 'pending').length;
+            }
+
+            // Inicializar a página
+            document.addEventListener('DOMContentLoaded', () => {
+                loadSuggestions();
+            });
+
+            document.getElementById('suggestionForm').addEventListener('submit', async (event) => {
+                event.preventDefault(); // Impede o envio padrão do formulário
+
+                try {
+                    const formData = new FormData();
+                    formData.append('description', document.getElementById('description').value);
+                    formData.append('category', document.getElementById('category').value);
+                    formData.append('createdBy', document.getElementById('createdBy').value);
+                    
+                    const imageFile = document.getElementById('imageUpload').files[0];
+                    if (imageFile) {
+                        formData.append('image', imageFile);
+                    }
+
+                    const response = await fetch('/api/suggestions', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Erro ao salvar sugestão');
+                    }
+
+                    const result = await response.json();
+                    showToast('Sugestão enviada com sucesso!', 'success');
+                    
+                    // Limpar formulário
+                    event.target.reset();
+                    
+                    // Atualizar lista de sugestões
+                    updateStats();
+                } catch (error) {
+                    console.error('Erro:', error);
+                    showToast(error.message, 'danger');
+                }
+            });
+        </script>
+    </body>
 </html>
