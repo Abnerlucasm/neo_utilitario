@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoTrack - Gerenciamento de Serviços</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dark-theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .kanban-column {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 200px;
+            transition: background-color 0.3s ease;
+        }
+
+        .kanban-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .kanban-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kanban-title i {
+            color: var(--accent-color);
+        }
+
+        .add-task-button {
+            background: transparent;
+            border: none;
+            color: var(--accent-color);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .add-task-button:hover {
+            transform: scale(1.1);
+        }
+
+        .service-card {
+            position: relative;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--accent-color);
+            user-select: none;
+        }
+
+        .service-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .drag-handle {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            cursor: move;
+            padding: 0.25rem;
+            color: var(--text-secondary);
+        }
+
+        .service-ghost {
+            opacity: 0.5;
+            background: var(--accent-color);
+        }
+
+        .service-chosen {
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+
+        .service-drag {
+            opacity: 0.8;
+        }
+
+        .step-list {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .step-item {
+            position: relative;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .step-handle {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: move;
+            background: var(--bg-secondary);
+            border-radius: 8px 0 0 8px;
+            color: var(--text-secondary);
+        }
+
+        .step-handle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .step-ghost {
+            opacity: 0.5;
+            background: var(--accent-color);
+        }
+
+        .step-content {
+            margin-left: 24px;
+        }
+
+        .date-range-container {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .url-input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-modal .modal-card {
+            max-width: 500px;
+        }
+
+        .kanban-column.sortable-ghost {
+            background-color: var(--bg-hover);
+        }
+
+        .archived-section {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+        }
+
+        .archived-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .archived-content {
+            padding-top: 1rem;
+            display: none;
+        }
+
+        .archived-content.is-visible {
+            display: block;
+        }
+
+        .archived-section .service-card {
+            opacity: 0.7;
+        }
+
+        .archived-section .service-card:hover {
+            opacity: 1;
+        }
+
+        .column-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .kanban-title h3 {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .kanban-title h3:hover .fa-edit {
+            opacity: 1;
+        }
+
+        .kanban-title h3 .fa-edit {
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-card-body {
+            max-height: 70vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) var(--bg-secondary);
+        }
+
+        .modal-card-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-card-body::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .modal-card-body::-webkit-scrollbar-thumb {
+            background-color: var(--accent-color);
+            border-radius: 4px;
+        }
+
+        .modal-card-foot {
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-secondary);
+            z-index: 1;
+        }
+
+        .step-item-mini {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .steps-list {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .timer-display.is-finished {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .timer-section {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .date-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .date-info .tag {
+            font-size: 0.75rem;
+            height: auto;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .date-info .tag i {
+            font-size: 0.875rem;
+        }
+
+        .service-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .service-header .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .description-preview {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.4;
+            max-height: 3.6em; /* aproximadamente 2 linhas */
+            overflow: hidden;
+            position: relative;
+        }
+
+        .description-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 30%;
+            height: 1.4em;
+            background: linear-gradient(to right, transparent, var(--bg-tertiary));
+        }
+
+        .service-header {
+            margin-bottom: 1rem;
+        }
+
+        .service-header .title {
+            margin-bottom: 0.5rem;
+        }
+
+        .service-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .filters-section {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .filters-section .field {
+            margin-bottom: 0.5rem;
+        }
+
+        .filters-section .button {
+            margin-top: 1rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .filters-section .column {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <!-- Hero Section -->
+    <section class="hero is-info">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title has-text-centered">
+                    NeoTrack
+                </h1>
+                <p class="subtitle has-text-centered">
+                    Gerenciamento de Serviços e Time Tracking
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Adicionar após o hero section -->
+    <section class="section">
+        <div class="container">
+            <div class="columns is-multiline">
+                <div class="column is-3">
+                    <div class="box">
+                        <h4 class="title is-5">
+                            <span class="icon"><i class="fas fa-tasks"></i></span>
+                            Serviços Ativos
+                        </h4>
+                        <p class="title is-2" id="active-services-count">0</p>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="box">
+                        <h4 class="title is-5">
+                            <span class="icon"><i class="fas fa-clock"></i></span>
+                            Tempo Total
+                        </h4>
+                        <p class="title is-2" id="total-time">00:00:00</p>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="box">
+                        <h4 class="title is-5">
+                            <span class="icon"><i class="fas fa-check-circle"></i></span>
+                            Concluídos Hoje
+                        </h4>
+                        <p class="title is-2" id="completed-today">0</p>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="box">
+                        <h4 class="title is-5">
+                            <span class="icon"><i class="fas fa-chart-line"></i></span>
+                            Eficiência
+                        </h4>
+                        <p class="title is-2" id="efficiency">0%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="container is-fluid mt-4">
+        <!-- Botões de Controle -->
+        <div class="buttons is-centered mb-4">
+            <button class="button is-primary" onclick="showNewServiceModal()">
+                <span class="icon"><i class="fas fa-plus"></i></span>
+                <span>Novo Serviço</span>
+            </button>
+        </div>
+
+        <!-- Kanban Board -->
+        <div class="kanban-board">
+            <div class="kanban-column" id="todo">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-list-ul"></i>
+                        <div class="title-controls">
+                            <h3 class="title is-5" title="Clique duas vezes para renomear">
+                                <span class="icon is-small mr-2">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                A Fazer
+                            </h3>
+                        </div>
+                    </div>
+                    <button class="add-task-button" onclick="showNewServiceModal('todo')">
+                        <i class="fas fa-plus-circle fa-lg"></i>
+                    </button>
+                </div>
+                <div class="service-list" id="todo-list">
+                    <!-- Serviços serão inseridos aqui -->
+                </div>
+            </div>
+            
+            <div class="kanban-column" id="in-progress">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-tasks"></i>
+                        <h3 class="title is-5">Em Andamento</h3>
+                    </div>
+                    <button class="add-task-button" onclick="showNewServiceModal('in-progress')">
+                        <i class="fas fa-plus-circle fa-lg"></i>
+                    </button>
+                </div>
+                <div class="service-list" id="in-progress-list">
+                    <!-- Serviços serão inseridos aqui -->
+                </div>
+            </div>
+            
+            <div class="kanban-column" id="completed">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-check-circle"></i>
+                        <h3 class="title is-5">Concluído</h3>
+                    </div>
+                    <button class="add-task-button" onclick="showNewServiceModal('completed')">
+                        <i class="fas fa-plus-circle fa-lg"></i>
+                    </button>
+                </div>
+                <div class="service-list" id="completed-list">
+                    <!-- Serviços serão inseridos aqui -->
+                </div>
+            </div>
+
+            <!-- Adicionar após o último quadro do kanban -->
+            <div class="kanban-column add-column">
+                <button class="button is-fullwidth is-light" onclick="showNewColumnModal()">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>Adicionar Quadro</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de Arquivados -->
+    <div class="container is-fluid mt-6">
+        <div class="archived-section">
+            <div class="archived-header">
+                <h3 class="title is-5">
+                    <span class="icon"><i class="fas fa-archive"></i></span>
+                    Serviços Arquivados
+                </h3>
+                <button class="button is-small" onclick="toggleArchivedSection()">
+                    <span class="icon">
+                        <i class="fas fa-chevron-down" id="archived-toggle-icon"></i>
+                    </span>
+                </button>
+            </div>
+            <div class="archived-content" id="archived-content">
+                <div class="service-list" id="archived-list">
+                    <!-- Serviços arquivados serão inseridos aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Serviço -->
+    <div class="modal" id="new-service-modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Novo Serviço</p>
+                <button class="delete" aria-label="close" onclick="closeModal('new-service-modal')"></button>
+            </header>
+            <form id="service-form" onsubmit="saveService(event)">
+                <section class="modal-card-body">
+                    <div class="field">
+                        <label class="label">Nome do Serviço</label>
+                        <div class="control">
+                            <input class="input" type="text" id="service-name" placeholder="Ex: Implantação Sistema" required>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            <i class="fas fa-link mr-2"></i>
+                            URL do Chamado
+                        </label>
+                        <div class="control has-icons-right url-input-container">
+                            <input class="input" type="url" id="service-ticket" placeholder="Ex: https://neochamados.com/123">
+                            <button class="button is-info" onclick="openTicketUrl()">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            Período
+                        </label>
+                        <div class="date-range-container">
+                            <div class="control">
+                                <input class="input" type="date" id="start-date">
+                            </div>
+                            <div class="control">
+                                <input class="input" type="date" id="end-date">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            <i class="fas fa-tasks mr-2"></i>
+                            Status
+                        </label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select id="service-status">
+                                    <option value="planejamento">Planejamento</option>
+                                    <option value="aguardando">Aguardando</option>
+                                    <option value="em_andamento">Em Andamento</option>
+                                    <option value="pausado">Pausado</option>
+                                    <option value="concluido">Concluído</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Categoria</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select id="service-category">
+                                    <option value="implantacao">Implantação</option>
+                                    <option value="correcao">Correção</option>
+                                    <option value="melhoria">Melhoria</option>
+                                    <option value="suporte">Suporte</option>
+                                    <option value="outros">Outros</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Descrição</label>
+                        <div class="control">
+                            <textarea class="textarea" id="service-description" placeholder="Descreva o serviço..."></textarea>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Prazo (dias)</label>
+                        <div class="control">
+                            <input class="input" type="number" id="service-deadline" min="1">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Etapas</label>
+                        <div id="steps-container">
+                            <!-- Etapas serão adicionadas aqui -->
+                        </div>
+                        <button type="button" class="button is-small is-info mt-2" onclick="event.preventDefault(); addStepField()">
+                            <span class="icon"><i class="fas fa-plus"></i></span>
+                            <span>Adicionar Etapa</span>
+                        </button>
+                    </div>
+                    <div class="field">
+                        <label class="label">Comentários Iniciais</label>
+                        <div class="control">
+                            <textarea class="textarea" id="service-comments" placeholder="Adicione comentários iniciais..."></textarea>
+                        </div>
+                    </div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button type="submit" class="button is-success">Salvar</button>
+                    <button type="button" class="button" onclick="closeModal('new-service-modal')">Cancelar</button>
+                </footer>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Filtros -->
+    <div class="modal filter-modal" id="filter-modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">
+                    <i class="fas fa-filter mr-2"></i>
+                    Filtros
+                </p>
+                <button class="delete" aria-label="close" onclick="closeModal('filter-modal')"></button>
+            </header>
+            <section class="modal-card-body">
+                <!-- Filtros aqui -->
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal para novo quadro -->
+    <div class="modal" id="new-column-modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Novo Quadro</p>
+                <button class="delete" aria-label="close" onclick="closeModal('new-column-modal')"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Nome do Quadro</label>
+                    <div class="control">
+                        <input class="input" type="text" id="new-column-name" placeholder="Ex: Em Revisão">
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" onclick="createNewColumn()">Criar</button>
+                <button class="button" onclick="closeModal('new-column-modal')">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/componentes/navbar-component.js"></script>
+    <script src="/js/neotrack.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Aplicar tema
+            const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+            if (userSettings.theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.classList.add('dark-theme');
+            }
+
+            // Inicializar a página
+            await loadServices();
+            initKanban();
+            initSortableSteps();
+            updateStatistics();
+        });
+
+        // Funções de gerenciamento de serviços
+        function showNewServiceModal() {
+            document.getElementById('new-service-modal').classList.add('is-active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('is-active');
+        }
+
+        function initSortableSteps() {
+            const container = document.getElementById('steps-container');
+            if (!container) return;
+
+            new Sortable(container, {
+                animation: 150,
+                handle: '.step-handle', // Adicionar uma área para arrastar
+                ghostClass: 'step-ghost',
+                onEnd: function() {
+                    // Atualizar a ordem das etapas se necessário
+                    updateStepsOrder();
+                }
+            });
+        }
+
+        // Atualizar o HTML da etapa para incluir a área de arrastar
+        function addStepField(step = null) {
+            const container = document.getElementById('steps-container');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step-item box';
+            
+            stepDiv.innerHTML = `
+                <div class="step-handle">
+                    <i class="fas fa-grip-lines"></i>
+                </div>
+                <div class="field">
+                    <label class="label">Título da Etapa</label>
+                    <div class="control">
+                        <input class="input step-title" type="text" value="${step?.name || ''}" placeholder="Ex: Análise Inicial">
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Responsável</label>
+                            <div class="control">
+                                <input class="input step-responsible" type="text" value="${step?.responsible || ''}" placeholder="Nome do responsável">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Status</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select class="step-status">
+                                        <option value="pending" ${step?.status === 'pending' ? 'selected' : ''}>Pendente</option>
+                                        <option value="in_progress" ${step?.status === 'in_progress' ? 'selected' : ''}>Em Andamento</option>
+                                        <option value="completed" ${step?.status === 'completed' ? 'selected' : ''}>Concluída</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="delete is-medium" style="position: absolute; top: 10px; right: 10px;" onclick="this.closest('.step-item').remove()"></button>
+            `;
+            
+            container.appendChild(stepDiv);
+        }
+
+        function collectSteps() {
+            const steps = [];
+            document.querySelectorAll('.step-item').forEach(stepDiv => {
+                const titleInput = stepDiv.querySelector('.step-title');
+                const responsibleInput = stepDiv.querySelector('.step-responsible');
+                const statusSelect = stepDiv.querySelector('.step-status');
+
+                if (titleInput && titleInput.value.trim()) {
+                    steps.push({
+                        name: titleInput.value.trim(),
+                        responsible: responsibleInput?.value?.trim() || '',
+                        status: statusSelect?.value || 'pending'
+                    });
+                }
+            });
+            return steps;
+        }
+
+        async function saveService(event) {
+            if (event) event.preventDefault();
+            
+            try {
+                const modal = document.getElementById('new-service-modal');
+                const serviceId = modal.dataset.serviceId;
+                const method = serviceId ? 'PATCH' : 'POST';
+                const url = serviceId ? `/api/kanban/services/${serviceId}/update` : '/api/kanban/services';
+
+                const formData = {
+                    name: document.getElementById('service-name').value.trim(),
+                    ticketUrl: document.getElementById('service-ticket').value.trim(),
+                    category: document.getElementById('service-category').value,
+                    description: document.getElementById('service-description').value.trim(),
+                    startDate: document.getElementById('start-date').value,
+                    endDate: document.getElementById('end-date').value,
+                    serviceStatus: document.getElementById('service-status').value,
+                    status: modal.dataset.columnId || 'todo',
+                    steps: collectSteps()
+                };
+
+                // Validar campos obrigatórios
+                if (!formData.name) {
+                    throw new Error('Nome do serviço é obrigatório');
+                }
+
+                const response = await fetch(url, {
+                    method,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Erro ao salvar serviço');
+                    } else {
+                        throw new Error('Erro ao salvar serviço');
+                    }
+                }
+
+                const savedService = await response.json();
+                
+                // Limpar formulário e fechar modal
+                closeModal('new-service-modal');
+                document.getElementById('service-form').reset();
+                document.getElementById('steps-container').innerHTML = '';
+                
+                // Recarregar serviços
+                await loadServices();
+                
+                showToast('Serviço salvo com sucesso', 'success');
+            } catch (error) {
+                console.error('Erro ao salvar serviço:', error);
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function loadServices() {
+            try {
+                const response = await fetch('/api/kanban/services');
+                if (!response.ok) throw new Error('Erro ao carregar serviços');
+                
+                const services = await response.json();
+                console.log('Serviços carregados:', services);
+                
+                // Limpar as listas
+                document.querySelectorAll('.service-list').forEach(list => list.innerHTML = '');
+                
+                // Distribuir os serviços
+                services.forEach(service => {
+                    const card = createServiceCard(service);
+                    const targetList = document.getElementById(`${service.status}-list`);
+                    if (targetList) {
+                        targetList.appendChild(card);
+                        console.log(`Card adicionado à lista ${service.status}`);
+                    }
+                });
+            } catch (error) {
+                console.error('Erro ao carregar serviços:', error);
+                showToast('Erro ao carregar serviços', 'error');
+            }
+        }
+
+        function createServiceCard(service) {
+            const card = document.createElement('div');
+            card.className = 'service-card';
+            card.draggable = true;
+            card.dataset.id = service._id;
+            card.dataset.service = JSON.stringify(service);
+            
+            const stepsHtml = service.steps?.map(step => `
+                <div class="step-item-mini">
+                    <span class="tag ${getStepStatusClass(step.status)}">${step.name}</span>
+                    <span class="is-size-7">${step.responsible}</span>
+                </div>
+            `).join('') || '';
+
+            const dateInfo = `
+                <div class="date-info mt-2">
+                    ${service.startDate ? `
+                        <span class="tag is-info is-light">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            ${new Date(service.startDate).toLocaleDateString()}
+                        </span>
+                    ` : ''}
+                    ${service.endDate ? `
+                        <span class="tag is-danger is-light ml-2">
+                            <i class="fas fa-calendar-check mr-1"></i>
+                            ${new Date(service.endDate).toLocaleDateString()}
+                        </span>
+                    ` : ''}
+                </div>
+            `;
+
+            card.innerHTML = `
+                <div class="card-controls">
+                    <button class="button is-small is-danger" onclick="event.stopPropagation(); deleteService('${service._id}')">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                    </button>
+                    <div class="drag-handle">
+                        <i class="fas fa-grip-vertical"></i>
+                    </div>
+                </div>
+                <div class="service-header" onclick="openServiceModal('${service._id}')">
+                    <h4 class="title is-6">${service.name}</h4>
+                    <div class="tags">
+                        <span class="tag ${getStatusClass(service.serviceStatus)}">${service.serviceStatus}</span>
+                        <span class="tag is-info is-light">${getCategoryLabel(service.category)}</span>
+                    </div>
+                    ${dateInfo}
+                </div>
+                <div class="service-info" onclick="openServiceModal('${service._id}')">
+                    <p class="subtitle is-7 description-preview">
+                        ${service.description ? truncateText(service.description, 100) : ''}
+                    </p>
+                    <div class="timer-section">
+                        <div class="timer-display ${service.timerFinished ? 'is-finished' : ''}">${formatTime(service.totalTimeSpent || 0)}</div>
+                        <div class="timer-controls">
+                            <button class="button is-small" onclick="event.stopPropagation(); toggleTimer('${service._id}')">
+                                <span class="icon">
+                                    <i class="fas ${service.timerActive ? 'fa-pause' : 'fa-play'}"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="steps-progress">
+                        <progress class="progress is-info" 
+                            value="${getCompletedSteps(service.steps || [])}" 
+                            max="${(service.steps || []).length}">
+                        </progress>
+                        <span class="is-size-7">${getCompletedSteps(service.steps || [])}/${(service.steps || []).length} etapas</span>
+                    </div>
+                </div>
+                <div class="steps-list">
+                    ${stepsHtml}
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                'planejamento': 'is-info',
+                'aguardando': 'is-warning',
+                'em_andamento': 'is-primary',
+                'pausado': 'is-danger',
+                'concluido': 'is-success'
+            };
+            return classes[status] || 'is-light';
+        }
+
+        function getCompletedSteps(steps) {
+            return (steps || []).filter(step => step.status === 'completed').length;
+        }
+
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '00:00:00';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function openServiceModal(serviceId) {
+            const card = document.querySelector(`[data-id="${serviceId}"]`);
+            if (!card) return;
+
+            const service = JSON.parse(card.dataset.service);
+            const modal = document.getElementById('new-service-modal');
+            modal.dataset.serviceId = serviceId;
+
+            // Limpar footer e readicionar botões com o estado correto
+            const footer = modal.querySelector('.modal-card-foot');
+            footer.innerHTML = `
+                <button class="button is-success" onclick="saveService(event)">Salvar</button>
+                <button class="button" onclick="closeModal('new-service-modal')">Cancelar</button>
+                <button class="button is-warning archive-button" onclick="${service.archived ? 'unarchiveService' : 'archiveService'}('${serviceId}')">
+                    <span class="icon">
+                        <i class="fas fa-${service.archived ? 'box-open' : 'archive'}"></i>
+                    </span>
+                    <span>${service.archived ? 'Desarquivar' : 'Arquivar'}</span>
+                </button>
+            `;
+
+            // Preencher campos
+            document.getElementById('service-name').value = service.name;
+            document.getElementById('service-ticket').value = service.ticketUrl || '';
+            document.getElementById('service-category').value = service.category;
+            document.getElementById('service-description').value = service.description;
+            document.getElementById('start-date').value = service.startDate ? new Date(service.startDate).toISOString().split('T')[0] : '';
+            document.getElementById('end-date').value = service.endDate ? new Date(service.endDate).toISOString().split('T')[0] : '';
+            document.getElementById('service-status').value = service.serviceStatus;
+
+            // Limpar e recriar etapas
+            const stepsContainer = document.getElementById('steps-container');
+            stepsContainer.innerHTML = '';
+            
+            if (service.steps && service.steps.length > 0) {
+                service.steps.forEach(step => addStepField(step));
+            }
+
+            // Remover campo de tempo total existente se houver
+            const existingTimeField = document.querySelector('.time-spent-field');
+            if (existingTimeField) {
+                existingTimeField.remove();
+            }
+
+            // Adicionar campo de tempo total
+            const timeSpentField = document.createElement('div');
+            timeSpentField.className = 'field time-spent-field';
+            timeSpentField.innerHTML = `
+                <label class="label">
+                    <i class="fas fa-clock mr-2"></i>
+                    Tempo Total
+                </label>
+                <div class="control">
+                    <input class="input" type="text" value="${formatTime(service.totalTimeSpent || 0)}" readonly>
+                </div>
+                <div class="time-history mt-2">
+                    <button class="button is-small is-info" onclick="showTimeHistory('${serviceId}')">
+                        <span class="icon"><i class="fas fa-history"></i></span>
+                        <span>Ver Histórico</span>
+                    </button>
+                </div>
+            `;
+            
+            // Inserir após o campo de descrição
+            const descriptionField = document.getElementById('service-description').closest('.field');
+            descriptionField.parentNode.insertBefore(timeSpentField, descriptionField.nextSibling);
+
+            // Adicionar listener para mudança de status
+            document.getElementById('service-status').addEventListener('change', function() {
+                const newStatus = this.value === 'concluido' ? 'completed' : 
+                                 this.value === 'em_andamento' ? 'in-progress' : 'todo';
+                moveCardToBoard(serviceId, newStatus);
+            });
+
+            modal.classList.add('is-active');
+        }
+
+        // Adicionar função para desarquivar
+        async function unarchiveService(serviceId) {
+            try {
+                const response = await fetch(`/api/kanban/services/${serviceId}/unarchive`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error('Erro ao desarquivar serviço');
+
+                const card = document.querySelector(`[data-id="${serviceId}"]`);
+                if (card) {
+                    const todoList = document.getElementById('todo-list');
+                    if (todoList) {
+                        todoList.appendChild(card);
+                        card.classList.remove('archived');
+                    }
+                }
+
+                closeModal('new-service-modal');
+                await loadServices(); // Recarregar para atualizar tudo
+                showToast('Serviço desarquivado com sucesso', 'success');
+            } catch (error) {
+                console.error('Erro ao desarquivar serviço:', error);
+                showToast('Erro ao desarquivar serviço', 'error');
+            }
+        }
+
+        // Adicionar função para mover o card quando o quadro é alterado
+        function moveCardToBoard(serviceId, newBoardId) {
+            const card = document.querySelector(`[data-id="${serviceId}"]`);
+            if (!card) return;
+
+            const targetList = document.getElementById(`${newBoardId}-list`);
+            if (targetList) {
+                targetList.appendChild(card);
+                
+                // Atualizar o status no backend
+                fetch(`/api/kanban/services/${serviceId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newBoardId })
+                }).catch(error => {
+                    console.error('Erro ao atualizar status:', error);
+                    showToast('Erro ao mover o card', 'error');
+                });
+            }
+        }
+
+        function getStepStatusClass(status) {
+            const classes = {
+                'pending': 'is-light',
+                'in_progress': 'is-warning',
+                'completed': 'is-success'
+            };
+            return classes[status] || 'is-light';
+        }
+
+        function showTimeHistory(serviceId) {
+            const modal = document.createElement('div');
+            modal.className = 'modal is-active';
+            modal.innerHTML = `
+                <div class="modal-background"></div>
+                <div class="modal-card">
+                    <header class="modal-card-head">
+                        <p class="modal-card-title">Histórico de Tempo</p>
+                        <button class="delete" aria-label="close" onclick="this.closest('.modal').remove()"></button>
+                    </header>
+                    <section class="modal-card-body">
+                        <div id="time-history-content">
+                            <div class="is-loading">Carregando...</div>
+                        </div>
+                    </section>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            loadTimeHistory(serviceId);
+        }
+
+        async function loadTimeHistory(serviceId) {
+            try {
+                const response = await fetch(`/api/kanban/services/${serviceId}/time-history`);
+                if (!response.ok) throw new Error('Erro ao carregar histórico');
+                
+                const history = await response.json();
+                const content = document.getElementById('time-history-content');
+                
+                if (!history.entries || history.entries.length === 0) {
+                    content.innerHTML = '<p class="has-text-centered">Nenhum registro encontrado</p>';
+                    return;
+                }
+
+                content.innerHTML = history.entries.map(entry => `
+                    <div class="box">
+                        <div class="columns is-mobile">
+                            <div class="column">
+                                <p class="is-size-7">${new Date(entry.date).toLocaleString()}</p>
+                                <p class="has-text-weight-bold">${formatTime(entry.duration)}</p>
+                            </div>
+                            <div class="column has-text-right">
+                                <span class="tag ${entry.action === 'start' ? 'is-success' : 'is-warning'}">
+                                    ${entry.action === 'start' ? 'Início' : entry.action === 'stop' ? 'Pausa' : 'Reset'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar histórico:', error);
+                showToast('Erro ao carregar histórico', 'error');
+            }
+        }
+
+        // Adicionar função para obter o label da categoria
+        function getCategoryLabel(category) {
+            const labels = {
+                'implantacao': 'Implantação',
+                'correcao': 'Correção',
+                'melhoria': 'Melhoria',
+                'suporte': 'Suporte',
+                'outros': 'Outros'
+            };
+            return labels[category] || category;
+        }
+
+        // Adicionar função para truncar texto
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+    </script>
+</body>
+</html> 

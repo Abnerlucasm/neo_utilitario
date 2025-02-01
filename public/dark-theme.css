@@ -124,7 +124,7 @@ body.dark-theme .modal-card-title {
 }
 
 body.dark-theme .modal-card-body {
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-tertiary);
     color: var(--text-primary);
 }
 
@@ -725,4 +725,71 @@ body.dark-theme .subtitle {
 /* Ajustes para os ícones */
 body.dark-theme .icon.is-right {
     color: var(--text-secondary);
+}
+
+/* Adicionar ao arquivo existente */
+body.dark-theme .kanban-column {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .service-card {
+    background: var(--bg-tertiary);
+    border-left: 4px solid var(--accent-color);
+}
+
+body.dark-theme .step-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+body.dark-theme .step-content {
+    flex: 1;
+}
+
+body.dark-theme .step-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+body.dark-theme .step-handle {
+    cursor: move;
+    color: var(--text-secondary);
+}
+
+body.dark-theme .step-ghost {
+    opacity: 0.5;
+    background: var(--accent-color);
+}
+
+body.dark-theme .service-ghost {
+    opacity: 0.5;
+    background: var(--accent-color);
+}
+
+body.dark-theme .kanban-header .fa-plus-circle {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+}
+
+body.dark-theme .kanban-title i {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+body.dark-theme .modal-card-head,
+body.dark-theme .modal-card-foot {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+body.dark-theme .modal-card-body {
+    background: var(--bg-tertiary);
 } 

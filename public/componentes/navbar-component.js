@@ -14,7 +14,8 @@ class NeoNavbar extends HTMLElement {
             'config.html': { title: 'Configurar Ambiente', parent: 'index.html' },
             'rotinas.html': { title: 'Rotinas', parent: 'index.html' },
             'recursos-dev.html': { title: 'Recursos em Desenvolvimento', parent: 'index.html' },
-            'sugestoes-dev.html': { title: 'Sugestões de Desenvolvimento', parent: 'index.html' }
+            'sugestoes-dev.html': { title: 'Sugestões de Desenvolvimento', parent: 'index.html' },
+            'neotrack.html': { title: 'NeoTrack', parent: 'utilitarios.html' }
         };
     }
 
@@ -373,6 +374,7 @@ class NeoNavbar extends HTMLElement {
                                 <li><a href="utilitarios-neodesktop.html">Neocorp Desktop</a></li>
                                 <li><a href="utilitarios-bd.html">Banco de Dados</a></li>
                                 <li><a href="utilitarios-chamados.html">Neo Chamados</a></li>
+                                <li><a href="neotrack.html">NeoTrack</a></li>
                             </ul>
                         </li>
                         <li><a href="recursos-dev.html"><span class="icon">🚀</span>Recursos em Desenvolvimento</a></li>

@@ -19,6 +19,8 @@ const http = require('http');
 // Importar routers
 const glassfishRouter = require('./routes/glassfish');
 const suggestionsRouter = require('./routes/suggestions'); // Outros routers, se existirem
+const kanbanRouter = require('./routes/kanban');
+
 
 const app = express();
 const ssh = new NodeSSH();
@@ -56,6 +58,7 @@ app.use((req, res, next) => {
 // Usar as rotas com prefixo /api
 app.use('/api', glassfishRouter);
 app.use('/api', suggestionsRouter);
+app.use('/api', kanbanRouter);
 
 // 6. Outras rotas
 app.get('/', (req, res) => {
@@ -152,43 +155,46 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3010;
 
 // Conectar ao MongoDB antes de iniciar o servidor
-connectToDatabase()
-    .then(() => {
-        logger.info('Iniciando servidor...', {
-            port: PORT,
-            env: process.env.NODE_ENV,
-            publicPath: path.join(__dirname, 'public')
-        });
-
-        // Criar servidor HTTP
-        const server = app.listen(PORT, '0.0.0.0', () => {
-            logger.info('Servidor iniciado com sucesso', {
-                port: PORT,
-                address: server.address(),
-                pid: process.pid
-            });
-        });
-
-        // Tratamento de erros do servidor
-        server.on('error', (error) => {
-            logger.error('Erro no servidor:', {
-                error: error.message,
-                code: error.code
-            });
-
-            if (error.code === 'EADDRINUSE') {
-                logger.error(`Porta ${PORT} já está em uso`);
-                process.exit(1);
-            }
-        });
-    })
-    .catch(error => {
-        logger.error('Falha ao iniciar servidor:', {
-            error: error.message,
-            stack: error.stack
-        });
-        process.exit(1);
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('Conectado ao MongoDB');
+    logger.info('Iniciando servidor...', {
+        port: PORT,
+        env: process.env.NODE_ENV,
+        publicPath: path.join(__dirname, 'public')
     });
+
+    // Criar servidor HTTP
+    const server = app.listen(PORT, '0.0.0.0', () => {
+        logger.info('Servidor iniciado com sucesso', {
+            port: PORT,
+            address: server.address(),
+            pid: process.pid
+        });
+    });
+
+    // Tratamento de erros do servidor
+    server.on('error', (error) => {
+        logger.error('Erro no servidor:', {
+            error: error.message,
+            code: error.code
+        });
+
+        if (error.code === 'EADDRINUSE') {
+            logger.error(`Porta ${PORT} já está em uso`);
+            process.exit(1);
+        }
+    });
+}).catch((error) => {
+    console.error('Erro ao conectar ao MongoDB:', error);
+    logger.error('Falha ao iniciar servidor:', {
+        error: error.message,
+        stack: error.stack
+    });
+    process.exit(1);
+});
 
 // Adicionar tratamento de erros não capturados
 process.on('uncaughtException', (error) => {
