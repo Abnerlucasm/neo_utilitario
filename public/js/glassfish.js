@@ -328,7 +328,7 @@
             const filteredServices = services.filter(service => {
                 const matchesStatus = statusFilter === 'all' || service.status === statusFilter;
                 const matchesSetor = setorFilter === 'all' || 
-                    // (setorFilter === 'except' ? service.setor !== 'Setor Sup. Externo' : service.setor === setorFilter);
+                     (setorFilter === 'except' ? service.setor !== 'Setor Sup. Externo' : service.setor === setorFilter);
                 const matchesSearch = service.name.toLowerCase().includes(searchQuery);
 
                 return matchesStatus && matchesSetor && matchesSearch;
