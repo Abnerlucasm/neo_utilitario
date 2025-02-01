@@ -1,0 +1,63 @@
+.hero {
+    background: linear-gradient(135deg, #3273dc 0%, #1a1a1a 100%);
+    margin-bottom: 2rem;
+}
+
+.filter-container {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filter-container .tag {
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.filter-container .tag.is-light:hover {
+    background-color: #f5f5f5;
+}
+
+.filter-container .tag.is-active {
+    background-color: #3273dc;
+    color: white;
+}
+
+.suggestion-list {
+    margin-top: 2rem;
+    max-height: 400px; /* Limitar a altura da lista */
+    overflow-y: auto; /* Adicionar rolagem se necessário */
+}
+
+.suggestion-item {
+    border-left: 4px solid #3273dc;
+    margin-bottom: 1rem;
+}
+
+.suggestion-item.is-warning {
+    border-left-color: #ffdd57;
+}
+
+.suggestion-item.is-danger {
+    border-left-color: #ff3860;
+}
+
+/* Estilização da barra de rolagem */
+.suggestion-list::-webkit-scrollbar {
+    width: 8px; /* Largura da barra de rolagem */
+}
+
+.suggestion-list::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Cor do fundo da barra de rolagem */
+    border-radius: 10px; /* Bordas arredondadas */
+}
+
+.suggestion-list::-webkit-scrollbar-thumb {
+    background: #3273dc; /* Cor da barra de rolagem */
+    border-radius: 10px; /* Bordas arredondadas */
+}
+
+.suggestion-list::-webkit-scrollbar-thumb:hover {
+    background: #0056b3; /* Cor da barra de rolagem ao passar o mouse */
+}

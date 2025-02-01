@@ -1,0 +1,57 @@
+.hero.is-neohub {
+    background: linear-gradient(135deg, #36502c 0%, #85db34 100%);
+    color: white;
+}
+.hero-brand {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+.brand-title {
+    font-size: 4rem;
+    font-weight: 700;
+    letter-spacing: -2px;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #ffffff, #E0E0E0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.brand-subtitle {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto;
+}
+.welcome-section {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-top: -4rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+.menu-opcoes {
+    margin-top: 2rem;
+}
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+.container {
+    border-radius: 15px;
+}
+.badge {
+    background-color: #ffdd57;
+    color: black;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}

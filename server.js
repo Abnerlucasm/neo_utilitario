@@ -34,7 +34,6 @@ const writeFileAsync = promisify(fs.writeFile);
 
 // Caminhos dos arquivos
 const CONFIG_PATH = path.join(__dirname, 'config.json');
-const SUGGESTIONS_PATH = path.join(__dirname, 'sugestoes.json');
 
 // Middlewares básicos
 app.use(express.json());
@@ -43,11 +42,26 @@ app.use(express.urlencoded({ extended: true }));
 // Ativa logs do Mongoose
 mongoose.set('debug', true);
 
-// Servir arquivos estáticos ANTES das rotas da API
+// Servir arquivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Configurar o middleware para servir arquivos estáticos da pasta uploads
+app.use('/components', express.static(path.join(__dirname, 'public/components')));
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Rota para a página inicial
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'pages', 'index.html'));
+});
+
+// Rota para outras páginas HTML
+app.get('/:page.html', (req, res, next) => {
+    const pagePath = path.join(__dirname, 'public', 'pages', req.params.page + '.html');
+    if (fs.existsSync(pagePath)) {
+        res.sendFile(pagePath);
+    } else {
+        next(); // Passa para o próximo middleware se a página não existir
+    }
+});
 
 // Logger middleware
 app.use((req, res, next) => {
@@ -60,30 +74,6 @@ app.use('/api', glassfishRouter);
 app.use('/api', suggestionsRouter);
 app.use('/api', kanbanRouter);
 
-// 6. Outras rotas
-app.get('/', (req, res) => {
-    res.send('Página principal');
-});
-
-app.get('/menuRotinas', (req, res) => {
-    res.json({ message: 'Menu de Rotinas' });
-});
-
-app.get('/menuConfig', (req, res) => {
-    res.json({ message: 'Menu de Configuração' });
-});
-
-app.get('/menuUtilitariosCorpWeb', (req, res) => {
-    res.json({ message: 'Menu Utilitários NeoCorp/NeoWeb' });
-});
-
-app.get('/menuUtilBancoDados', (req, res) => {
-    res.json({ message: 'Menu Utilitários Banco de Dados' });
-});
-
-app.get('/menuNeoChamados', (req, res) => {
-    res.json({ message: 'Menu Neo Chamados' });
-});
 
 // Rotas de configurações
 app.get('/config', async (req, res) => {
@@ -143,58 +133,55 @@ app.get('/sw.js', (req, res) => {
 
 // Rota para 404 - Not Found
 app.use((req, res, next) => {
-    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+    res.status(404).sendFile(path.join(__dirname, 'public', 'pages', '404.html'));
 });
 
 // Rota para 500 - Internal Server Error
 app.use((err, req, res, next) => {
-    console.error(err.stack); // Log do erro no console
-    res.status(500).sendFile(path.join(__dirname, 'public', '500.html'));
+    console.error(err.stack);
+    res.status(500).sendFile(path.join(__dirname, 'public', 'pages', '500.html'));
 });
 
 const PORT = process.env.PORT || 3010;
 
 // Conectar ao MongoDB antes de iniciar o servidor
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log('Conectado ao MongoDB');
-    logger.info('Iniciando servidor...', {
-        port: PORT,
-        env: process.env.NODE_ENV,
-        publicPath: path.join(__dirname, 'public')
-    });
-
-    // Criar servidor HTTP
-    const server = app.listen(PORT, '0.0.0.0', () => {
-        logger.info('Servidor iniciado com sucesso', {
+connectToDatabase()
+    .then(() => {
+        logger.info('Iniciando servidor...', {
             port: PORT,
-            address: server.address(),
-            pid: process.pid
+            env: process.env.NODE_ENV,
+            publicPath: path.join(__dirname, 'public')
         });
-    });
 
-    // Tratamento de erros do servidor
-    server.on('error', (error) => {
-        logger.error('Erro no servidor:', {
+        // Criar servidor HTTP
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            logger.info('Servidor iniciado com sucesso', {
+                port: PORT,
+                address: server.address(),
+                pid: process.pid
+            });
+        });
+
+        // Tratamento de erros do servidor
+        server.on('error', (error) => {
+            logger.error('Erro no servidor:', {
+                error: error.message,
+                code: error.code
+            });
+
+            if (error.code === 'EADDRINUSE') {
+                logger.error(`Porta ${PORT} já está em uso`);
+                process.exit(1);
+            }
+        });
+    })
+    .catch(error => {
+        logger.error('Falha ao iniciar servidor:', {
             error: error.message,
-            code: error.code
+            stack: error.stack
         });
-
-        if (error.code === 'EADDRINUSE') {
-            logger.error(`Porta ${PORT} já está em uso`);
-            process.exit(1);
-        }
+        process.exit(1);
     });
-}).catch((error) => {
-    console.error('Erro ao conectar ao MongoDB:', error);
-    logger.error('Falha ao iniciar servidor:', {
-        error: error.message,
-        stack: error.stack
-    });
-    process.exit(1);
-});
 
 // Adicionar tratamento de erros não capturados
 process.on('uncaughtException', (error) => {

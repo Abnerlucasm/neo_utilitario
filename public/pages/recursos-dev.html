@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recursos em Desenvolvimento</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/dark-theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="../styles/recursos-dev.css">
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+    <section class="hero is-primary">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title has-text-centered">Recursos em Desenvolvimento</h1>
+                <p class="subtitle has-text-centered">Acompanhe os recursos, prioridades e status</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="card">
+                <div class="card-content">
+                    <div class="filter-container">
+                        <span class="icon">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="filterInput" class="input" placeholder="Filtrar por descrição ou solicitante...">
+                    </div>
+                    <div class="table-container">
+                        <table class="table is-striped is-hoverable is-fullwidth">
+                            <thead>
+                                <tr>
+                                    <th><span class="icon"><i class="fas fa-hashtag"></i></span></th>
+                                    <th><span class="icon"><i class="fas fa-align-left"></i></span> Descrição</th>
+                                    <th><span class="icon"><i class="fas fa-user"></i></span> Solicitante</th>
+                                    <th>
+                                        <button class="sort-button" onclick="sortSuggestions('date')">
+                                            <span class="icon"><i class="fas fa-calendar-alt"></i></span> Data
+                                            <span class="sort-icon" id="dateSortIcon"></span>
+                                        </button>
+                                    </th>
+                                    <th><span class="icon"><i class="fas fa-tags"></i></span> Categoria</th>
+                                    <th><span class="icon"><i class="fas fa-tasks"></i></span> Status</th>
+                                    <th>
+                                        <button class="sort-button" onclick="sortSuggestions('votes')">
+                                            <span class="icon"><i class="fas fa-sort-amount-down"></i></span> Votos
+                                            <span class="sort-icon" id="votesSortIcon"></span>
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="resourcesTable">
+                                <!-- As sugestões em análise e em progresso serão carregadas aqui dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="index.html" class="button is-primary is-fullwidth">Voltar</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="columns">
+            <div class="column is-12">
+                <div class="box">
+                    <h2 class="title is-4">Sugestões Implementadas</h2>
+                    <div id="implementedSuggestionList" class="suggestion-list">
+                        <!-- Sugestões implementadas serão carregadas aqui -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template para o modal de comentários -->
+    <div class="modal" id="suggestionModal">
+        <div class="modal-background" onclick="closeSuggestionModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Detalhes da Sugestão</p>
+                <button class="delete" aria-label="close" onclick="closeSuggestionModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="content">
+                    <h3 id="suggestionTitle"></h3>
+                    <p id="suggestionDescription"></p>
+                    <div class="tags">
+                        <span class="tag is-info" id="suggestionCategory"></span>
+                        <span class="tag" id="suggestionStatus"></span>
+                    </div>
+                    <p><strong>Solicitante:</strong> <span id="suggestionCreatedBy"></span></p>
+                    <p><strong>Data:</strong> <span id="suggestionDate"></span></p>
+                    <img id="suggestionImage" src="" alt="Imagem da Sugestão" style="max-width: 100%; display: none;">
+                </div>
+                <hr>
+                <h4 class="title is-5">Comentários</h4>
+                <div id="commentsContainer"></div>
+                <div class="comment-form field mt-4">
+                    <div class="control">
+                        <textarea class="textarea" id="newComment" placeholder="Digite seu comentário..."></textarea>
+                    </div>
+                    <div class="control mt-3">
+                        <button class="button is-primary" onclick="addComment()">Enviar Comentário</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="../components/navbar/navbar.js"></script>
+    <script src="../js/recursos-dev.js"></script>
+</html>

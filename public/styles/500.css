@@ -1,0 +1,13 @@
+body {
+    background-color: #e0f7fa; /* Azul claro */
+}
+.hero {
+    background-color: rgba(255, 221, 87, 0.8); /* Cor menos chamativa com transparência */
+    color: black;
+}
+.container {
+    margin-top: 50px;
+}
+.button {
+    margin-top: 20px;
+}

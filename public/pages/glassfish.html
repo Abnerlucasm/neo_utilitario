@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00d1b2">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="../icons/icon-192x192.png">
+    <title>Gerenciamento Glassfish</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/dark-theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">   
+    <link rel="stylesheet" href="../styles/glassfish.css">
+    <script src="../components/navbar/navbar.js"></script>
+</head>
+<body class="has-background-light">
+    <!-- Navbar -->
+    <neo-navbar></neo-navbar>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title has-text-white has-text-centered">
+                    Gerenciamento de Servidores Glassfish
+                </h1>
+                <p class="subtitle has-text-white has-text-centered">
+                    Monitoramento e Controle de Instâncias
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <!-- Dashboard Stats -->
+            <div class="columns stats-container">
+                <div class="column">
+                    <div class="stat-box">
+                        <span class="icon">
+                            <i class="fas fa-server"></i>
+                        </span>
+                        <p class="heading">Total de Servidores</p>
+                        <p class="title" id="total-servers">0</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="stat-box">
+                        <span class="icon">
+                            <i class="fas fa-server"></i>
+                        </span>
+                        <p class="heading">Servidores Ativos</p>
+                        <p class="title" id="active-servers">0</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="stat-box">
+                        <span class="icon">
+                            <i class="fas fa-memory"></i>
+                        </span>
+                        <p class="heading">RAM Média</p>
+                        <p class="title" id="avg-ram-usage">0%</p>
+                        <progress class="progress is-info" id="ram-progress" value="0" max="100"></progress>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="stat-box">
+                        <span class="icon">
+                            <i class="fas fa-microchip"></i>
+                        </span>
+                        <p class="heading">CPU Média</p>
+                        <p class="title" id="avg-cpu-usage">0%</p>
+                        <progress class="progress is-info" id="cpu-progress" value="0" max="100"></progress>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adicionar container para detalhes dos servidores -->
+            <div id="server-details" class="server-details-container">
+                <!-- Detalhes dos servidores serão inseridos aqui -->
+            </div>
+
+            <!-- Filtros e Controles -->
+            <div class="filter-section">
+                <div class="columns is-vcentered">
+                    <div class="column">
+                        <div class="select">
+                            <select id="filter-status" onchange="filterCards()">
+                                <option value="all">Todos os Status</option>
+                                <option value="active">Ativos</option>
+                                <option value="inactive">Inativos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="buttons">
+                            <button class="button is-info is-small" onclick="sortCards('name')">
+                                <span class="icon">
+                                    <i class="fas fa-sort-alpha-down"></i>
+                                </span>
+                                <span>Nome</span>
+                            </button>
+                            <button class="button is-info is-small" onclick="sortCards('status')">
+                                <span class="icon">
+                                    <i class="fas fa-sort"></i>
+                                </span>
+                                <span>Status</span>
+                            </button>
+                            <button class="button is-info is-small" onclick="sortCards('setor')">
+                                <span class="icon">
+                                    <i class="fas fa-building"></i>
+                                </span>
+                                <span>Setor</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <p id="results-count" class="has-text-right has-text-weight-semibold"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mensagem inicial -->
+            <div id="empty-message" class="empty-message">
+                <div class="notification is-info is-light">
+                    <p class="has-text-centered">
+                        <span class="icon">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                        Nenhum serviço Glassfish cadastrado. Clique no botão "+" para adicionar.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Grid de Cards -->
+            <div class="columns is-multiline server-grid" id="cards-container"></div>
+        </div>
+
+        <!-- Botão para adicionar -->
+        <div class="add-button-container">
+            <button class="button is-primary" onclick="openAddModal()">
+                <span class="icon"><i class="fas fa-plus"></i></span>
+                <span>Adicionar Serviço</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Modal para Adicionar/Editar Glassfish -->
+    <div class="modal" id="add-modal">
+        <div class="modal-background" onclick="closeAddModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" id="modal-title">Adicionar Glassfish</p>
+                <button class="delete" aria-label="close" onclick="closeAddModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Nome do Serviço</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-name" placeholder="Nome do serviço">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">IP</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-ip" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Porta Admin</label>
+                    <div class="control input-number">
+                        <button onclick="adjustPort('decrease')">-</button>
+                        <input class="input" type="number" id="service-port" value="4848">
+                        <button onclick="adjustPort('increase')">+</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Porta Produção</label>
+                    <div class="control">
+                        <input class="input" type="number" id="production-port" placeholder="Porta de Produção" value="8091">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Domínio</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-domain" placeholder="Domínio do serviço">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Setor</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select id="service-category">
+                                <option value="Setor Sup. Externo">Setor Sup. Externo</option>
+                                <option value="Setor Sup. Interno">Setor Sup. Interno</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Senha</label>
+                    <div class="control">
+                        <div class="input-group">
+                            <input class="input" type="password" id="service-password" placeholder="Senha do serviço">
+                            <button type="button" onclick="togglePasswordVisibility()"><i class="fas fa-eye" id="eye-icon"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Usuário SSH</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-ssh-username" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Senha SSH</label>
+                    <div class="control">
+                        <input class="input" type="password" id="service-ssh-password" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button is-info" type="button" onclick="testSSHConnection()">
+                        Testar Conexão SSH
+                    </button>
+                    <p id="ssh-test-result" class="help"></p>
+                </div>
+                <div class="field">
+                    <label class="label">Caminho de Instalação</label>
+                    <div class="control">
+                        <input class="input" type="text" id="service-install-path" 
+                            placeholder="/glassfish6.2.5" 
+                            value="/glassfish6.2.5">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Tipo de Acesso</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select id="service-access-type" onchange="handleAccessTypeChange()">
+                                <option value="local">Rede Local</option>
+                                <option value="external">Acesso Externo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button is-link" onclick="openAdminPanel()">
+                        <span class="icon">
+                            <i class="fas fa-external-link-alt"></i>
+                        </span>
+                        <span>Acessar Painel Admin</span>
+                    </button>
+                </div>
+                <div class="field">
+                    <button class="button is-link" onclick="accessNeoWeb()">
+                        <span class="icon">
+                            <i class="fas fa-external-link-alt"></i>
+                        </span>
+                        <span>Acessar NeoWeb</span>
+                    </button>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" onclick="saveGlassfish()">
+                    <span class="icon">
+                        <i class="fas fa-save"></i>
+                    </span>
+                    <span>Salvar</span>
+                </button>
+                <button class="button" onclick="closeAddModal()">
+                    <span class="icon">
+                        <i class="fas fa-times"></i>
+                    </span>
+                    <span>Cancelar</span>
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal para exibir logs -->
+    <div class="modal" id="logs-modal">
+        <div class="modal-background" onclick="closeLogsModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Logs do Serviço</p>
+                <div class="buttons">
+                    <button class="button is-small" onclick="toggleLiveLog()">
+                        <span id="live-log-status">Iniciar Live Log</span>
+                    </button>
+                    <button class="delete" aria-label="close" onclick="closeLogsModal()"></button>
+                </div>
+            </header>
+            <section class="modal-card-body">
+                <pre id="logs-content">Carregando logs...</pre>
+                <button id="copy-log-button" class="button is-info mt-3">Copiar Logs</button>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button" onclick="closeLogsModal()">Fechar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal de Manutenção -->
+    <div class="modal" id="maintenance-modal">
+        <div class="modal-background" onclick="closeMaintenanceModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Manutenção do Serviço</p>
+                <button class="delete" aria-label="close" onclick="closeMaintenanceModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="content">
+                    <p class="has-text-warning">
+                        <span class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <strong>Atenção:</strong> Esta operação pode excluir dados importantes.
+                    </p>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="clean-applications">
+                            Apagar Applications
+                            <p class="help">Remove todos os arquivos da pasta applications</p>
+                        </label>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="clean-logs">
+                            Apagar Logs
+                            <p class="help">Remove todos os arquivos de log do serviço</p>
+                        </label>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="clean-generated">
+                            Apagar Generated
+                            <p class="help">Remove todos os arquivos gerados temporariamente</p>
+                        </label>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="clean-autodeploy">
+                            Apagar Autodeploy
+                            <p class="help">Remove todos os arquivos da pasta autodeploy</p>
+                        </label>
+                    </div>
+                    
+                    <div class="notification is-info is-light mt-4">
+                        <p>
+                            <strong>Dica:</strong> É recomendado parar o serviço antes de realizar a limpeza.
+                        </p>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-danger" onclick="executeMaintenanceFromModal(this)">
+                    <span class="icon">
+                        <i class="fas fa-broom"></i>
+                    </span>
+                    <span>Executar Limpeza</span>
+                </button>
+                <button class="button" onclick="closeMaintenanceModal()">
+                    <span class="icon">
+                        <i class="fas fa-times"></i>
+                    </span>
+                    <span>Cancelar</span>
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal de Configuração do Domain -->
+    <div class="modal" id="domain-config-modal">
+        <div class="modal-background" onclick="closeDomainConfigModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Configurações do Domain</p>
+                <button class="delete" aria-label="close" onclick="closeDomainConfigModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <!-- Tabs -->
+                <div class="tabs">
+                    <ul>
+                        <li class="is-active">
+                            <a onclick="switchTab('database')">
+                                <span class="icon is-small"><i class="fas fa-database"></i></span>
+                                <span>Banco de Dados</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a onclick="switchTab('applications')">
+                                <span class="icon is-small"><i class="fas fa-cube"></i></span>
+                                <span>Aplicações</span>
+                                <span class="tag is-warning is-light ml-2">Beta</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Conteúdo das Tabs -->
+                <div id="database-tab" class="tab-content" style="display: block;">
+                    <h3 class="title is-5">Configuração do Banco de Dados</h3>
+                    <div class="field">
+                        <label class="label">Servidor do Banco</label>
+                        <div class="control">
+                            <input class="input" type="text" id="db-server" placeholder="Ex: localhost">
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Usuário</label>
+                        <div class="control">
+                            <input class="input" type="text" id="db-user" placeholder="Ex: postgres">
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Senha</label>
+                        <div class="control">
+                            <input class="input" type="password" id="db-password">
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Nome do Banco</label>
+                        <div class="control">
+                            <input class="input" type="text" id="db-name" placeholder="Ex: neocorp">
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="applications-tab" class="tab-content" style="display: none;">
+                    <h3 class="title is-5">Aplicações Instaladas</h3>
+                    <div class="field">
+                        <div class="file has-name is-fullwidth">
+                            <label class="file-label">
+                                <input class="file-input" type="file" id="application-file" 
+                                    accept=".war,.ear,.jar">
+                                <span class="file-cta">
+                                    <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                    </span>
+                                    <span class="file-label">
+                                        Escolher arquivo...
+                                    </span>
+                                </span>
+                                <span class="file-name" id="file-name">
+                                    Nenhum arquivo selecionado
+                                </span>
+                            </label>
+                        </div>
+                        <button class="button is-info mt-2 is-fullwidth" onclick="uploadApplication()" 
+                            id="upload-button" disabled>
+                            <span class="icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </span>
+                            <span>Fazer Upload</span>
+                        </button>
+                    </div>
+                    <div class="notification is-info is-light mb-4">
+                        <p>
+                            <span class="icon"><i class="fas fa-info-circle"></i></span>
+                            Arquivos suportados: .war, .ear, .jar
+                        </p>
+                    </div>
+                    <div id="applications-list" class="applications-container">
+                        <div class="loading-container has-text-centered" id="applications-loading">
+                            <span class="icon is-large">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            </span>
+                            <p class="help">Carregando aplicações...</p>
+                        </div>
+                        <div id="applications-content" class="is-hidden">
+                            <!-- Lista de aplicações será carregada aqui -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" onclick="saveDomainConfig()">
+                    <span class="icon">
+                        <i class="fas fa-save"></i>
+                    </span>
+                    <span>Salvar</span>
+                </button>
+                <button class="button" onclick="closeDomainConfigModal()">
+                    <span class="icon">
+                        <i class="fas fa-times"></i>
+                    </span>
+                    <span>Cancelar</span>
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal para selecionar o nome do usuário -->
+    <div class="modal" id="user-name-modal">
+        <div class="modal-background" onclick="closeUserNameModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Selecione seu Nome</p>
+                <button class="delete" aria-label="close" onclick="closeUserNameModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Nome do Usuário</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" id="modal-user-name" placeholder="Digite seu nome">
+                        <span class="icon is-left">
+                            <i class="fas fa-user"></i>
+                        </span>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" onclick="confirmUserName()">
+                    <span class="icon"><i class="fas fa-check"></i></span>
+                    <span>Confirmar</span>
+                </button>
+                <button class="button" onclick="closeUserNameModal()">
+                    <span class="icon"><i class="fas fa-times"></i></span>
+                    <span>Cancelar</span>
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- <div id="toast" class="toast"></div> -->
+
+    <div class="log-container">
+        <div class="log-header">
+            <h2 class="title is-5">Visualizador de Log</h2>
+        </div>
+        <div id="log-viewer" class="log-viewer">
+            <!-- As mensagens de log serão inseridas aqui -->
+        </div>
+        <div class="log-controls">
+            <button class="button is-small" onclick="toggleLogViewer()">Ativar/Desativar Log</button>
+            <button class="button is-small" onclick="clearLogViewer()">Limpar Log</button>
+        </div>
+    </div>
+    <script src="../js/theme-manager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Carregar e aplicar tema salvo
+            const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+            if (userSettings.theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.classList.add('dark-theme');
+            }
+        });
+    </script>
+    <script src="../js/glassfish.js"></script>
+</body>
+</html>

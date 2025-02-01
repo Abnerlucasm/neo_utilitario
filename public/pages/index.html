@@ -5,68 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeoHub - Plataforma de Colaboração</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../styles/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="dark-theme.css">
-    <style>
-        .hero.is-neohub {
-            background: linear-gradient(135deg, #36502c 0%, #85db34 100%);
-            color: white;
-        }
-        .hero-brand {
-            text-align: center;
-            padding: 3rem 1.5rem;
-        }
-        .brand-title {
-            font-size: 4rem;
-            font-weight: 700;
-            letter-spacing: -2px;
-            margin-bottom: 1rem;
-            background: linear-gradient(45deg, #ffffff, #E0E0E0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .brand-subtitle {
-            font-size: 1.5rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .welcome-section {
-            background-color: white;
-            border-radius: 8px;
-            padding: 2rem;
-            margin-top: -4rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            position: relative;
-            z-index: 1;
-        }
-        .menu-opcoes {
-            margin-top: 2rem;
-        }
-        .card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-        .container {
-            border-radius: 15px;
-        }
-        .badge {
-            background-color: #ffdd57;
-            color: black;
-            border-radius: 5px;
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 10;
-        }
-    </style>
+    <link rel="stylesheet" href="../styles/dark-theme.css">
+    <link rel="stylesheet" href="../styles/index.css">
+
 </head>
 <body>
     <neo-navbar></neo-navbar>
@@ -335,53 +278,9 @@
     </main>
 
     <!-- Carregar scripts na ordem correta -->
-    <script src="/componentes/navbar-component.js"></script>
-    <script src="/services/user-settings.js"></script>
-    <script src="/components/tab-manager.js"></script>
-    <script src="script.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Carregar configurações salvas
-            const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-            
-            // Configurar campos do modal com valores salvos
-            document.getElementById('userNameInput').value = userSettings.userName || '';
-            document.getElementById('themeSelect').value = userSettings.theme || 'light';
-            
-            // Aplicar tema inicial
-            if (userSettings.theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                document.body.classList.add('dark-theme');
-            }
-            
-            // Salvar configurações quando o botão for clicado
-            document.getElementById('saveSettings').addEventListener('click', () => {
-                const userName = document.getElementById('userNameInput').value;
-                const theme = document.getElementById('themeSelect').value;
-                
-                const settings = {
-                    userName: userName,
-                    theme: theme
-                };
-                
-                localStorage.setItem('userSettings', JSON.stringify(settings));
-                
-                // Aplicar tema
-                if (theme === 'dark') {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    document.body.classList.add('dark-theme');
-                } else {
-                    document.documentElement.setAttribute('data-theme', 'light');
-                    document.body.classList.remove('dark-theme');
-                }
-                
-                // Fechar modal
-                document.getElementById('userSettingsModal').classList.remove('is-active');
-                
-                // Mostrar mensagem de sucesso
-                showToast('Configurações salvas com sucesso!', 'success');
-            });
-        });
-    </script>
+    <script src="../components/navbar/navbar.js"></script>
+    <script src="../services/user-settings.js"></script>
+    <script src="../js/script.js"></script>
+    <script src="../js/index.js"></script>
 </body>
 </html>

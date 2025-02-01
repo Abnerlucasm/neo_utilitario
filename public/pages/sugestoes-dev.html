@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Sugestões</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/dark-theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="../styles/sugestoes-dev.css">
+</head>
+<body class="has-background-light">
+    <neo-navbar></neo-navbar>
+
+
+    <!-- Hero Section -->
+    <section class="hero is-medium">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title has-text-white has-text-centered">
+                    Sistema de Sugestões de Desenvolvimento
+                </h1>
+                <p class="subtitle has-text-white has-text-centered">
+                    Contribua para a evolução dos nossos sistemas
+                </p>
+                <div class="has-text-centered">
+                    <a href="recursos-dev.html" class="button is-info">
+                        <span class="icon"><i class="fas fa-cogs"></i></span>
+                        <span>Ver Recursos em Desenvolvimento</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="columns">
+            <div class="column is-6">
+                <!-- Últimas Sugestões -->
+                <div class="box">
+                    <h2 class="title is-4">Últimas Sugestões</h2>
+                    <div class="filter-container">
+                        <label class="label">Filtrar por Status:</label>
+                        <span class="tag is-light status-tag" data-value="pending">Em Análise</span>
+                        <span class="tag is-light status-tag" data-value="in_progress">Em Progresso</span>
+                        <span class="tag is-light status-tag" data-value="implemented">Implementado</span>
+                    </div>
+                    <div class="filter-container">
+                        <label class="label">Filtrar por Categoria:</label>
+                        <span class="tag is-light category-tag" data-value="correcao">Correções</span>
+                        <span class="tag is-light category-tag" data-value="melhoria">Melhorias</span>
+                        <span class="tag is-light category-tag" data-value="novo">Novos Recursos</span>
+                    </div>
+                    <div id="suggestionList" class="suggestion-list">
+                        <!-- Sugestões serão carregadas aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="column is-6">
+                <div class="box">
+                    <h2 class="title is-4">Estatísticas</h2>
+                    <div class="columns stats-container">
+                        <div class="column">
+                            <div class="stat-box">
+                                <span class="icon">
+                                    <i class="fas fa-lightbulb"></i>
+                                </span>
+                                <p class="heading">Total de Sugestões</p>
+                                <p class="title" id="totalSuggestions">0</p>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="stat-box">
+                                <span class="icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </span>
+                                <p class="heading">Implementadas</p>
+                                <p class="title" id="implementedSuggestions">0</p>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="stat-box">
+                                <span class="icon">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <p class="heading">Em Análise</p>
+                                <p class="title" id="pendingSuggestions">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Section -->
+                <div class="box">
+                    <h2 class="title is-4">Nova Sugestão</h2>
+                    <form id="suggestionForm">
+                        <div class="field">
+                            <label class="label">Solicitante</label>
+                            <div class="control">
+                                <input type="text" id="createdBy" class="input" required>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Categoria</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="category" required>
+                                        <option value="correcao">Correção</option>
+                                        <option value="melhoria">Melhoria</option>
+                                        <option value="novo">Novo Recurso</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Descrição</label>
+                            <div class="control">
+                                <textarea id="description" class="textarea" required></textarea>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Anexar Imagem</label>
+                            <div class="control">
+                                <input type="file" id="imageUpload" class="input" accept="image/*">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <div class="control">
+                                <button type="submit" class="button is-primary is-fullwidth">
+                                    Enviar Sugestão
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para alterar o status -->
+        <div class="modal" id="statusModal">
+            <div class="modal-background" onclick="closeStatusModal()"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Alterar Status da Sugestão</p>
+                    <button class="delete" aria-label="close" onclick="closeStatusModal()"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="field">
+                        <label class="label">Selecione o novo status:</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="newStatus">
+                                    <option value="pending">Em Análise</option>
+                                    <option value="in_progress">Em Progresso</option>
+                                    <option value="implemented">Implementado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button is-success" id="confirmStatusChange">Confirmar</button>
+                    <button class="button" onclick="closeStatusModal()">Cancelar</button>
+                </footer>
+            </div>
+        </div>
+
+        <script src="../components/navbar/navbar.js"></script>
+        <script src="../js/sugestoes-dev.js"></script>
+    </body>
+
+</html>

@@ -1,0 +1,308 @@
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+.status-active {
+    background-color: green;
+}
+.status-inactive {
+    background-color: red;
+}
+.card-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    color: #00d1b2;
+}
+.add-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #00d1b2;
+    color: white;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    font-size: 1.5rem;
+}
+.empty-message {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 1.2rem;
+    color: #666;
+}
+.control-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+.card-actions button {
+    margin-right: 8px;
+}
+.input-number {
+    display: flex;
+    align-items: center;
+}
+.input-number button {
+    border: none;
+    background-color: #f5f5f5;
+    padding: 0 10px;
+    cursor: pointer;
+}
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 1rem;
+    border-radius: 4px;
+    z-index: 1000;
+    display: none;
+    max-width: 300px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+}
+.toast.is-success {
+    background-color: #48c774;
+    color: white;
+}
+.toast.is-danger {
+    background-color: #f14668;
+    color: white;
+}
+.toast.show {
+    display: block;
+    animation: fadeIn 0.5s, fadeOut 0.5s 2.5s;
+}
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+@keyframes fadeOut {
+    from {opacity: 1;}
+    to {opacity: 0;}
+}
+.hero {
+    background: linear-gradient(135deg, #00d1b2 0%, #1a1a1a 100%);
+    margin-bottom: 2rem;
+    padding: 2rem 0;
+}
+.dashboard-stats {
+    margin-bottom: 2rem;
+}
+.stat-box {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+.stat-box .icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #00d1b2;
+}
+.system-info {
+    margin-bottom: 2rem;
+    font-family: 'Courier New', monospace;
+}
+.system-info pre {
+    background: #2d2d2d;
+    color: #00d1b2;
+    padding: 1rem;
+    border-radius: 4px;
+}
+.filter-section {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.server-grid {
+    margin-top: 2rem;
+}
+.technical-info {
+    font-size: 0.9rem;
+    color: #666;
+}
+.stat-box .progress {
+    margin-top: 0.5rem;
+    height: 0.5rem;
+}
+.stat-box .progress.is-danger {
+    background-color: #ff3860;
+}
+.stat-box .progress.is-warning {
+    background-color: #ffdd57;
+}
+.stat-box .progress.is-success {
+    background-color: #23d160;
+}
+.category-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
+    z-index: 1;
+}
+.category-badge.is-warning {
+    background-color: #81a92c;
+    color: rgb(255, 255, 255);
+}
+.category-badge.is-info {
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+}
+.category-badge img {
+    height: 20px;
+    width: auto;
+}
+.tab-content {
+    display: none;
+}
+.tab-content.is-active {
+    display: block;
+}
+.loading-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.loading-icon.is-hidden {
+    display: none;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.fa-spin {
+    animation: spin 1s linear infinite;
+}
+.loading-container {
+    padding: 2rem;
+    color: #666;
+}
+.loading-container .icon {
+    margin-bottom: 1rem;
+}
+.applications-container {
+    min-height: 200px;
+    position: relative;
+}
+.status-indicator.is-success {
+    background-color: #23d160;
+}
+.status-indicator.is-danger {
+    background-color: #ff3860;
+}
+.status-indicator.is-warning {
+    background-color: #ffdd57;
+}
+.server-details-container {
+    margin-top: 2rem;
+}
+.server-detail {
+    margin-bottom: 0.5rem;
+}
+.server-detail .tag {
+    margin-left: 0.5rem;
+}
+.card {
+    position: relative;
+    border-radius: 15px;
+}
+.card.is-warning {
+    background-color: #fff3cd;
+}
+.card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.user-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.log-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 2rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+}
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.log-controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+.log-viewer {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    border-top: 1px solid #333;
+    padding: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    display: none; /* Inicialmente oculto */
+}
+.log-entry {
+    margin-bottom: 0.5rem;
+}
+.log-entry.info {
+    color: #9cdcfe; /* Azul claro para info */
+}
+.log-entry.error {
+    color: #f44747; /* Vermelho para error */
+}
+.log-entry.warning {
+    color: #ffdd57; /* Amarelo para warning */
+}
+.add-button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+.system-info-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 2rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+}
+.system-info {
+    font-size: 1rem;
+    color: #333;
+}
+#copy-log-button {
+    margin-top: 10px;
+}
