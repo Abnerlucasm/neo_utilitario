@@ -6,16 +6,16 @@ class TabManager {
     }
 
     init() {
-        const tabList = document.querySelector('.tab-list');
-        const tabContent = document.querySelector('.tab-content');
-        
-        if (!tabList || !tabContent) {
-            console.error('Elementos de tab não encontrados');
+        const tabElements = document.querySelectorAll('.tabs li');
+        const tabContentElements = document.querySelectorAll('.tab-content');
+
+        if (!tabElements.length || !tabContentElements.length) {
+            console.log('Elementos de tab não encontrados nesta página');
             return;
         }
         
-        this.tabList = tabList;
-        this.tabContent = tabContent;
+        this.tabList = tabElements[0].parentNode;
+        this.tabContent = tabContentElements[0];
     }
 
     addTab(title, content, isCloseable = true) {
@@ -90,4 +90,7 @@ class TabManager {
     }
 }
 
-window.tabManager = new TabManager(); 
+// Criar instância apenas se estivermos em uma página que usa tabs
+if (document.querySelector('.tabs')) {
+    new TabManager();
+} 

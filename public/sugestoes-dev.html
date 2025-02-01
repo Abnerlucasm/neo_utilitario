@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Sugestões</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dark-theme.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         .hero {
@@ -460,6 +462,15 @@
                 } catch (error) {
                     console.error('Erro:', error);
                     showToast(error.message, 'danger');
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', () => {
+                // Carregar e aplicar tema salvo
+                const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+                if (userSettings.theme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.body.classList.add('dark-theme');
                 }
             });
         </script>

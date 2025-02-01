@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações do Ambiente</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dark-theme.css">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
@@ -115,5 +117,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="config.js"></script>
     <script src="/componentes/navbar-component.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+            if (userSettings.theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.classList.add('dark-theme');
+            }
+        });
+    </script>
 </body>
 </html>

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="dark-theme.css">
     <style>
         .hero.is-neohub {
             background: linear-gradient(135deg, #36502c 0%, #85db34 100%);
@@ -230,17 +231,18 @@
                             <div class="field">
                                 <label class="label">Tema</label>
                                 <div class="control">
-                                    <div class="select">
+                                    <div class="select is-fullwidth">
                                         <select id="themeSelect">
-                                            <option value="light">Claro</option>
-                                            <option value="dark">Escuro</option>
+                                            <option value="light">Tema Claro</option>
+                                            <option value="dark">Tema Escuro</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
-                            <div class="buttons is-right mt-4">
-                                <button class="button" id="cancelSettings">Cancelar</button>
-                                <button class="button is-primary" id="saveSettings">Salvar</button>
+                            <div class="field is-grouped is-grouped-right">
+                                <div class="control">
+                                    <button class="button is-primary" id="saveSettings">Salvar</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -309,5 +311,49 @@
     <script src="/services/user-settings.js"></script>
     <script src="/components/tab-manager.js"></script>
     <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Carregar configurações salvas
+            const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+            
+            // Configurar campos do modal com valores salvos
+            document.getElementById('userNameInput').value = userSettings.userName || '';
+            document.getElementById('themeSelect').value = userSettings.theme || 'light';
+            
+            // Aplicar tema inicial
+            if (userSettings.theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.classList.add('dark-theme');
+            }
+            
+            // Salvar configurações quando o botão for clicado
+            document.getElementById('saveSettings').addEventListener('click', () => {
+                const userName = document.getElementById('userNameInput').value;
+                const theme = document.getElementById('themeSelect').value;
+                
+                const settings = {
+                    userName: userName,
+                    theme: theme
+                };
+                
+                localStorage.setItem('userSettings', JSON.stringify(settings));
+                
+                // Aplicar tema
+                if (theme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.body.classList.add('dark-theme');
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    document.body.classList.remove('dark-theme');
+                }
+                
+                // Fechar modal
+                document.getElementById('userSettingsModal').classList.remove('is-active');
+                
+                // Mostrar mensagem de sucesso
+                showToast('Configurações salvas com sucesso!', 'success');
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-class NavbarComponent extends HTMLElement {
+class NeoNavbar extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
@@ -20,12 +20,50 @@ class NavbarComponent extends HTMLElement {
 
     connectedCallback() {
         this.render();
-        this.addEventListeners();
-        this.highlightCurrentPage();
-        this.updateBreadcrumb();
+        // Aguardar o próximo ciclo de renderização
+        requestAnimationFrame(() => {
+            this.setupTheme();
+            this.addEventListeners();
+            this.highlightCurrentPage();
+            this.updateBreadcrumb();
+        });
+    }
+
+    setupTheme() {
+        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+        if (userSettings.theme === 'dark') {
+            const navbar = this.shadowRoot.querySelector('.navbar');
+            if (navbar) {
+                navbar.classList.add('dark-theme');
+            }
+        }
+
+        // Observar mudanças no tema
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    const navbar = this.shadowRoot.querySelector('.navbar');
+                    if (navbar) {
+                        if (document.body.classList.contains('dark-theme')) {
+                            navbar.classList.add('dark-theme');
+                        } else {
+                            navbar.classList.remove('dark-theme');
+                        }
+                    }
+                }
+            });
+        });
+
+        observer.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
     }
 
     render() {
+        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+        const isDark = userSettings.theme === 'dark';
+        
         this.shadowRoot.innerHTML = `
             <style>
                 * {
@@ -277,13 +315,39 @@ class NavbarComponent extends HTMLElement {
                     opacity: 1;
                     visibility: visible;
                 }
+
+                /* Estilos para o tema escuro */
+                .navbar.dark-theme {
+                    background-color: #2c2d31 !important;
+                    border-bottom: 1px solid #404246;
+                }
+
+                .navbar.dark-theme .navbar-item,
+                .navbar.dark-theme .navbar-link {
+                    color: #ffffff !important;
+                }
+
+                .navbar.dark-theme .navbar-item:hover,
+                .navbar.dark-theme .navbar-link:hover {
+                    background-color: #3a3b3f !important;
+                    color: #3273dc !important;
+                }
             </style>
 
-            <nav class="navbar">
-                <div class="navbar-brand" id="logo-home">
-                    <img src="/assets/neo-logo-small.png" alt="NeoHub">
+            <nav class="navbar ${isDark ? 'dark-theme' : ''}" role="navigation" aria-label="main navigation">
+                <div class="navbar-brand">
+                    <a class="navbar-item" href="/">
+                        <img src="/assets/neo-logo-small.png" alt="Neo Logo">
+                    </a>
+                    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                    </a>
                 </div>
-                <button class="menu-toggle">☰</button>
+                <div class="navbar-menu">
+                    <button class="menu-toggle">☰</button>
+                </div>
             </nav>
 
             <div class="breadcrumb-container">
@@ -366,25 +430,33 @@ class NavbarComponent extends HTMLElement {
     }
 
     addEventListeners() {
+        // Verificar se os elementos existem antes de adicionar os listeners
         const menuToggle = this.shadowRoot.querySelector('.menu-toggle');
         const closeButton = this.shadowRoot.querySelector('.close-sidebar');
         const sidebar = this.shadowRoot.querySelector('.sidebar');
         const overlay = this.shadowRoot.querySelector('.overlay');
+        const logoHome = this.shadowRoot.querySelector('#logo-home');
 
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.add('active');
-            overlay.classList.add('active');
-        });
+        if (menuToggle && sidebar && overlay) {
+            menuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            });
+        }
 
-        closeButton.addEventListener('click', () => {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-        });
+        if (closeButton && sidebar && overlay) {
+            closeButton.addEventListener('click', () => {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+        }
 
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-        });
+        if (overlay && sidebar) {
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+        }
 
         // Atualizar os listeners do breadcrumb
         const breadcrumbLinks = this.shadowRoot.querySelectorAll('.breadcrumb a');
@@ -392,7 +464,9 @@ class NavbarComponent extends HTMLElement {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const path = link.getAttribute('href');
-                window.location.href = path; // Navegação real para a página
+                if (path) {
+                    window.location.href = path;
+                }
             });
         });
 
@@ -402,9 +476,19 @@ class NavbarComponent extends HTMLElement {
         });
 
         // Adicionar evento de clique no logo
-        const logoHome = this.shadowRoot.querySelector('#logo-home');
-        logoHome.addEventListener('click', () => {
-            window.location.href = '/';
+        if (logoHome) {
+            logoHome.addEventListener('click', () => {
+                window.location.href = '/';
+            });
+        }
+
+        // Adicionar event listeners para links do menu
+        const menuLinks = this.shadowRoot.querySelectorAll('.menu-list a');
+        menuLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                menuLinks.forEach(l => l.classList.remove('is-active'));
+                link.classList.add('is-active');
+            });
         });
     }
 
@@ -423,4 +507,4 @@ class NavbarComponent extends HTMLElement {
     }
 }
 
-customElements.define('neo-navbar', NavbarComponent);
+customElements.define('neo-navbar', NeoNavbar);

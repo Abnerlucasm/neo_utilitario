@@ -1,0 +1,728 @@
+/* Variáveis de cores do tema escuro */
+:root[data-theme="dark"] {
+    --bg-primary: #1a1b1e;
+    --bg-secondary: #2c2d31;
+    --bg-tertiary: #3a3b3f;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent-color: #3273dc;
+    --accent-hover: #2860b9;
+    --border-color: #404246;
+    --success-color: #23d160;
+    --warning-color: #ffdd57;
+    --danger-color: #ff3860;
+    --info-color: #209cee;
+    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilos base */
+body.dark-theme {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Títulos e textos */
+body.dark-theme h1,
+body.dark-theme h2,
+body.dark-theme h3,
+body.dark-theme h4,
+body.dark-theme h5,
+body.dark-theme h6,
+body.dark-theme .title,
+body.dark-theme .subtitle {
+    color: var(--text-primary);
+}
+
+/* Hero específico do NeoHub */
+body.dark-theme .hero.is-neohub {
+    background: linear-gradient(135deg, #36502c 0%, #447a1c 100%);
+}
+
+body.dark-theme .brand-title {
+    background: linear-gradient(45deg, #ffffff, #cccccc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Cards */
+body.dark-theme .card {
+    background-color: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .card-content {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+body.dark-theme .card .title,
+body.dark-theme .card .subtitle {
+    color: var(--text-primary);
+}
+
+body.dark-theme .card-footer {
+    background-color: var(--bg-tertiary);
+    border-top: 1px solid var(--border-color);
+}
+
+body.dark-theme .card-footer-item {
+    color: var(--text-primary);
+}
+
+body.dark-theme .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Welcome Section */
+body.dark-theme .welcome-section {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Botões */
+body.dark-theme .button {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .button.is-primary {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+body.dark-theme .button.is-info {
+    background-color: var(--info-color);
+    color: white;
+}
+
+body.dark-theme .button.is-light {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+body.dark-theme .button:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Modal */
+body.dark-theme .modal-content,
+body.dark-theme .modal-card {
+    background-color: var(--bg-secondary);
+}
+
+body.dark-theme .modal-card-head,
+body.dark-theme .modal-card-foot {
+    background-color: var(--bg-tertiary);
+    border-color: var(--border-color);
+}
+
+body.dark-theme .modal-card-title {
+    color: var(--text-primary);
+}
+
+body.dark-theme .modal-card-body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Inputs */
+body.dark-theme .input,
+body.dark-theme .textarea,
+body.dark-theme .select select {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-theme .label {
+    color: var(--text-primary);
+}
+
+/* Links */
+body.dark-theme a {
+    color: var(--accent-color);
+}
+
+body.dark-theme a:hover {
+    color: var(--accent-hover);
+}
+
+/* Notificações e mensagens */
+body.dark-theme .notification {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Ícones */
+body.dark-theme .icon {
+    color: var(--text-primary);
+}
+
+/* Tags */
+body.dark-theme .tag:not(.is-primary):not(.is-link):not(.is-info):not(.is-success):not(.is-warning):not(.is-danger) {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Menus e navegação */
+body.dark-theme .navbar {
+    background-color: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.dark-theme .navbar-item,
+body.dark-theme .navbar-link {
+    color: var(--text-primary) !important;
+    background-color: transparent !important;
+}
+
+body.dark-theme .navbar-item:hover,
+body.dark-theme .navbar-link:hover {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--accent-color) !important;
+}
+
+/* Badges */
+body.dark-theme .badge {
+    background-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+/* Transições suaves */
+body.dark-theme * {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Navbar */
+body.dark-theme .navbar,
+body.dark-theme .sidebar {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+/* Cards e Boxes */
+body.dark-theme .box {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .input:focus,
+body.dark-theme .textarea:focus,
+body.dark-theme .select select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(50, 115, 220, 0.25);
+}
+
+/* Tabelas */
+body.dark-theme .table {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+body.dark-theme .table th {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .table td {
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-theme .table tr:hover {
+    background-color: var(--bg-tertiary) !important;
+}
+
+/* Hero Section */
+body.dark-theme .hero {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--bg-primary) 100%);
+}
+
+/* Ajustes para os botões do card */
+body.dark-theme .card-footer-item.button.is-light {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .card-footer-item.button.is-light:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Adicione mais estilos conforme necessário para outros elementos */
+
+/* Ajustes específicos para glassfish.html */
+body.dark-theme {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Estatísticas */
+body.dark-theme .stat-box {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Filtros e Controles */
+body.dark-theme .filter-section {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* Log Viewer */
+body.dark-theme .log-container {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .log-viewer {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+}
+
+/* Sugestões e Recursos */
+body.dark-theme .suggestion-item,
+body.dark-theme .resource-item {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .filter-container .tag {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+body.dark-theme .filter-container .tag.is-active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Status e Badges */
+body.dark-theme .status-indicator {
+    border: 1px solid var(--border-color);
+}
+
+/* Toast Notifications */
+body.dark-theme .toast {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* Hero Sections */
+body.dark-theme .hero.is-primary,
+body.dark-theme .hero.is-info,
+body.dark-theme .hero.is-medium {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--bg-primary) 100%);
+    color: var(--text-primary);
+}
+
+body.dark-theme .hero .title,
+body.dark-theme .hero .subtitle {
+    color: var(--text-primary) !important;
+}
+
+/* Empty Messages */
+body.dark-theme .empty-message {
+    color: var(--text-secondary);
+}
+
+/* System Info */
+body.dark-theme .system-info pre {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* Maintenance Modal */
+body.dark-theme .notification.is-warning {
+    background-color: var(--bg-tertiary);
+    color: var(--warning-color);
+}
+
+/* Applications List */
+body.dark-theme .applications-container {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* Loading States */
+body.dark-theme .loading-container {
+    color: var(--text-secondary);
+}
+
+/* Forçar cores específicas */
+body.dark-theme .has-background-light {
+    background-color: var(--bg-primary) !important;
+}
+
+body.dark-theme .box {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Ajustes específicos para recursos-dev.html */
+body.dark-theme .suggestion-grid {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .suggestion-grid .box {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .suggestion-grid .card {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .suggestion-grid .card-content {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Ajustes para elementos específicos */
+body.dark-theme .columns .column .box {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .suggestion-item {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color);
+}
+
+/* Forçar cores em elementos aninhados */
+body.dark-theme .box * {
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .card * {
+    color: var(--text-primary) !important;
+}
+
+/* Exceções para tags e badges */
+body.dark-theme .tag:not(.is-primary):not(.is-link):not(.is-info):not(.is-success):not(.is-warning):not(.is-danger),
+body.dark-theme .badge {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Ajustes para o container principal */
+body.dark-theme .container {
+    background-color: var(--bg-primary) !important;
+}
+
+/* Ajustes para elementos de status */
+body.dark-theme .status-tag {
+    border: 1px solid var(--border-color);
+}
+
+/* Ajustes para notificações e mensagens */
+body.dark-theme .notification {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color);
+}
+
+/* Hero transparente */
+body.dark-theme .hero .hero-body {
+    background: transparent !important;
+}
+
+body.dark-theme .hero .container {
+    background: transparent !important;
+}
+
+body.dark-theme .hero .title,
+body.dark-theme .hero .subtitle {
+    color: #ffffff !important; /* Mantém o texto branco */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); /* Adiciona uma sombra suave para melhor legibilidade */
+}
+
+body.dark-theme .hero .button.is-info {
+    background-color: rgba(50, 115, 220, 0.9) !important; /* Botão semi-transparente */
+    color: #ffffff !important;
+    border: none;
+}
+
+body.dark-theme .hero .button.is-info:hover {
+    background-color: var(--accent-color) !important;
+}
+
+/* Corrigir padrão zebra na tabela */
+body.dark-theme .table.is-striped tbody tr:nth-child(even) {
+    background-color: var(--bg-tertiary) !important;
+}
+
+body.dark-theme .table.is-striped tbody tr:nth-child(odd) {
+    background-color: var(--bg-secondary) !important;
+}
+
+body.dark-theme .table.is-striped tbody tr:hover {
+    background-color: var(--accent-color) !important;
+    color: #ffffff !important;
+}
+
+/* Garantir que todas as células da tabela mantenham a cor correta */
+body.dark-theme .table td,
+body.dark-theme .table th {
+    color: var(--text-primary) !important;
+}
+
+/* Ajuste para o hover nas linhas da tabela */
+body.dark-theme .table tr:hover td {
+    color: #ffffff !important;
+}
+
+/* Estilos específicos para o Shadow DOM da navbar */
+body.dark-theme neo-navbar {
+    --navbar-bg: var(--bg-secondary);
+    --navbar-color: var(--text-primary);
+    --navbar-hover-bg: var(--bg-tertiary);
+    --navbar-hover-color: var(--accent-color);
+    --navbar-border: var(--border-color);
+}
+
+/* Forçar cores da navbar */
+body.dark-theme neo-navbar::part(navbar) {
+    background-color: var(--navbar-bg) !important;
+    border-bottom: 1px solid var(--navbar-border);
+}
+
+body.dark-theme neo-navbar::part(navbar-item) {
+    color: var(--navbar-color) !important;
+}
+
+body.dark-theme neo-navbar::part(navbar-item):hover {
+    background-color: var(--navbar-hover-bg) !important;
+    color: var(--navbar-hover-color) !important;
+}
+
+/* Breadcrumb e Menu Burger */
+body.dark-theme .breadcrumb {
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .breadcrumb a {
+    color: var(--accent-color) !important;
+}
+
+body.dark-theme .breadcrumb li.is-active a {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .navbar-burger {
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .navbar-burger:hover {
+    background-color: var(--bg-tertiary) !important;
+}
+
+/* Badges específicos */
+body.dark-theme .badge.is-beta {
+    background-color: var(--warning-color) !important;
+    color: #000000 !important;
+}
+
+body.dark-theme .tag.is-info.is-light {
+    background-color: var(--info-color) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .tag.is-new {
+    background-color: #00c4a7 !important; /* Verde água */
+    color: #ffffff !important;
+}
+
+/* Ícones coloridos das Estatísticas */
+body.dark-theme .icon.has-text-info {
+    color: var(--info-color) !important;
+}
+
+body.dark-theme .icon.has-text-success {
+    color: var(--success-color) !important;
+}
+
+body.dark-theme .icon.has-text-warning {
+    color: var(--warning-color) !important;
+}
+
+body.dark-theme .icon.has-text-danger {
+    color: var(--danger-color) !important;
+}
+
+/* Tags dos filtros */
+body.dark-theme .filter-container .tag.is-active {
+    background-color: var(--accent-color) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .filter-container .tag.status-tag.is-active[data-value="pending"] {
+    background-color: var(--warning-color) !important;
+    color: #000000 !important;
+}
+
+body.dark-theme .filter-container .tag.status-tag.is-active[data-value="in_progress"] {
+    background-color: var(--info-color) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .filter-container .tag.status-tag.is-active[data-value="implemented"] {
+    background-color: var(--success-color) !important;
+    color: #ffffff !important;
+}
+
+/* Ícones e botões do Glassfish */
+body.dark-theme .card-icon {
+    color: #00d1b2 !important; /* Cor original do Glassfish */
+}
+
+body.dark-theme .button.is-primary {
+    background-color: #00d1b2 !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .button.is-danger {
+    background-color: var(--danger-color) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .button.is-warning {
+    background-color: var(--warning-color) !important;
+    color: #000000 !important;
+}
+
+body.dark-theme .button.is-success {
+    background-color: var(--success-color) !important;
+    color: #ffffff !important;
+}
+
+/* Menu Burger e Navegação */
+body.dark-theme .navbar-burger span {
+    background-color: var(--text-primary) !important;
+    height: 2px !important;
+}
+
+body.dark-theme .navbar-burger:hover {
+    background-color: var(--bg-tertiary) !important;
+}
+
+/* Menu Expandido */
+body.dark-theme .navbar-menu {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-theme .navbar-menu.is-active {
+    background-color: var(--bg-secondary) !important;
+}
+
+/* Breadcrumb no tema escuro */
+body.dark-theme .breadcrumb-container {
+    background-color: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.dark-theme .breadcrumb {
+    background-color: transparent !important;
+}
+
+body.dark-theme .breadcrumb li a {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .breadcrumb li.is-active a {
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .breadcrumb li + li::before {
+    color: var(--text-secondary) !important;
+}
+
+/* Menu lateral quando expandido */
+body.dark-theme .menu-list {
+    background-color: var(--bg-secondary) !important;
+}
+
+body.dark-theme .menu-list a {
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .menu-list a:hover {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--accent-color) !important;
+}
+
+body.dark-theme .menu-list a.is-active {
+    background-color: var(--accent-color) !important;
+    color: #ffffff !important;
+}
+
+/* Estilos para utilitarios.html */
+body.dark-theme .menu-opcoes .card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .menu-opcoes .card-content {
+    background-color: var(--bg-secondary);
+}
+
+body.dark-theme .menu-opcoes .title,
+body.dark-theme .menu-opcoes .subtitle {
+    color: var(--text-primary);
+}
+
+body.dark-theme .menu-opcoes .icon {
+    color: var(--accent-color);
+}
+
+/* Estilos para config.html */
+body.dark-theme .box {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+body.dark-theme .label {
+    color: var(--text-primary);
+}
+
+body.dark-theme .input {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-theme .input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
+}
+
+body.dark-theme .button.is-light {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+body.dark-theme .button.is-light:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+body.dark-theme .title,
+body.dark-theme .subtitle {
+    color: var(--text-primary) !important;
+}
+
+/* Ajustes para os ícones */
+body.dark-theme .icon.is-right {
+    color: var(--text-secondary);
+} 

@@ -1,4 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Verificar se os elementos existem antes de tentar acessá-los
+    const buttons = document.querySelectorAll('[id$="-dev"]');
+    if (buttons) {
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                const page = button.id.replace('btn-', '');
+                window.location.href = `${page}.html`;
+            });
+        });
+    }
+
     // Inicializar userSettings primeiro
     if (!window.userSettings) {
         console.error('UserSettings não encontrado. Inicializando...');
