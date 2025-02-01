@@ -320,10 +320,20 @@
             }
         }
 
-        function filterCards() {
+        async function filterCards() {
             const statusFilter = document.getElementById('filter-status').value;
-            const filteredServices = statusFilter === 'all' ? services :
-                services.filter(service => service.status === statusFilter);
+            const setorFilter = document.getElementById('filter-setor').value;
+            const searchQuery = document.getElementById('search-input').value.toLowerCase();
+
+            const filteredServices = services.filter(service => {
+                const matchesStatus = statusFilter === 'all' || service.status === statusFilter;
+                const matchesSetor = setorFilter === 'all' || 
+                    // (setorFilter === 'except' ? service.setor !== 'Setor Sup. Externo' : service.setor === setorFilter);
+                const matchesSearch = service.name.toLowerCase().includes(searchQuery);
+
+                return matchesStatus && matchesSetor && matchesSearch;
+            });
+
             renderCards(filteredServices);
         }
 
