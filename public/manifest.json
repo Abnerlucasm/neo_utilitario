@@ -1,0 +1,21 @@
+{
+  "name": "NeoHub",
+  "short_name": "NeoHub",
+  "description": "Plataforma integrada de colaboração e gerenciamento para a equipe Neo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#00d1b2",
+  "icons": [
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 
