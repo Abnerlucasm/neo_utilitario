@@ -27,7 +27,7 @@ async function loadSuggestions() {
             tr.onclick = () => showSuggestionDetails(suggestion);
             tr.innerHTML = `
                 <td>${suggestion.sequentialNumber}</td>
-                <td>${suggestion.description}</td>
+                <td><pre>${suggestion.description}</pre></td>
                 <td>${suggestion.createdBy}</td>
                 <td>${new Date(suggestion.createdAt).toLocaleDateString()}</td>
                 <td>${suggestion.category}</td>
@@ -98,7 +98,7 @@ function showSuggestionDetails(suggestion) {
     currentSuggestionId = suggestion._id;
     
     document.getElementById('suggestionTitle').textContent = suggestion.title;
-    document.getElementById('suggestionDescription').textContent = suggestion.description;
+    document.getElementById('suggestionDescription').innerHTML = `<pre>${suggestion.description}</pre>`;
     document.getElementById('suggestionCategory').textContent = suggestion.category;
     document.getElementById('suggestionStatus').textContent = getStatusText(suggestion.status);
     document.getElementById('suggestionCreatedBy').textContent = suggestion.createdBy;
@@ -106,15 +106,10 @@ function showSuggestionDetails(suggestion) {
     
     const imageElement = document.getElementById('suggestionImage');
     if (suggestion.imageUrl) {
-        // Verifique se a URL já contém o prefixo 'uploads/'
-        if (suggestion.imageUrl.startsWith('uploads/')) {
-            imageElement.src = `/${suggestion.imageUrl}`; // Adicione apenas a barra inicial
-        } else {
-            imageElement.src = `/uploads/${suggestion.imageUrl}`; // Adicione o prefixo se necessário
-        }
-        imageElement.style.display = 'block'; // Exiba a imagem
+        imageElement.src = suggestion.imageUrl.startsWith('uploads/') ? `/${suggestion.imageUrl}` : `/uploads/${suggestion.imageUrl}`;
+        imageElement.style.display = 'block';
     } else {
-        imageElement.style.display = 'none'; // Oculte a imagem se não houver
+        imageElement.style.display = 'none';
     }
     
     const modal = document.getElementById('suggestionModal');

@@ -144,7 +144,7 @@ function updateSuggestionsList(suggestions, filterStatus = null, filterCategorie
         item.innerHTML = `
             <div class="columns is-vcentered">
                 <div class="column" onclick="openStatusModal('${suggestion._id}')">
-                    <p class="is-size-5">#${suggestion.sequentialNumber} - ${suggestion.description}</p>
+                    <p class="is-size-5">#${suggestion.sequentialNumber} - <pre>${suggestion.description}</pre></p>
                     <p class="is-size-7">
                         <span class="tag is-${getCategoryClass(suggestion.category)}">${suggestion.category}</span>
                         <span class="tag is-${getStatusClass(suggestion.status)}">${getStatusText(suggestion.status)}</span>
@@ -155,6 +155,9 @@ function updateSuggestionsList(suggestions, filterStatus = null, filterCategorie
                 <div class="column is-narrow">
                     <button class="button is-small is-warning" onclick="openStatusModal('${suggestion._id}')">
                         <span class="icon"><i class="fas fa-edit"></i></span>
+                    </button>
+                    <button class="button is-small is-danger" onclick="deleteSuggestion('${suggestion._id}')">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
                     </button>
                 </div>
             </div>
@@ -235,3 +238,49 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('dark-theme');
     }
 });
+
+// Função para excluir a sugestão
+async function deleteSuggestion(suggestionId) {
+    if (confirm('Tem certeza que deseja excluir esta sugestão?')) {
+        try {
+            const response = await fetch(`/api/suggestions/${suggestionId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao excluir sugestão');
+            }
+
+            // Remover a sugestão da lista
+            allSuggestions = allSuggestions.filter(s => s._id !== suggestionId);
+            updateSuggestionsList(allSuggestions);
+            showToast('Sugestão excluída com sucesso!', 'success');
+        } catch (error) {
+            console.error('Erro ao excluir sugestão:', error);
+            showToast('Erro ao excluir sugestão', 'danger');
+        }
+    }
+}
+
+// Função para carregar comentários
+async function loadComments(suggestionId) {
+    try {
+        const response = await fetch(`/api/suggestions/${suggestionId}/comments`);
+        if (!response.ok) {
+            throw new Error('Erro ao carregar comentários');
+        }
+        const comments = await response.json();
+        const commentsContainer = document.getElementById('commentsContainer');
+        commentsContainer.innerHTML = '';
+
+        comments.forEach(comment => {
+            const commentDiv = document.createElement('div');
+            commentDiv.className = 'comment';
+            commentDiv.innerHTML = `<strong>${comment.author}</strong>: <pre>${comment.text}</pre> <small>${new Date(comment.createdAt).toLocaleDateString()}</small>`;
+            commentsContainer.appendChild(commentDiv);
+        });
+    } catch (error) {
+        console.error('Erro ao carregar comentários:', error);
+    }
+}
+

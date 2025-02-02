@@ -234,4 +234,17 @@ router.get('/suggestions/:id/comments', async (req, res) => {
     }
 });
 
+// Excluir sugestão
+router.delete('/suggestions/:id', async (req, res) => {
+    try {
+        const suggestion = await Suggestion.findByIdAndDelete(req.params.id);
+        if (!suggestion) {
+            return res.status(404).json({ error: 'Sugestão não encontrada' });
+        }
+        res.json({ message: 'Sugestão excluída com sucesso' });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao excluir sugestão' });
+    }
+});
+
 module.exports = router; 
