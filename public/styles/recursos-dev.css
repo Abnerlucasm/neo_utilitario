@@ -116,3 +116,137 @@ body {
 .modal {
     z-index: 1050; /* Aumente o z-index do modal */
 }
+
+/* Ajustes para conteúdo pré-formatado nas tabelas */
+.table td .content pre {
+    background: transparent;
+    padding: 0.5em;
+    margin: 0;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: monospace;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Ajustes específicos para tema escuro */
+body.dark-theme .table td .content pre {
+    color: var(--text-primary);
+    background-color: transparent;
+    border: none;
+}
+
+/* Ajustes para células da tabela com conteúdo markdown */
+.table td .content {
+    max-width: 500px; /* ou outro valor que faça sentido para seu layout */
+    overflow-x: auto;
+}
+
+/* Ajustes para o modal de detalhes */
+.modal-card-body .content pre {
+    background: transparent;
+    padding: 0.5em;
+    margin: 0.5em 0;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: monospace;
+}
+
+/* Ajuste específico para tema escuro no modal */
+body.dark-theme .modal-card-body .content pre {
+    color: var(--text-primary);
+    background-color: transparent;
+    border: none;
+}
+
+/* Melhorar a visualização de células com conteúdo longo */
+.table td {
+    vertical-align: top;
+    max-width: 300px; /* Ajuste conforme necessário */
+}
+
+.table td .content {
+    text-align: left;
+}
+
+/* Ajustes para o scroll horizontal em conteúdos longos */
+.table td .content::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table td .content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.table td .content::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 4px;
+}
+
+body.dark-theme .table td .content::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+}
+
+/* Ajustes para labels e textos no modal */
+.modal-card-body strong,
+.modal-card-body label,
+.modal-card-body .label {
+    color: inherit;
+}
+
+/* Ajustes específicos para tema escuro no modal */
+body.dark-theme .modal-card-body strong,
+body.dark-theme .modal-card-body label,
+body.dark-theme .modal-card-body .label {
+    color: var(--text-primary);
+}
+
+/* Ajustes para placeholders no tema escuro */
+body.dark-theme .textarea::placeholder,
+body.dark-theme .input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+/* Ajustes para o textarea no tema escuro */
+body.dark-theme .textarea {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-theme .textarea:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
+}
+
+/* Ajustes para os detalhes da sugestão no modal */
+.modal-card-body .content p {
+    color: inherit;
+}
+
+body.dark-theme .modal-card-body .content p {
+    color: var(--text-primary);
+}
+
+/* Ajustes para os títulos no modal */
+.modal-card-title {
+    color: inherit;
+}
+
+body.dark-theme .modal-card-title {
+    color: var(--text-primary);
+}
+
+/* Ajustes para os comentários no modal */
+.comment strong,
+.comment small {
+    color: inherit;
+}
+
+body.dark-theme .comment strong,
+body.dark-theme .comment small {
+    color: var(--text-primary);
+}

@@ -792,4 +792,117 @@ body.dark-theme .modal-card-foot {
 
 body.dark-theme .modal-card-body {
     background: var(--bg-tertiary);
+}
+
+/* Ajustes para tabelas e conteúdo pre no tema escuro */
+body.dark-theme .table td pre,
+body.dark-theme .modal-card-body pre,
+body.dark-theme .content pre {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0.5em;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Ajustes para o modal no tema escuro */
+body.dark-theme .modal-card-head,
+body.dark-theme .modal-card-foot {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+body.dark-theme .modal-card-body {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Ajustes para comentários no tema escuro */
+body.dark-theme .comment {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+body.dark-theme .comment pre {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    margin: 0.5em 0;
+}
+
+/* Ajustes para cards de sugestão no tema escuro */
+body.dark-theme .suggestion-item {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+body.dark-theme .suggestion-item pre {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    margin: 0.5em 0;
+}
+
+/* Ajustes para o scroll vertical em comentários longos */
+body.dark-theme .comment {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+body.dark-theme .comment::-webkit-scrollbar {
+    width: 8px;
+}
+
+body.dark-theme .comment::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+body.dark-theme .comment::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 4px;
+}
+
+/* Ajustes para tabelas no tema escuro */
+body.dark-theme .table {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+body.dark-theme .table th {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary) !important;
+    border-color: var(--border-color);
+}
+
+body.dark-theme .table td {
+    border-color: var(--border-color);
+}
+
+body.dark-theme .table tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* Ajustes para boxes e containers */
+body.dark-theme .box {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* Ajustes para conteúdo markdown */
+body.dark-theme .content {
+    color: var(--text-primary);
+}
+
+body.dark-theme .content code {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
 } 
