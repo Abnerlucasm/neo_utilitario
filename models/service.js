@@ -55,9 +55,14 @@ const serviceSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    ticketUrl: String,
-    category: String,
     description: String,
+    category: String,
+    priority: {
+        type: String,
+        enum: ['baixa', 'media', 'alta'],
+        default: 'media'
+    },
+    estimatedTime: Number,
     startDate: Date,
     endDate: Date,
     serviceStatus: {
@@ -75,14 +80,15 @@ const serviceSchema = new mongoose.Schema({
         default: null
     },
     timeHistory: [timeEntrySchema],
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    timerFinished: {
+    timerActive: {
         type: Boolean,
         default: false
-    }
+    },
+    totalTimeSpent: {
+        type: Number,
+        default: 0
+    },
+    lastTimerUpdate: Date
 }, { timestamps: true });
 
 // Middleware para adicionar serviceId às etapas antes de salvar

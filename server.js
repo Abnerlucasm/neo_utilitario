@@ -11,7 +11,6 @@ const connectToDatabase = require('./db');
 const { NodeSSH } = require('node-ssh');
 const xml2js = require('xml2js');
 const fsPromises = require('fs').promises;
-const multer = require('multer');
 const logger = require('./utils/logger');
 const mongoose = require('mongoose');
 const http = require('http');
@@ -21,6 +20,13 @@ const glassfishRouter = require('./routes/glassfish');
 const suggestionsRouter = require('./routes/suggestions'); // Outros routers, se existirem
 const kanbanRouter = require('./routes/kanban');
 
+// Importar controllers
+const {
+    timerController,
+    archiveController,
+    statusController,
+    attachmentsController
+} = require('./controllers/kanban');
 
 const app = express();
 const ssh = new NodeSSH();
@@ -46,7 +52,86 @@ mongoose.set('debug', true);
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/components', express.static(path.join(__dirname, 'public/components')));
 app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+// Configurar rotas do kanban
+app.use('/api/kanban', kanbanRouter);
+
+// Rota para estatísticas
+kanbanRouter.get('/statistics', async (req, res) => {
+    try {
+        const stats = await Service.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    activeServices: {
+                        $sum: {
+                            $cond: [{ $ne: ["$status", "completed"] }, 1, 0]
+                        }
+                    },
+                    completedToday: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $eq: ["$status", "completed"] },
+                                        {
+                                            $gte: [
+                                                "$completedAt",
+                                                new Date(new Date().setHours(0, 0, 0, 0))
+                                            ]
+                                        }
+                                    ]
+                                },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    totalTime: { $sum: "$totalTimeSpent" }
+                }
+            }
+        ]);
+
+        const efficiency = await calculateEfficiency();
+        
+        res.json({
+            activeServices: stats[0]?.activeServices || 0,
+            completedToday: stats[0]?.completedToday || 0,
+            totalTime: stats[0]?.totalTime || 0,
+            efficiency
+        });
+    } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+        res.status(500).json({ error: 'Erro ao buscar estatísticas' });
+    }
+});
+
+async function calculateEfficiency() {
+    try {
+        const completedServices = await Service.find({
+            status: 'completed',
+            completedAt: { $exists: true }
+        });
+
+        if (completedServices.length === 0) return 0;
+
+        const totalEfficiency = completedServices.reduce((acc, service) => {
+            const estimatedTime = service.estimatedTime || 0;
+            const actualTime = service.totalTimeSpent || 0;
+            
+            if (estimatedTime === 0) return acc;
+            
+            const efficiency = (estimatedTime / actualTime) * 100;
+            return acc + efficiency;
+        }, 0);
+
+        return Math.round(totalEfficiency / completedServices.length);
+    } catch (error) {
+        console.error('Erro ao calcular eficiência:', error);
+        return 0;
+    }
+}
 
 // Rota para a página inicial
 app.get('/', (req, res) => {
@@ -72,8 +157,6 @@ app.use((req, res, next) => {
 // Usar as rotas com prefixo /api
 app.use('/api', glassfishRouter);
 app.use('/api', suggestionsRouter);
-app.use('/api', kanbanRouter);
-
 
 // Rotas de configurações
 app.get('/config', async (req, res) => {
@@ -136,10 +219,13 @@ app.use((req, res, next) => {
     res.status(404).sendFile(path.join(__dirname, 'public', 'pages', '404.html'));
 });
 
-// Rota para 500 - Internal Server Error
+// Tratamento de erros
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).sendFile(path.join(__dirname, 'public', 'pages', '500.html'));
+    res.status(500).json({ 
+        error: 'Erro interno do servidor',
+        message: err.message 
+    });
 });
 
 const PORT = process.env.PORT || 3010;

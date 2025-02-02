@@ -122,19 +122,24 @@
                 </div>
             </div>
             
-            <div class="kanban-column" id="completed">
+            <div class="kanban-column">
                 <div class="kanban-header">
                     <div class="kanban-title">
-                        <i class="fas fa-check-circle"></i>
-                        <h3 class="title is-5">Concluído</h3>
+                        <span class="icon"><i class="fas fa-check-circle"></i></span>
+                        <h3>Concluídos</h3>
                     </div>
-                    <button class="add-task-button" onclick="showNewServiceModal('completed')">
-                        <i class="fas fa-plus-circle fa-lg"></i>
-                    </button>
                 </div>
-                <div class="service-list" id="completed-list">
-                    <!-- Serviços serão inseridos aqui -->
+                <div class="service-list" id="completed-list"></div>
+            </div>
+
+            <div class="kanban-column archived-column">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <span class="icon"><i class="fas fa-archive"></i></span>
+                        <h3>Arquivados</h3>
+                    </div>
                 </div>
+                <div class="service-list" id="archived-list"></div>
             </div>
 
             <!-- Adicionar após o último quadro do kanban -->
@@ -147,28 +152,6 @@
         </div>
     </div>
 
-    <!-- Seção de Arquivados -->
-    <div class="container is-fluid mt-6">
-        <div class="archived-section">
-            <div class="archived-header">
-                <h3 class="title is-5">
-                    <span class="icon"><i class="fas fa-archive"></i></span>
-                    Serviços Arquivados
-                </h3>
-                <button class="button is-small" onclick="toggleArchivedSection()">
-                    <span class="icon">
-                        <i class="fas fa-chevron-down" id="archived-toggle-icon"></i>
-                    </span>
-                </button>
-            </div>
-            <div class="archived-content" id="archived-content">
-                <div class="service-list" id="archived-list">
-                    <!-- Serviços arquivados serão inseridos aqui -->
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Novo Serviço -->
     <div class="modal" id="new-service-modal">
         <div class="modal-background"></div>
@@ -177,105 +160,111 @@
                 <p class="modal-card-title">Novo Serviço</p>
                 <button class="delete" aria-label="close" onclick="closeModal('new-service-modal')"></button>
             </header>
-            <form id="service-form" onsubmit="saveService(event)">
-                <section class="modal-card-body">
-                    <div class="field">
-                        <label class="label">Nome do Serviço</label>
-                        <div class="control">
-                            <input class="input" type="text" id="service-name" placeholder="Ex: Implantação Sistema" required>
+
+            <div id="tab-details" class="tab-content">
+                <form id="service-form" onsubmit="saveService(event)">
+                    <section class="modal-card-body">
+                        <div class="field">
+                            <label class="label">Nome do Serviço</label>
+                            <div class="control has-icons-right">
+                                <input class="input" type="text" id="service-name" maxlength="30" required>
+                                <span class="icon is-small is-right char-counter" id="name-char-counter">
+                                    30
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">
-                            <i class="fas fa-link mr-2"></i>
-                            URL do Chamado
-                        </label>
-                        <div class="control has-icons-right url-input-container">
-                            <input class="input" type="url" id="service-ticket" placeholder="Ex: https://neochamados.com/123">
-                            <button class="button is-info" onclick="openTicketUrl()">
-                                <i class="fas fa-external-link-alt"></i>
+                        <div class="field">
+                            <label class="label">
+                                <i class="fas fa-link mr-2"></i>
+                                URL do Chamado
+                            </label>
+                            <div class="control has-icons-right url-input-container">
+                                <input class="input" type="url" id="service-ticket" placeholder="Ex: https://neochamados.com/123">
+                                <button class="button is-info" onclick="openTicketUrl()">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                <i class="fas fa-calendar-alt mr-2"></i>
+                                Período
+                            </label>
+                            <div class="date-range-container">
+                                <div class="control">
+                                    <input class="input" type="date" id="start-date">
+                                </div>
+                                <div class="control">
+                                    <input class="input" type="date" id="end-date">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                <i class="fas fa-tasks mr-2"></i>
+                                Status
+                            </label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="service-status">
+                                        <option value="planejamento">Planejamento</option>
+                                        <option value="aguardando">Aguardando</option>
+                                        <option value="em_andamento">Em Andamento</option>
+                                        <option value="pausado">Pausado</option>
+                                        <option value="concluido">Concluído</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Categoria</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="service-category">
+                                        <option value="implantacao">Implantação</option>
+                                        <option value="correcao">Correção</option>
+                                        <option value="melhoria">Melhoria</option>
+                                        <option value="suporte">Suporte</option>
+                                        <option value="outros">Outros</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Descrição</label>
+                            <div class="control">
+                                <textarea class="textarea" id="service-description" placeholder="Descreva o serviço..."></textarea>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Prazo (dias)</label>
+                            <div class="control">
+                                <input class="input" type="number" id="service-deadline" min="1">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Etapas</label>
+                            <div id="steps-container">
+                                <!-- Etapas serão adicionadas aqui -->
+                            </div>
+                            <button type="button" class="button is-small is-info mt-2" onclick="event.preventDefault(); addStepField()">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>Adicionar Etapa</span>
                             </button>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">
-                            <i class="fas fa-calendar-alt mr-2"></i>
-                            Período
-                        </label>
-                        <div class="date-range-container">
+                        <div class="field">
+                            <label class="label">Comentários Iniciais</label>
                             <div class="control">
-                                <input class="input" type="date" id="start-date">
-                            </div>
-                            <div class="control">
-                                <input class="input" type="date" id="end-date">
+                                <textarea class="textarea" id="service-comments" placeholder="Adicione comentários iniciais..."></textarea>
                             </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">
-                            <i class="fas fa-tasks mr-2"></i>
-                            Status
-                        </label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select id="service-status">
-                                    <option value="planejamento">Planejamento</option>
-                                    <option value="aguardando">Aguardando</option>
-                                    <option value="em_andamento">Em Andamento</option>
-                                    <option value="pausado">Pausado</option>
-                                    <option value="concluido">Concluído</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">Categoria</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select id="service-category">
-                                    <option value="implantacao">Implantação</option>
-                                    <option value="correcao">Correção</option>
-                                    <option value="melhoria">Melhoria</option>
-                                    <option value="suporte">Suporte</option>
-                                    <option value="outros">Outros</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">Descrição</label>
-                        <div class="control">
-                            <textarea class="textarea" id="service-description" placeholder="Descreva o serviço..."></textarea>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">Prazo (dias)</label>
-                        <div class="control">
-                            <input class="input" type="number" id="service-deadline" min="1">
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">Etapas</label>
-                        <div id="steps-container">
-                            <!-- Etapas serão adicionadas aqui -->
-                        </div>
-                        <button type="button" class="button is-small is-info mt-2" onclick="event.preventDefault(); addStepField()">
-                            <span class="icon"><i class="fas fa-plus"></i></span>
-                            <span>Adicionar Etapa</span>
-                        </button>
-                    </div>
-                    <div class="field">
-                        <label class="label">Comentários Iniciais</label>
-                        <div class="control">
-                            <textarea class="textarea" id="service-comments" placeholder="Adicione comentários iniciais..."></textarea>
-                        </div>
-                    </div>
-                </section>
-                <footer class="modal-card-foot">
-                    <button type="submit" class="button is-success">Salvar</button>
-                    <button type="button" class="button" onclick="closeModal('new-service-modal')">Cancelar</button>
-                </footer>
-            </form>
+                    </section>
+                    <footer class="modal-card-foot">
+                        <button type="submit" class="button is-success">Salvar</button>
+                        <button type="button" class="button" onclick="closeModal('new-service-modal')">Cancelar</button>
+                    </footer>
+                </form>
+            </div>
         </div>
     </div>
 

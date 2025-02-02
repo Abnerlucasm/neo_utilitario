@@ -119,7 +119,20 @@
                         <div class="field">
                             <label class="label">Descrição</label>
                             <div class="control">
-                                <textarea id="description" class="textarea" required></textarea>
+                                <div class="buttons mb-2">
+                                    <button type="button" id="toggleView" class="button is-small is-info">
+                                        <span class="icon"><i class="fas fa-code"></i></span>
+                                        <span>Ver em Raw</span>
+                                    </button>
+                                    <button type="button" id="markdownHelp" class="button is-small is-info">
+                                        <span class="icon"><i class="fas fa-question-circle"></i></span>
+                                        <span>Guia Markdown</span>
+                                    </button>
+                                </div>
+                                <div id="description-container">
+                                    <textarea id="description" class="textarea" style="display: none;" placeholder="Digite sua descrição usando Markdown..."></textarea>
+                                    <div id="formatted-description" class="textarea content" contenteditable="true" style="min-height: 150px; overflow-y: auto;" placeholder="Digite sua descrição usando Markdown..."></div>
+                                </div>
                             </div>
                         </div>
 
@@ -171,7 +184,33 @@
             </div>
         </div>
 
+        <!-- Modal de Ajuda Markdown -->
+        <div class="modal" id="markdownHelpModal">
+            <div class="modal-background"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Guia de Markdown</p>
+                    <button class="delete" aria-label="close"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="content">
+                        <h3>Formatação Básica</h3>
+                        <ul>
+                            <li><code>**texto**</code> → <strong>texto em negrito</strong></li>
+                            <li><code>*texto*</code> → <em>texto em itálico</em></li>
+                            <li><code># Título</code> → título principal</li>
+                            <li><code>## Subtítulo</code> → subtítulo</li>
+                            <li><code>- item</code> → item de lista</li>
+                            <li><code>1. item</code> → item numerado</li>
+                            <li><code>`código`</code> → <code>código inline</code></li>
+                        </ul>
+                    </div>
+                </section>
+            </div>
+        </div>
+
         <script src="../components/navbar/navbar.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
         <script src="../js/sugestoes-dev.js"></script>
     </body>
 

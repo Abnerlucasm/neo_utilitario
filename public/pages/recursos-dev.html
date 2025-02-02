@@ -79,7 +79,7 @@
         </div>
     </div>
 
-    <!-- Template para o modal de comentários -->
+    <!-- Modal de Detalhes da Sugestão -->
     <div class="modal" id="suggestionModal">
         <div class="modal-background" onclick="closeSuggestionModal()"></div>
         <div class="modal-card">
@@ -89,8 +89,7 @@
             </header>
             <section class="modal-card-body">
                 <div class="content">
-                    <h3 id="suggestionTitle"></h3>
-                    <p id="suggestionDescription"></p>
+                    <div id="suggestionDescription"></div>
                     <div class="tags">
                         <span class="tag is-info" id="suggestionCategory"></span>
                         <span class="tag" id="suggestionStatus"></span>
@@ -116,6 +115,7 @@
         </div>
     </div>
     <script src="../components/navbar/navbar.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="../js/recursos-dev.js"></script>
 </body>
 </html>

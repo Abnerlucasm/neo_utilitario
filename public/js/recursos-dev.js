@@ -12,9 +12,8 @@ const loggedInUser = {
 async function loadSuggestions() {
     try {
         const response = await fetch('/api/suggestions');
-        if (!response.ok) {
-            throw new Error('Erro ao carregar sugestões');
-        }
+        if (!response.ok) throw new Error('Erro ao buscar sugestões');
+        
         const suggestions = await response.json();
 
         // Atualizar a lista de sugestões em análise e em progresso
@@ -27,7 +26,7 @@ async function loadSuggestions() {
             tr.onclick = () => showSuggestionDetails(suggestion);
             tr.innerHTML = `
                 <td>${suggestion.sequentialNumber}</td>
-                <td><pre>${suggestion.description}</pre></td>
+                <td class="content">${marked.parse(suggestion.description)}</td>
                 <td>${suggestion.createdBy}</td>
                 <td>${new Date(suggestion.createdAt).toLocaleDateString()}</td>
                 <td>${suggestion.category}</td>
@@ -65,7 +64,8 @@ async function loadSuggestions() {
             item.innerHTML = `
                 <div class="columns is-vcentered">
                     <div class="column">
-                        <p class="is-size-5">#${suggestion.sequentialNumber} - ${suggestion.description}</p>
+                        <p class="is-size-5">#${suggestion.sequentialNumber}</p>
+                        <div class="content">${marked.parse(suggestion.description)}</div>
                         <p class="is-size-7">
                             <span class="tag is-${getCategoryClass(suggestion.category)}">${suggestion.category}</span>
                             <span class="tag is-${getStatusClass(suggestion.status)}">${getStatusText(suggestion.status)}</span>
@@ -80,7 +80,7 @@ async function loadSuggestions() {
 
         updateSortIcons();
     } catch (error) {
-        console.error('Erro ao carregar sugestões:', error);
+        console.error('Erro:', error);
     }
 }
 
@@ -97,13 +97,14 @@ function getStatusIcon(status) {
 function showSuggestionDetails(suggestion) {
     currentSuggestionId = suggestion._id;
     
-    document.getElementById('suggestionTitle').textContent = suggestion.title;
-    document.getElementById('suggestionDescription').innerHTML = `<pre>${suggestion.description}</pre>`;
+    // Atualizar o conteúdo do modal
+    document.getElementById('suggestionDescription').innerHTML = marked.parse(suggestion.description);
     document.getElementById('suggestionCategory').textContent = suggestion.category;
     document.getElementById('suggestionStatus').textContent = getStatusText(suggestion.status);
     document.getElementById('suggestionCreatedBy').textContent = suggestion.createdBy;
     document.getElementById('suggestionDate').textContent = new Date(suggestion.createdAt).toLocaleDateString();
     
+    // Configurar a imagem se existir
     const imageElement = document.getElementById('suggestionImage');
     if (suggestion.imageUrl) {
         imageElement.src = suggestion.imageUrl.startsWith('uploads/') ? `/${suggestion.imageUrl}` : `/uploads/${suggestion.imageUrl}`;
@@ -112,13 +113,15 @@ function showSuggestionDetails(suggestion) {
         imageElement.style.display = 'none';
     }
     
+    // Abrir o modal
     const modal = document.getElementById('suggestionModal');
     modal.classList.add('is-active');
     
+    // Carregar comentários
     loadComments(suggestion._id);
 }
 
-// Função para fechar o modal de detalhes
+// Função para fechar o modal
 function closeSuggestionModal() {
     const modal = document.getElementById('suggestionModal');
     modal.classList.remove('is-active');
@@ -138,7 +141,11 @@ async function loadComments(suggestionId) {
         comments.forEach(comment => {
             const commentDiv = document.createElement('div');
             commentDiv.className = 'comment';
-            commentDiv.innerHTML = `<strong>${comment.author}</strong>: ${comment.text} <small>${new Date(comment.createdAt).toLocaleDateString()}</small>`;
+            commentDiv.innerHTML = `
+                <strong>${comment.author}</strong>: 
+                <div class="content">${marked.parse(comment.text)}</div>
+                <small>${new Date(comment.createdAt).toLocaleDateString()}</small>
+            `;
             commentsContainer.appendChild(commentDiv);
         });
     } catch (error) {
@@ -160,7 +167,7 @@ async function addComment() {
         const response = await fetch(`/api/suggestions/${currentSuggestionId}/comments`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: commentText, author }) // Envie o nome do autor
+            body: JSON.stringify({ text: commentText, author })
         });
 
         if (!response.ok) {
@@ -226,6 +233,18 @@ function updateSortIcons() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Configurar eventos para fechar o modal
+    const closeButtons = document.querySelectorAll('.modal .delete, .modal-background');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const modal = button.closest('.modal');
+            if (modal) {
+                modal.classList.remove('is-active');
+            }
+        });
+    });
+
+    // Carregar sugestões iniciais
     loadSuggestions();
     document.getElementById('filterInput').addEventListener('input', filterTable);
     updateSortIcons();

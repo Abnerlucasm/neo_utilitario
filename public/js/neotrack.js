@@ -36,248 +36,124 @@ function initDragAndDrop() {
 }
 
 // Timer Control
-function toggleTimer(serviceId) {
-    const card = document.querySelector(`[data-id="${serviceId}"]`);
-    if (!card) return;
-
-    const timerDisplay = card.querySelector('.timer-display');
-    const timerButton = card.querySelector('.timer-controls button');
-    const timerIcon = timerButton.querySelector('i');
-
-    if (!card.timer) {
-        card.timer = new Timer(timerDisplay, serviceId);
-    }
-
-    if (card.timer.running) {
-        card.timer.stop();
-        timerIcon.classList.replace('fa-pause', 'fa-play');
-    } else {
-        card.timer.start();
-        timerIcon.classList.replace('fa-play', 'fa-pause');
-    }
-}
-
 class Timer {
-    constructor(display, serviceId) {
-        this.display = display;
+    constructor(serviceId) {
         this.serviceId = serviceId;
-        this.running = false;
-        this.startTime = 0;
-        this.elapsedTime = 0;
+        this.startTime = null;
+        this.totalTime = 0; // Em segundos
+        this.isRunning = false;
         this.interval = null;
-        this.totalTimeSpent = 0;
-        this.loadSavedTime();
     }
 
-    async loadSavedTime() {
-        try {
-            const response = await fetch(`/api/kanban/services/${this.serviceId}`);
-            if (response.ok) {
-                const service = await response.json();
-                this.totalTimeSpent = service.totalTimeSpent || 0;
-                this.display.textContent = formatTime(this.totalTimeSpent);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar tempo:', error);
-        }
-    }
-
-    async start() {
-        if (!this.running) {
-            this.running = true;
+    start(initialTime = 0) {
+        if (!this.isRunning) {
+            this.totalTime = initialTime; // Inicializar com o tempo salvo anteriormente
             this.startTime = Date.now();
-            this.interval = setInterval(() => this.updateDisplay(), 1000);
-            await this.updateServer('start', this.totalTimeSpent);
+            this.isRunning = true;
+            this.interval = setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+                const currentTime = this.totalTime + elapsedSeconds;
+                this.updateDisplay(currentTime);
+            }, 1000);
         }
     }
 
-    async stop() {
-        if (this.running) {
-            this.running = false;
+    stop() {
+        if (this.isRunning) {
             clearInterval(this.interval);
-            const currentTime = Date.now();
-            const timeElapsed = Math.floor((currentTime - this.startTime) / 1000);
-            this.totalTimeSpent += timeElapsed;
-            await this.updateServer('stop', this.totalTimeSpent);
-            this.display.textContent = formatTime(this.totalTimeSpent);
-            updateStatistics();
+            this.isRunning = false;
+            const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+            this.totalTime += elapsedSeconds;
+            this.startTime = null;
+            return this.totalTime;
         }
+        return this.totalTime;
     }
 
-    async finish() {
-        if (this.running) {
-            await this.stop();
-        }
-        try {
-            const response = await fetch(`/api/kanban/services/${this.serviceId}/timer/finish`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    finalTime: this.totalTimeSpent,
-                    status: 'finished'
-                })
-            });
-
-            if (!response.ok) throw new Error('Erro ao finalizar timer');
-            
-            this.totalTimeSpent = 0;
-            this.elapsedTime = 0;
-            this.display.textContent = formatTime(0);
-            updateStatistics();
-            showToast('Timer finalizado com sucesso', 'success');
-        } catch (error) {
-            console.error('Erro ao finalizar timer:', error);
-            showToast('Erro ao finalizar timer', 'error');
-        }
-    }
-
-    updateDisplay() {
-        if (this.running) {
-            const currentTime = Date.now();
-            const timeElapsed = Math.floor((currentTime - this.startTime) / 1000);
-            const totalTime = this.totalTimeSpent + timeElapsed;
-            this.display.textContent = formatTime(totalTime);
-        }
-    }
-
-    formatTime(seconds) {
-        if (!seconds || isNaN(seconds)) return '00:00:00';
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    async updateServer(action, currentTime) {
-        try {
-            const response = await fetch(`/api/kanban/services/${this.serviceId}/timer`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    action,
-                    timeSpent: Math.floor(currentTime),
-                    elapsedTime: action === 'stop' ? 
-                        Math.floor((Date.now() - this.startTime) / 1000) : 0
-                })
-            });
-
-            if (!response.ok) throw new Error('Erro ao atualizar timer');
-            
-            const data = await response.json();
-            if (action === 'stop') {
-                document.getElementById('total-time').textContent = formatTime(data.totalTime);
-                this.display.textContent = formatTime(data.service.totalTimeSpent);
+    updateDisplay(seconds) {
+        const card = document.querySelector(`[data-id="${this.serviceId}"]`);
+        if (card) {
+            const display = card.querySelector('.timer-display');
+            if (display) {
+                display.textContent = formatTime(seconds);
             }
-        } catch (error) {
-            console.error('Erro ao atualizar timer:', error);
-            showToast('Erro ao atualizar timer', 'error');
         }
+    }
+
+    getCurrentTime() {
+        if (this.isRunning) {
+            const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+            return this.totalTime + elapsedSeconds;
+        }
+        return this.totalTime;
     }
 }
 
-async function updateStepStatus(serviceId, stepId, newStatus) {
+// Mapa global para armazenar instâncias de Timer
+const timers = new Map();
+
+async function toggleTimer(serviceId) {
     try {
-        const response = await fetch(`/api/kanban/services/${serviceId}/steps/${stepId}/status`, {
+        const card = document.querySelector(`[data-id="${serviceId}"]`);
+        if (!card) throw new Error('Card não encontrado');
+
+        const service = JSON.parse(card.dataset.service);
+        const isActive = service.timerActive;
+
+        let timer = timers.get(serviceId);
+        if (!timer) {
+            timer = new Timer(serviceId);
+            timers.set(serviceId, timer);
+        }
+
+        let timeSpent;
+        if (!isActive) {
+            // Iniciar timer com o tempo salvo anteriormente
+            const savedTime = Math.floor(service.totalTimeSpent || 0);
+            timer.start(savedTime);
+            timeSpent = savedTime;
+        } else {
+            timeSpent = timer.stop();
+        }
+
+        const response = await fetch(`/api/kanban/services/${serviceId}/timer`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus })
+            body: JSON.stringify({
+                action: isActive ? 'stop' : 'start',
+                timeSpent: timeSpent
+            })
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Erro ao atualizar status da etapa');
-        }
-
-        // Atualizar a interface
-        await loadServices();
-        showToast('Status da etapa atualizado com sucesso', 'success');
-    } catch (error) {
-        console.error('Erro ao atualizar status da etapa:', error);
-        showToast(error.message, 'error');
-    }
-}
-
-// Atualizar a função que cria o campo de etapa para incluir o evento de mudança de status
-function addStepField(step = null) {
-    const stepDiv = document.createElement('div');
-    stepDiv.className = 'step-item box';
-    if (step && step._id) {
-        stepDiv.dataset.stepId = step._id;
-    }
-    
-    stepDiv.innerHTML = `
-        <div class="field">
-            <label class="label">Título da Etapa</label>
-            <div class="control">
-                <input class="input step-title" type="text" value="${step?.name || ''}" placeholder="Ex: Análise Inicial">
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Responsável</label>
-                    <div class="control">
-                        <input class="input step-responsible" type="text" value="${step?.responsible || ''}" placeholder="Nome do responsável">
-                    </div>
-                </div>
-            </div>
-            <div class="column">
-                <div class="field">
-                    <label class="label">Equipe</label>
-                    <div class="control">
-                        <input class="input step-assigned" type="text" value="${step?.assignedTo || ''}" placeholder="Equipe responsável">
-                    </div>
-                </div>
-            </div>
-            <div class="column">
-                <div class="field">
-                    <label class="label">Status</label>
-                    <div class="control">
-                        <div class="select">
-                            <select class="step-status" onchange="updateStepStatus('${step?._id || ''}', '${step?.serviceId || ''}', this.value)">
-                                <option value="pending" ${step?.status === 'pending' ? 'selected' : ''}>Pendente</option>
-                                <option value="in_progress" ${step?.status === 'in_progress' ? 'selected' : ''}>Em Andamento</option>
-                                <option value="completed" ${step?.status === 'completed' ? 'selected' : ''}>Concluído</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    return stepDiv;
-}
-
-// Função para coletar as etapas
-function collectSteps() {
-    const steps = [];
-    document.querySelectorAll('.step-item').forEach((stepDiv, index) => {
-        const step = {
-            name: stepDiv.querySelector('.step-title').value,
-            responsible: stepDiv.querySelector('.step-responsible').value,
-            assignedTo: stepDiv.querySelector('.step-assigned').value,
-            status: stepDiv.querySelector('.step-status').value,
-            order: index
-        };
+        if (!response.ok) throw new Error('Erro ao atualizar timer');
         
-        // Manter o _id se existir
-        const stepId = stepDiv.dataset.stepId;
-        if (stepId) {
-            step._id = stepId;
+        const updatedService = await response.json();
+        card.dataset.service = JSON.stringify(updatedService);
+
+        // Atualizar visual do timer
+        const timerButton = card.querySelector('.timer-controls button i');
+        if (timerButton) {
+            timerButton.className = `fas ${!isActive ? 'fa-pause' : 'fa-play'}`;
         }
 
-        if (step.name.trim()) {
-            steps.push(step);
-        }
-    });
-    return steps;
+        await updateStatistics();
+        showToast('Timer atualizado com sucesso', 'success');
+    } catch (error) {
+        console.error('Erro:', error);
+        showToast('Erro ao atualizar timer', 'error');
+    }
+}
+
+// Função para atualizar timer no modal
+function updateModalTimer(service) {
+    const modal = document.getElementById('service-modal');
+    if (modal.classList.contains('is-active')) {
+        document.querySelector('.time-spent-field input').value = formatTime(service.totalTimeSpent);
+    }
 }
 
 function initKanban() {
     const columns = document.querySelectorAll('.kanban-column');
-    if (!columns.length) return;
-    
     columns.forEach(column => {
         const list = column.querySelector('.service-list');
         if (list) {
@@ -290,64 +166,63 @@ function initKanban() {
                 onEnd: async function(evt) {
                     const serviceId = evt.item.dataset.id;
                     const newStatus = evt.to.id.replace('-list', '');
+                    const oldStatus = evt.from.id.replace('-list', '');
                     
-                    // Mapear o status do quadro para o status do serviço
-                    let serviceStatus;
-                    switch (newStatus) {
-                        case 'todo':
-                            serviceStatus = 'planejamento';
-                            break;
-                        case 'in-progress':
-                            serviceStatus = 'em_andamento';
-                            break;
-                        case 'completed':
-                            serviceStatus = 'concluido';
-                            break;
-                        default:
-                            serviceStatus = 'em_andamento'; // Status padrão para quadros customizados
-                    }
-
+                    if (newStatus === oldStatus) return;
+                    
                     try {
                         const response = await fetch(`/api/kanban/services/${serviceId}/status`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ 
                                 status: newStatus,
-                                serviceStatus: serviceStatus
+                                serviceStatus: getServiceStatus(newStatus)
                             })
                         });
 
-                        if (!response.ok) throw new Error('Erro ao atualizar status');
-
-                        const data = await response.json();
-                        
-                        // Atualizar o card com os novos dados
-                        const card = evt.item;
-                        if (card) {
-                            // Atualizar dados do card
-                            card.dataset.service = JSON.stringify(data.service);
-                            
-                            // Atualizar a tag de status no card
-                            const statusTag = card.querySelector('.tag:first-child');
-                            if (statusTag) {
-                                statusTag.className = `tag ${getStatusClass(serviceStatus)}`;
-                                statusTag.textContent = serviceStatus;
-                            }
-
-                            // Atualizar estatísticas se movido para concluído
-                            if (newStatus === 'completed') {
-                                updateStatistics();
-                            }
+                        if (!response.ok) {
+                            evt.from.appendChild(evt.item);
+                            throw new Error('Erro ao atualizar status');
                         }
+                        
+                        // Atualizar o card imediatamente
+                        const data = await response.json();
+                        evt.item.dataset.service = JSON.stringify(data.service);
+                        
+                        // Atualizar visual do card
+                        const statusTag = evt.item.querySelector('.tag.status-tag');
+                        if (statusTag) {
+                            const statusMap = {
+                                'todo': { text: 'A Fazer', class: 'is-info' },
+                                'in-progress': { text: 'Em Andamento', class: 'is-warning' },
+                                'completed': { text: 'Concluído', class: 'is-success' }
+                            };
+                            const status = statusMap[newStatus] || { text: newStatus, class: 'is-light' };
+                            
+                            statusTag.className = 'tag status-tag ' + status.class;
+                            statusTag.textContent = status.text;
+                        }
+                        
+                        showToast('Status atualizado com sucesso', 'success');
+                        await updateStatistics();
                     } catch (error) {
                         console.error('Erro:', error);
                         showToast('Erro ao mover o card', 'error');
-                        evt.from.appendChild(evt.item); // Reverter movimento em caso de erro
                     }
                 }
             });
         }
     });
+}
+
+function getServiceStatus(status) {
+    const statusMap = {
+        'todo': 'planejamento',
+        'in-progress': 'em_andamento',
+        'completed': 'concluido',
+        'archived': 'arquivado'
+    };
+    return statusMap[status] || status;
 }
 
 function showNewServiceModal(columnId = 'todo') {
@@ -441,62 +316,43 @@ function applyFilters() {
 
 // Atualizar função saveService
 async function saveService(event) {
-    if (event) event.preventDefault();
+    event.preventDefault();
     
     try {
-        const modal = document.getElementById('new-service-modal');
-        const serviceId = modal.dataset.serviceId;
-        const method = serviceId ? 'PATCH' : 'POST';
-        const url = serviceId ? `/api/kanban/services/${serviceId}/update` : '/api/kanban/services';
-
-        const formData = {
-            name: document.getElementById('service-name').value.trim(),
-            ticketUrl: document.getElementById('service-ticket').value.trim(),
-            category: document.getElementById('service-category').value,
-            description: document.getElementById('service-description').value.trim(),
-            startDate: document.getElementById('start-date').value,
-            endDate: document.getElementById('end-date').value,
-            serviceStatus: document.getElementById('service-status').value,
-            status: modal.dataset.columnId || 'todo',
-            steps: collectSteps()
+        const formData = new FormData();
+        const files = document.getElementById('service-attachments').files;
+        
+        // Adicionar dados do serviço
+        const serviceData = {
+            name: document.getElementById('service-name').value,
+            description: document.getElementById('service-description').value,
+            // ... outros campos ...
         };
-
-        // Validar campos obrigatórios
-        if (!formData.name) {
-            throw new Error('Nome do serviço é obrigatório');
-        }
-
-        const response = await fetch(url, {
-            method,
-            headers: { 
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache'
-            },
-            body: JSON.stringify(formData)
+        
+        formData.append('service', JSON.stringify(serviceData));
+        
+        // Adicionar arquivos
+        Array.from(files).forEach(file => {
+            formData.append('attachments', file);
         });
-
-        if (!response.ok) {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Erro ao salvar serviço');
-            } else {
-                throw new Error('Erro ao salvar serviço');
-            }
-        }
-
-        const savedService = await response.json();
         
-        // Limpar formulário e fechar modal
-        closeModal('new-service-modal');
+        const url = serviceId ? 
+            `/api/kanban/services/${serviceId}/update` : 
+            '/api/kanban/services';
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
         
-        // Recarregar serviços
-        await loadServices();
+        if (!response.ok) throw new Error('Erro ao salvar serviço');
         
+        const result = await response.json();
         showToast('Serviço salvo com sucesso', 'success');
+        closeModal('new-service-modal');
+        loadServices();
     } catch (error) {
-        console.error('Erro ao salvar serviço:', error);
-        showToast(error.message, 'error');
+        console.error('Erro:', error);
+        showToast('Erro ao salvar serviço', 'error');
     }
 }
 
@@ -510,58 +366,78 @@ document.addEventListener('DOMContentLoaded', function() {
     loadServices();
 });
 
-// Atualizar função loadServices para evitar cache
+// Atualizar função loadServices
 async function loadServices() {
     try {
-        const response = await fetch('/api/kanban/services', {
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
-        });
+        const response = await fetch('/api/kanban/services');
         
-        if (!response.ok) {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Erro ao carregar serviços');
-            } else {
-                throw new Error('Erro ao carregar serviços');
-            }
-        }
-
+        if (!response.ok) throw new Error('Erro ao carregar serviços');
+        
         const services = await response.json();
         
         // Limpar todas as listas
         document.querySelectorAll('.service-list').forEach(list => list.innerHTML = '');
         
-        // Distribuir os serviços
-        services.forEach(service => {
+        // Separar serviços ativos e arquivados
+        const activeServices = services.filter(s => !s.archived);
+        const archivedServices = services.filter(s => s.archived);
+        
+        // Distribuir serviços ativos
+        activeServices.forEach(service => {
             const card = createServiceCard(service);
             const targetList = document.getElementById(`${service.status}-list`);
             if (targetList) {
                 targetList.appendChild(card);
             }
         });
-
+        
+        // Distribuir serviços arquivados
+        const archivedList = document.getElementById('archived-list');
+        if (archivedList) {
+            archivedServices.forEach(service => {
+                const card = createServiceCard(service);
+                card.classList.add('archived');
+                archivedList.appendChild(card);
+            });
+        }
+        
         updateStatistics();
     } catch (error) {
-        console.error('Erro ao carregar serviços:', error);
+        console.error('Erro:', error);
         showToast(error.message, 'error');
     }
 }
 
+// Função para truncar título
+function truncateTitle(title, maxLength = 30) {
+    if (!title) return '';
+    if (title.length <= maxLength) return title;
+    return title.substring(0, maxLength) + '...';
+}
+
+// Atualizar a função que cria o card
 function createServiceCard(service) {
     const card = document.createElement('div');
-    card.className = 'service-card';
+    
+    // Verificar se está atrasado
+    const now = new Date();
+    const endDate = service.endDate ? new Date(service.endDate) : null;
+    const isDelayed = endDate && now > endDate && service.status !== 'completed';
+    
+    card.className = `service-card ${isDelayed ? 'is-delayed' : ''} ${service.archived ? 'archived' : ''}`;
     card.draggable = true;
     card.dataset.id = service._id;
     card.dataset.service = JSON.stringify(service);
     
-    // Adicionar classe archived se o serviço estiver arquivado
-    if (service.archived) {
-        card.classList.add('archived');
-    }
+    // Adicionar badge de atraso
+    const delayBadgeHtml = isDelayed ? `
+        <div class="delay-badge">
+            <span class="icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </span>
+            <span>Atrasado</span>
+        </div>
+    ` : '';
 
     const timerControls = `
         <div class="timer-controls">
@@ -596,6 +472,7 @@ function createServiceCard(service) {
     `;
 
     card.innerHTML = `
+        ${delayBadgeHtml}
         <div class="card-controls">
             <button class="button is-small is-danger" onclick="event.stopPropagation(); deleteService('${service._id}')">
                 <span class="icon"><i class="fas fa-trash"></i></span>
@@ -605,7 +482,7 @@ function createServiceCard(service) {
             </div>
         </div>
         <div class="service-header" onclick="openServiceModal('${service._id}')">
-            <h4 class="title is-6">${service.name}</h4>
+            <h4 class="title is-6" title="${service.name}">${truncateTitle(service.name)}</h4>
             <div class="tags">
                 <span class="tag ${getStatusClass(service.serviceStatus)}">${service.serviceStatus}</span>
                 <span class="tag is-info is-light">${getCategoryLabel(service.category)}</span>
@@ -632,15 +509,6 @@ function createServiceCard(service) {
         </div>
     `;
     
-    // Adicionar botão de arquivar/desarquivar apenas no modal
-    if (service.archived) {
-        card.querySelector('.card-controls').innerHTML += `
-            <button class="button is-small is-warning" onclick="event.stopPropagation(); unarchiveService('${service._id}')">
-                <span class="icon"><i class="fas fa-box-open"></i></span>
-            </button>
-        `;
-    }
-
     return card;
 }
 
@@ -660,12 +528,14 @@ function getCompletedSteps(steps) {
     return steps.filter(step => step.status === 'completed').length;
 }
 
-function formatTime(seconds) {
-    if (!seconds || isNaN(seconds)) return '00:00:00';
+function formatTime(milliseconds) {
+    if (!milliseconds) return '00:00:00';
+    const seconds = Math.floor(milliseconds / 1000);
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const remainingSeconds = seconds % 60;
+    
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
 function finishService(serviceId) {
@@ -673,36 +543,31 @@ function finishService(serviceId) {
 }
 
 async function updateStatistics() {
-    try {
-        const response = await fetch('/api/kanban/statistics');
-        if (!response.ok) throw new Error('Erro ao carregar estatísticas');
-        
-        const stats = await response.json();
-        
-        // Atualizar os elementos na UI
-        document.getElementById('active-services-count').textContent = stats.activeServices || 0;
-        document.getElementById('completed-today').textContent = stats.completedToday || 0;
-        document.getElementById('total-time').textContent = formatTime(stats.totalTime || 0);
-        document.getElementById('efficiency').textContent = `${stats.efficiency || 0}%`;
-
-        console.log('Estatísticas atualizadas:', stats);
-    } catch (error) {
-        console.error('Erro ao atualizar estatísticas:', error);
-    }
+    const stats = await fetchStatistics();
+    
+    document.getElementById('active-services-count').textContent = stats.activeCount;
+    document.getElementById('completed-today').textContent = stats.completedToday;
+    document.getElementById('total-time').textContent = formatTime(stats.totalTime);
+    document.getElementById('efficiency').textContent = `${stats.efficiency}%`;
 }
 
 // Inicialização
-document.addEventListener('DOMContentLoaded', () => {
-    loadServices();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadServices();
     initKanban();
     initSortableSteps();
     updateStatistics();
-    // Atualizar estatísticas a cada minuto
     setInterval(updateStatistics, 60000);
     initEditableKanbanTitles();
     loadKanbanTitles();
     loadKanbanColumns();
     addFilters();
+    initializeTabs();
+    initializeCardLimits();
+    initCharCounters();
+    cleanupInvalidColumns();
+    ensureDefaultColumns();
+    restoreActiveTimers();
 });
 
 // Adicionar função para fechar o modal
@@ -710,6 +575,11 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('is-active');
+        // Limpar campos se necessário
+        if (modalId === 'new-column-modal') {
+            const input = document.getElementById('new-column-name');
+            if (input) input.value = '';
+        }
     }
 }
 
@@ -742,16 +612,6 @@ function openServiceModal(serviceId) {
     const modal = document.getElementById('new-service-modal');
     modal.dataset.serviceId = serviceId;
 
-    // Atualizar botão de acordo com o estado do serviço
-    const archiveButton = `
-        <button class="button is-warning archive-button" onclick="${service.archived ? 'unarchiveService' : 'archiveService'}('${serviceId}')">
-            <span class="icon">
-                <i class="fas fa-${service.archived ? 'box-open' : 'archive'}"></i>
-            </span>
-            <span>${service.archived ? 'Desarquivar' : 'Arquivar'}</span>
-        </button>
-    `;
-
     // Preencher os campos do modal
     document.getElementById('service-name').value = service.name;
     document.getElementById('service-ticket').value = service.ticketUrl || '';
@@ -766,108 +626,18 @@ function openServiceModal(serviceId) {
     stepsContainer.innerHTML = '';
     service.steps.forEach(step => addStepField(step));
 
-    // Adicionar botão de arquivar
+    // Atualizar footer do modal
     const footer = modal.querySelector('.modal-card-foot');
-    footer.innerHTML = archiveButton;
+    footer.innerHTML = `
+        <button class="button is-success" onclick="saveService(event)">Salvar</button>
+        <button class="button" onclick="closeModal('new-service-modal')">Cancelar</button>
+    `;
 
     modal.dataset.columnId = service.status;
     modal.classList.add('is-active');
-}
 
-function toggleArchivedSection() {
-    const content = document.getElementById('archived-content');
-    const icon = document.getElementById('archived-toggle-icon');
-    
-    content.classList.toggle('is-visible');
-    icon.classList.toggle('fa-chevron-down');
-    icon.classList.toggle('fa-chevron-up');
-}
-
-async function archiveService(serviceId) {
-    try {
-        const response = await fetch(`/api/kanban/services/${serviceId}/archive`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) throw new Error('Erro ao arquivar serviço');
-
-        const service = await response.json();
-        
-        // Atualizar o card e mover para arquivados
-        const card = document.querySelector(`[data-id="${serviceId}"]`);
-        if (card) {
-            // Atualizar dados do card
-            card.dataset.service = JSON.stringify(service);
-            
-            // Mover para seção de arquivados
-            const archivedList = document.getElementById('archived-list');
-            if (archivedList) {
-                archivedList.appendChild(card);
-                card.classList.add('archived');
-                
-                // Atualizar o botão no modal
-                const archiveButton = document.querySelector('.archive-button');
-                if (archiveButton) {
-                    archiveButton.innerHTML = `
-                        <span class="icon"><i class="fas fa-box-open"></i></span>
-                        <span>Desarquivar</span>
-                    `;
-                    archiveButton.onclick = () => unarchiveService(serviceId);
-                }
-                
-                // Mostrar seção de arquivados
-                const archivedContent = document.getElementById('archived-content');
-                if (!archivedContent.classList.contains('is-visible')) {
-                    toggleArchivedSection();
-                }
-            }
-        }
-
-        closeModal('new-service-modal');
-        showToast('Serviço arquivado com sucesso', 'success');
-        updateStatistics();
-    } catch (error) {
-        console.error('Erro ao arquivar serviço:', error);
-        showToast('Erro ao arquivar serviço', 'error');
-    }
-}
-
-async function unarchiveService(serviceId) {
-    try {
-        const response = await fetch(`/api/kanban/services/${serviceId}/unarchive`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) throw new Error('Erro ao desarquivar serviço');
-
-        const service = await response.json();
-        
-        // Remover o card da seção de arquivados
-        const card = document.querySelector(`[data-id="${serviceId}"]`);
-        if (card) {
-            // Atualizar dados do card
-            card.dataset.service = JSON.stringify(service);
-            card.classList.remove('archived');
-            
-            // Mover para a lista "A Fazer"
-            const todoList = document.getElementById('todo-list');
-            if (todoList) {
-                todoList.appendChild(card);
-            }
-        }
-
-        // Recarregar todos os serviços para garantir consistência
-        await loadServices();
-        
-        closeModal('new-service-modal');
-        showToast('Serviço desarquivado com sucesso', 'success');
-        updateStatistics();
-    } catch (error) {
-        console.error('Erro ao desarquivar serviço:', error);
-        showToast('Erro ao desarquivar serviço', 'error');
-    }
+    // Atualizar tempo total
+    document.getElementById('service-total-time').textContent = formatTime(service.totalTimeSpent || 0);
 }
 
 function initEditableKanbanTitles() {
@@ -908,12 +678,23 @@ function saveKanbanTitles() {
 }
 
 function loadKanbanTitles() {
-    const titles = JSON.parse(localStorage.getItem('kanbanTitles')) || {};
-    Object.entries(titles).forEach(([columnId, title]) => {
-        const titleElement = document.querySelector(`#${columnId} .kanban-title h3`);
-        if (titleElement) {
-            titleElement.textContent = title;
-        }
+    const titles = document.querySelectorAll('.kanban-title h3');
+    titles.forEach(title => {
+        title.addEventListener('dblclick', function() {
+            const currentText = this.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentText;
+            input.className = 'input is-small';
+            this.replaceWith(input);
+            input.focus();
+
+            input.addEventListener('blur', function() {
+                const h3 = document.createElement('h3');
+                h3.textContent = this.value || currentText;
+                this.replaceWith(h3);
+            });
+        });
     });
 }
 
@@ -967,14 +748,103 @@ function showNewColumnModal() {
     document.getElementById('new-column-modal').classList.add('is-active');
 }
 
+function ensureDefaultColumns() {
+    const defaultColumns = [
+        { id: 'todo', name: 'A Fazer', icon: 'fa-list' },
+        { id: 'in-progress', name: 'Em Andamento', icon: 'fa-tasks' },
+        { id: 'completed', name: 'Concluído', icon: 'fa-check-circle' }
+    ];
+
+    const board = document.querySelector('.kanban-board');
+    if (!board) return;
+
+    defaultColumns.forEach(column => {
+        if (!document.getElementById(column.id)) {
+            const newColumn = document.createElement('div');
+            newColumn.className = 'kanban-column';
+            newColumn.id = column.id;
+            newColumn.innerHTML = `
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas ${column.icon}"></i>
+                        <div class="title-controls">
+                            <h3 class="title is-5" title="Clique duas vezes para renomear">${column.name}</h3>
+                        </div>
+                    </div>
+                    <div class="column-controls">
+                        <button class="add-task-button" onclick="showNewServiceModal('${column.id}')">
+                            <i class="fas fa-plus-circle fa-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="service-list" id="${column.id}-list"></div>
+            `;
+            board.appendChild(newColumn);
+            
+            const titleElement = newColumn.querySelector('.kanban-title h3');
+            makeEditable(titleElement);
+        }
+    });
+
+    // Adicionar botão de novo quadro se não existir
+    if (!document.querySelector('.add-column')) {
+        const addButton = document.createElement('div');
+        addButton.className = 'add-column';
+        addButton.innerHTML = `
+            <button class="button is-primary" onclick="openModal('new-column-modal')">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>Novo Quadro</span>
+            </button>
+        `;
+        board.appendChild(addButton);
+    }
+}
+
+// Função para tornar o título editável
+function makeEditable(element) {
+    element.addEventListener('dblclick', function() {
+        const currentText = this.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentText;
+        input.className = 'input is-small';
+        
+        input.onblur = function() {
+            element.textContent = this.value;
+            saveKanbanColumns();
+        };
+        
+        input.onkeypress = function(e) {
+            if (e.key === 'Enter') {
+                element.textContent = this.value;
+                saveKanbanColumns();
+                input.blur();
+            }
+        };
+        
+        this.textContent = '';
+        this.appendChild(input);
+        input.focus();
+    });
+}
+
+// Função para criar novo quadro usando o modal
 function createNewColumn() {
-    const name = document.getElementById('new-column-name').value;
+    const nameInput = document.getElementById('new-column-name');
+    const name = nameInput?.value?.trim();
+    
     if (!name) {
         showToast('Nome do quadro é obrigatório', 'warning');
         return;
     }
     
-    const id = name.toLowerCase().replace(/\s+/g, '-');
+    // Gerar ID único para o quadro
+    const timestamp = new Date().getTime();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    const id = `column-${timestamp}-${randomStr}`;
+    
     const board = document.querySelector('.kanban-board');
     if (!board) {
         console.error('Elemento .kanban-board não encontrado');
@@ -1014,49 +884,79 @@ function createNewColumn() {
         board.appendChild(newColumn);
     }
     
+    // Tornar o título editável
+    const titleElement = newColumn.querySelector('.kanban-title h3');
+    makeEditable(titleElement);
+    
     // Inicializar Sortable na nova lista
     initKanban();
     
+    // Limpar e fechar modal
+    nameInput.value = '';
     closeModal('new-column-modal');
-    document.getElementById('new-column-name').value = '';
+    
+    // Salvar configuração dos quadros
     saveKanbanColumns();
+    
+    showToast('Quadro criado com sucesso', 'success');
 }
 
 function saveKanbanColumns() {
-    const columns = Array.from(document.querySelectorAll('.kanban-column:not(.add-column)')).map(column => ({
+    const columns = document.querySelectorAll('.kanban-column');
+    const config = Array.from(columns).map(column => ({
         id: column.id,
-        name: column.querySelector('.kanban-title h3').textContent
+        name: column.querySelector('.kanban-title h3').textContent,
+        order: Array.from(column.parentNode.children).indexOf(column)
     }));
     
-    localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+    localStorage.setItem('kanbanColumns', JSON.stringify(config));
 }
 
+// Função para carregar configurações salvas
 function loadKanbanColumns() {
-    const columns = JSON.parse(localStorage.getItem('kanbanColumns')) || [];
-    columns.forEach(column => {
-        if (!document.getElementById(column.id)) {
-            createNewColumn(column.name);
+    const savedConfig = localStorage.getItem('kanbanColumns');
+    if (savedConfig) {
+        try {
+            const config = JSON.parse(savedConfig);
+            config.forEach(column => {
+                const columnElement = document.getElementById(column.id);
+                if (columnElement) {
+                    const titleElement = columnElement.querySelector('.kanban-title h3');
+                    if (titleElement) {
+                        titleElement.textContent = column.name;
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Erro ao carregar configuração dos quadros:', error);
         }
-    });
+    }
 }
 
 async function deleteColumn(columnId) {
-    // Não permitir excluir colunas padrão
-    if (['todo', 'in-progress', 'completed'].includes(columnId)) {
-        showToast('Não é possível excluir quadros padrão', 'warning');
-        return;
-    }
-
-    if (!confirm('Tem certeza que deseja excluir este quadro? Os serviços serão movidos para "A Fazer"')) {
-        return;
-    }
-
     try {
-        // Mover todos os serviços deste quadro para "A Fazer"
-        const cards = document.querySelectorAll(`#${columnId}-list .service-card`);
+        // Não permitir excluir colunas padrão
+        if (['todo', 'in-progress', 'completed'].includes(columnId)) {
+            showToast('Não é possível excluir quadros padrão', 'warning');
+            return;
+        }
+
+        if (!confirm('Tem certeza que deseja excluir este quadro? Os serviços serão movidos para "A Fazer"')) {
+            return;
+        }
+
+        const column = document.getElementById(columnId);
+        if (!column) {
+            console.error('Coluna não encontrada:', columnId);
+            cleanupInvalidColumns(); // Limpar quadros inválidos
+            return;
+        }
+
+        // Mover todos os serviços para "A Fazer"
+        const cards = column.querySelectorAll('.service-card');
         const todoList = document.getElementById('todo-list');
         
-        cards.forEach(async (card) => {
+        for (const card of cards) {
             const serviceId = card.dataset.id;
             try {
                 await fetch(`/api/kanban/services/${serviceId}/status`, {
@@ -1064,24 +964,20 @@ async function deleteColumn(columnId) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'todo' })
                 });
-                todoList.appendChild(card);
+                if (todoList) {
+                    todoList.appendChild(card);
+                }
             } catch (error) {
                 console.error('Erro ao mover serviço:', error);
             }
-        });
+        }
 
-        // Remover o quadro
-        const column = document.getElementById(columnId);
+        // Remover a coluna
         column.remove();
-
-        // Remover do select de quadros
-        const option = document.querySelector(`#service-board option[value="${columnId}"]`);
-        if (option) option.remove();
-
+        showToast('Quadro excluído com sucesso', 'success');
+        
         // Atualizar configuração dos quadros
         saveKanbanColumns();
-        
-        showToast('Quadro excluído com sucesso', 'success');
     } catch (error) {
         console.error('Erro ao excluir quadro:', error);
         showToast('Erro ao excluir quadro', 'error');
@@ -1093,35 +989,18 @@ async function moveCardToBoard(serviceId, newStatus) {
         const response = await fetch(`/api/kanban/services/${serviceId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                status: newStatus,
-                serviceStatus: newStatus === 'completed' ? 'concluido' : 'em_andamento'
-            })
+            body: JSON.stringify({ status: newStatus })
         });
 
-        if (!response.ok) throw new Error('Erro ao mover card');
-
-        const data = await response.json();
-        const card = document.querySelector(`[data-id="${serviceId}"]`);
+        if (!response.ok) throw new Error('Erro ao atualizar status');
         
-        if (card) {
-            // Atualizar dados do card
-            card.dataset.service = JSON.stringify(data.service);
-            
-            const targetList = document.getElementById(`${newStatus}-list`);
-            if (targetList) {
-                targetList.appendChild(card);
-                
-                // Atualizar contador de concluídos hoje
-                if (newStatus === 'completed') {
-                    document.getElementById('completed-today').textContent = data.completedToday;
-                    updateStatistics();
-                }
-            }
-        }
+        showToast('Card movido com sucesso', 'success');
+        // Recarregar todos os serviços
+        await loadServices();
+        await updateStatistics();
     } catch (error) {
         console.error('Erro ao mover card:', error);
-        showToast('Erro ao mover o card', 'error');
+        showToast('Não foi possível mover o card', 'error');
     }
 }
 
@@ -1296,5 +1175,209 @@ function clearFilters() {
     document.getElementById('filter-start-date').value = '';
     document.getElementById('filter-end-date').value = '';
     loadServices();
+}
+
+// Adicionar função para gerenciar abas
+function initializeTabs() {
+    const tabs = document.querySelectorAll('.tabs li');
+    const contents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remover classe ativa de todas as abas
+            tabs.forEach(t => t.classList.remove('is-active'));
+            // Adicionar classe ativa na aba clicada
+            tab.classList.add('is-active');
+            
+            // Esconder todos os conteúdos
+            contents.forEach(content => content.style.display = 'none');
+            // Mostrar conteúdo da aba selecionada
+            const targetId = `tab-${tab.querySelector('a').dataset.tab}`;
+            document.getElementById(targetId).style.display = 'block';
+        });
+    });
+}
+
+// Adicionar função para controlar visualização de cards
+function addCardLimitControl(columnId) {
+    const column = document.getElementById(columnId);
+    if (!column) return;
+
+    const header = column.querySelector('.kanban-header');
+    const select = document.createElement('select');
+    select.className = 'select is-small';
+    select.innerHTML = `
+        <option value="all">Todos</option>
+        <option value="5">5 cards</option>
+        <option value="10">10 cards</option>
+        <option value="15">15 cards</option>
+    `;
+
+    select.addEventListener('change', (e) => {
+        const limit = e.target.value;
+        const cards = column.querySelectorAll('.service-card');
+        cards.forEach((card, index) => {
+            if (limit === 'all' || index < parseInt(limit)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    const controlDiv = document.createElement('div');
+    controlDiv.className = 'column-control';
+    controlDiv.appendChild(select);
+    header.appendChild(controlDiv);
+}
+
+// Inicializar controles em todas as colunas
+function initializeCardLimits() {
+    ['todo', 'in-progress', 'completed', 'archived'].forEach(columnId => {
+        addCardLimitControl(columnId);
+    });
+}
+
+// Adicionar função fetchStatistics
+async function fetchStatistics() {
+    try {
+        const response = await fetch('/api/kanban/statistics');
+        if (!response.ok) throw new Error('Erro ao carregar estatísticas');
+        
+        const stats = await response.json();
+        return {
+            activeCount: stats.activeServices || 0,
+            completedToday: stats.completedToday || 0,
+            totalTime: stats.totalTime || 0,
+            efficiency: stats.efficiency || 0
+        };
+    } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+        return {
+            activeCount: 0,
+            completedToday: 0,
+            totalTime: 0,
+            efficiency: 0
+        };
+    }
+}
+
+function initCharCounters() {
+    // Contador para descrição
+    const textarea = document.getElementById('service-description');
+    const descCounter = document.getElementById('char-counter');
+    
+    if (textarea && descCounter) {
+        const descMaxLength = parseInt(textarea.getAttribute('maxlength')) || 500;
+        
+        function updateDescCounter() {
+            const currentLength = textarea.value.length;
+            descCounter.textContent = `${currentLength}/${descMaxLength}`;
+            
+            if (currentLength >= descMaxLength) {
+                descCounter.classList.add('is-danger');
+            } else if (currentLength >= descMaxLength * 0.8) {
+                descCounter.classList.add('is-warning');
+            } else {
+                descCounter.classList.remove('is-danger', 'is-warning');
+            }
+        }
+        
+        textarea.addEventListener('input', updateDescCounter);
+        updateDescCounter();
+    }
+
+    // Contador para nome
+    const nameInput = document.getElementById('service-name');
+    const nameCounter = document.getElementById('name-char-counter');
+    
+    if (nameInput && nameCounter) {
+        const nameMaxLength = parseInt(nameInput.getAttribute('maxlength')) || 30;
+        
+        function updateNameCounter() {
+            const currentLength = nameInput.value.length;
+            nameCounter.textContent = `${currentLength}/${nameMaxLength}`;
+            
+            if (currentLength >= nameMaxLength) {
+                nameCounter.classList.add('is-danger');
+            } else if (currentLength >= nameMaxLength * 0.8) {
+                nameCounter.classList.add('is-warning');
+            } else {
+                nameCounter.classList.remove('is-danger', 'is-warning');
+            }
+        }
+        
+        nameInput.addEventListener('input', updateNameCounter);
+        updateNameCounter();
+    }
+}
+
+function updateCardStatus(card, newStatus) {
+    const statusTag = card.querySelector('.status-tag');
+    if (statusTag) {
+        const statusMap = {
+            'todo': { text: 'A Fazer', class: 'is-info' },
+            'in-progress': { text: 'Em Andamento', class: 'is-warning' },
+            'completed': { text: 'Concluído', class: 'is-success' },
+            'archived': { text: 'Arquivado', class: 'is-dark' }
+        };
+        
+        const status = statusMap[newStatus] || { text: newStatus, class: 'is-light' };
+        
+        // Remover todas as classes existentes
+        statusTag.className = '';
+        // Adicionar classes base
+        statusTag.classList.add('tag', 'status-tag');
+        // Adicionar classe de status
+        statusTag.classList.add(status.class);
+        
+        statusTag.textContent = status.text;
+    }
+}
+
+// Função para limpar quadros inválidos
+function cleanupInvalidColumns() {
+    const defaultColumnIds = ['todo', 'in-progress', 'completed'];
+    const columns = document.querySelectorAll('.kanban-column');
+    
+    columns.forEach(column => {
+        // Não remover quadros padrão
+        if (defaultColumnIds.includes(column.id)) return;
+        
+        // Verificar se o quadro tem ID e título válidos
+        const title = column.querySelector('.kanban-title h3');
+        if (!column.id || !title || !title.textContent.trim()) {
+            column.remove();
+        }
+    });
+    
+    // Garantir que os quadros padrão existam
+    ensureDefaultColumns();
+    saveKanbanColumns();
+}
+
+// Função para abrir modal
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('is-active');
+    }
+}
+
+// Adicionar função para restaurar timers ativos após refresh
+function restoreActiveTimers() {
+    const cards = document.querySelectorAll('.service-card');
+    cards.forEach(card => {
+        try {
+            const service = JSON.parse(card.dataset.service);
+            if (service.timerActive) {
+                const timer = new Timer(service._id);
+                timer.start(Math.floor(service.totalTimeSpent || 0));
+                timers.set(service._id, timer);
+            }
+        } catch (error) {
+            console.error('Erro ao restaurar timer:', error);
+        }
+    });
 }
 

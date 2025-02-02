@@ -1,5 +1,11 @@
 let currentSuggestionId = null;
 let allSuggestions = []; // Variável global para armazenar todas as sugestões
+let isMarkdownView = true;
+let isRawView = false;
+const formattedDescription = document.getElementById('formatted-description');
+const rawDescription = document.getElementById('description');
+let updateTimeout;
+const UPDATE_DELAY = 1000; // 1 segundo de delay
 
 // Função para mostrar mensagens toast
 function showToast(message, type = 'success') {
@@ -187,17 +193,91 @@ function updateStats() {
         allSuggestions.filter(s => s.status === 'pending').length;
 }
 
-// Inicializar a página
 document.addEventListener('DOMContentLoaded', () => {
+    // Carregar e aplicar tema salvo
+    const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+    if (userSettings.theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.body.classList.add('dark-theme');
+    }
+
+    // Atualizar visualização em tempo real
+    if (formattedDescription) {
+        formattedDescription.addEventListener('input', function() {
+            const text = this.innerText;
+            rawDescription.value = text;
+            if (!isRawView) {
+                updateFormattedContent(text);
+            }
+        });
+    }
+
+    // Alternar entre visualização raw e formatada
+    const toggleViewBtn = document.getElementById('toggleView');
+    if (toggleViewBtn) {
+        toggleViewBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            isRawView = !isRawView;
+            
+            if (isRawView) {
+                formattedDescription.style.display = 'none';
+                rawDescription.style.display = 'block';
+                rawDescription.value = formattedDescription.innerText;
+                this.innerHTML = '<span class="icon"><i class="fas fa-eye"></i></span><span>Ver Formatado</span>';
+            } else {
+                rawDescription.style.display = 'none';
+                formattedDescription.style.display = 'block';
+                updateFormattedContent(rawDescription.value);
+                this.innerHTML = '<span class="icon"><i class="fas fa-code"></i></span><span>Ver em Raw</span>';
+            }
+        });
+    }
+
+    // Carregar sugestões iniciais
     loadSuggestions();
+
+    // Event listener para o botão de ajuda
+    const markdownHelpBtn = document.getElementById('markdownHelp');
+    const markdownHelpModal = document.getElementById('markdownHelpModal');
+    
+    if (markdownHelpBtn) {
+        markdownHelpBtn.addEventListener('click', () => {
+            markdownHelpModal.classList.add('is-active');
+        });
+    }
+
+    // Fechar modal de ajuda
+    const closeButtons = markdownHelpModal.querySelectorAll('.delete, .modal-background');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            markdownHelpModal.classList.remove('is-active');
+        });
+    });
+
+    // Event listener para sugestões de Markdown
+    if (formattedDescription) {
+        formattedDescription.addEventListener('input', function() {
+            const text = this.innerText;
+            rawDescription.value = text;
+            
+            // Verificar por sugestões
+            const suggestion = checkForMarkdownSuggestion(text);
+            if (suggestion) {
+                showSuggestion(suggestion);
+            }
+
+            // Atualizar preview com delay
+            updateFormattedContent(text);
+        });
+    }
 });
 
 document.getElementById('suggestionForm').addEventListener('submit', async (event) => {
-    event.preventDefault(); // Impede o envio padrão do formulário
-
+    event.preventDefault();
+    
     try {
         const formData = new FormData();
-        formData.append('description', document.getElementById('description').value);
+        formData.append('description', rawDescription.value);
         formData.append('category', document.getElementById('category').value);
         formData.append('createdBy', document.getElementById('createdBy').value);
         
@@ -227,15 +307,6 @@ document.getElementById('suggestionForm').addEventListener('submit', async (even
     } catch (error) {
         console.error('Erro:', error);
         showToast(error.message, 'danger');
-    }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Carregar e aplicar tema salvo
-    const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-    if (userSettings.theme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.body.classList.add('dark-theme');
     }
 });
 
@@ -282,5 +353,66 @@ async function loadComments(suggestionId) {
     } catch (error) {
         console.error('Erro ao carregar comentários:', error);
     }
+}
+
+document.getElementById('suggestionDescriptionInput').addEventListener('input', function() {
+    const markdownText = this.value;
+    document.getElementById('suggestionPreview').innerHTML = marked(markdownText);
+});
+
+// Função para atualizar o conteúdo formatado com delay
+function updateFormattedContent(text) {
+    clearTimeout(updateTimeout);
+    updateTimeout = setTimeout(() => {
+        if (!isRawView) {
+            formattedDescription.innerHTML = marked.parse(text);
+        }
+    }, UPDATE_DELAY);
+}
+
+// Sugestões de Markdown
+const markdownSuggestions = {
+    '**': '**texto em negrito**',
+    '*': '*texto em itálico*',
+    '#': '# Título',
+    '##': '## Subtítulo',
+    '-': '- item de lista',
+    '1.': '1. item numerado',
+    '`': '`código`'
+};
+
+// Função para verificar e sugerir Markdown
+function checkForMarkdownSuggestion(text) {
+    const lastWord = text.split(/\s+/).pop();
+    if (markdownSuggestions[lastWord]) {
+        return markdownSuggestions[lastWord];
+    }
+    return null;
+}
+
+// Função para mostrar sugestão
+function showSuggestion(suggestion) {
+    let suggestionDiv = document.getElementById('markdown-suggestion');
+    if (!suggestionDiv) {
+        suggestionDiv = document.createElement('div');
+        suggestionDiv.id = 'markdown-suggestion';
+        suggestionDiv.className = 'notification is-info is-light';
+        document.getElementById('description-container').appendChild(suggestionDiv);
+    }
+    
+    suggestionDiv.innerHTML = `
+        <button class="delete"></button>
+        <p>Sugestão: ${suggestion}</p>
+    `;
+
+    // Auto-remover após 3 segundos
+    setTimeout(() => {
+        suggestionDiv.remove();
+    }, 3000);
+
+    // Botão para fechar sugestão
+    suggestionDiv.querySelector('.delete').addEventListener('click', () => {
+        suggestionDiv.remove();
+    });
 }
 

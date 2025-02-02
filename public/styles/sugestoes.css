@@ -49,3 +49,70 @@ li {
 .comment:last-child {
     border-bottom: none;
 }
+
+.content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+#preview {
+    background-color: #fafafa;
+}
+
+#preview.raw {
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+
+#formatted-description {
+    white-space: pre-wrap;
+    background-color: white;
+    border: 1px solid #dbdbdb;
+    border-radius: 4px;
+    padding: 0.5em;
+}
+
+#formatted-description:focus {
+    outline: none;
+    border-color: #3273dc;
+}
+
+#formatted-description[placeholder]:empty:before {
+    content: attr(placeholder);
+    color: #999;
+}
+
+.content p {
+    margin-bottom: 0.5em;
+}
+
+#markdown-suggestion {
+    position: absolute;
+    bottom: -60px;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#description-container {
+    position: relative;
+}
+
+.modal-card-body .content code {
+    background-color: #f5f5f5;
+    padding: 2px 4px;
+    border-radius: 3px;
+}

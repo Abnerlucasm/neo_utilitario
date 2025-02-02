@@ -3,7 +3,7 @@ const router = express.Router();
 const Service = require('../models/service');
 
 // Listar serviços
-router.get('/kanban/services', async (req, res) => {
+router.get('/services', async (req, res) => {
     try {
         const services = await Service.find()
             .sort({ createdAt: -1 });
@@ -14,7 +14,7 @@ router.get('/kanban/services', async (req, res) => {
 });
 
 // Criar novo serviço
-router.post('/kanban/services', async (req, res) => {
+router.post('/services', async (req, res) => {
     try {
         const service = new Service(req.body);
         await service.save();
@@ -26,7 +26,7 @@ router.post('/kanban/services', async (req, res) => {
 });
 
 // Atualizar status do serviço
-router.patch('/kanban/services/:id/status', async (req, res) => {
+router.patch('/services/:id/status', async (req, res) => {
     try {
         const { status, serviceStatus } = req.body;
         const updates = {
@@ -70,63 +70,36 @@ router.patch('/kanban/services/:id/status', async (req, res) => {
 });
 
 // Adicionar estas rotas
-router.post('/kanban/services/:id/timer', async (req, res) => {
+router.patch('/services/:id/timer', async (req, res) => {
     try {
         const service = await Service.findById(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
 
-        const { action, timeSpent, elapsedTime } = req.body;
+        const { action, timeSpent } = req.body;
         const now = new Date();
 
+        service.timerActive = action === 'start';
+        service.totalTimeSpent = timeSpent;
+        service.lastTimerUpdate = now;
+
         if (!service.timeHistory) service.timeHistory = [];
-
-        if (action === 'start') {
-            service.timerActive = true;
-            service.timerStartTime = now;
-            
-            // Registrar início com o tempo acumulado atual
-            service.timeHistory.push({
-                action: 'start',
-                date: now,
-                duration: timeSpent || 0
-            });
-        } else if (action === 'stop') {
-            service.timerActive = false;
-            service.timerStartTime = null;
-            
-            // Atualizar tempo total com o tempo decorrido
-            const newTotalTime = timeSpent || 0;
-            service.totalTimeSpent = newTotalTime;
-
-            // Registrar parada com o tempo total atualizado
-            service.timeHistory.push({
-                action: 'stop',
-                date: now,
-                duration: newTotalTime
-            });
-        }
+        service.timeHistory.push({
+            action,
+            date: now,
+            duration: timeSpent
+        });
 
         await service.save();
-
-        // Calcular tempo total de todos os serviços
-        const totalTime = await Service.aggregate([
-            { $match: { archived: { $ne: true } } },
-            { $group: { _id: null, total: { $sum: '$totalTimeSpent' } } }
-        ]);
-
-        res.json({
-            service,
-            totalTime: totalTime[0]?.total || 0
-        });
+        res.json(service);
     } catch (error) {
         console.error('Erro no timer:', error);
         res.status(500).json({ error: 'Erro ao atualizar timer' });
     }
 });
 
-router.post('/kanban/services/:id/timer/finish', async (req, res) => {
+router.post('/services/:id/timer/finish', async (req, res) => {
     try {
         const service = await Service.findById(req.params.id);
         if (!service) {
@@ -163,12 +136,12 @@ router.post('/kanban/services/:id/timer/finish', async (req, res) => {
 });
 
 // Adicionar esta rota
-router.get('/kanban/statistics', async (req, res) => {
+router.get('/statistics', async (req, res) => {
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const [activeServices, completedToday, totalTime] = await Promise.all([
+        const [activeServices, completedToday, totalTimeResult] = await Promise.all([
             Service.countDocuments({ 
                 status: { $ne: 'completed' },
                 archived: { $ne: true }
@@ -187,10 +160,11 @@ router.get('/kanban/statistics', async (req, res) => {
         res.json({
             activeServices,
             completedToday,
-            totalTime: totalTime[0]?.total || 0,
+            totalTime: totalTimeResult[0]?.total || 0,
             efficiency: calculateEfficiency(completedToday, activeServices)
         });
     } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
         res.status(500).json({ error: 'Erro ao buscar estatísticas' });
     }
 });
@@ -201,7 +175,7 @@ function calculateEfficiency(completed, active) {
 }
 
 // Adicionar rota para arquivar serviço
-router.patch('/kanban/services/:id/archive', async (req, res) => {
+router.patch('/services/:id/archive', async (req, res) => {
     try {
         const service = await Service.findByIdAndUpdate(
             req.params.id,
@@ -246,7 +220,7 @@ router.patch('/kanban/services/:id/archive', async (req, res) => {
 });
 
 // Adicionar rota para excluir serviço
-router.delete('/kanban/services/:id', async (req, res) => {
+router.delete('/services/:id', async (req, res) => {
     try {
         const service = await Service.findByIdAndDelete(req.params.id);
         if (!service) {
@@ -259,7 +233,7 @@ router.delete('/kanban/services/:id', async (req, res) => {
 });
 
 // Atualizar serviço
-router.patch('/kanban/services/:id/update', async (req, res) => {
+router.patch('/services/:id/update', async (req, res) => {
     try {
         // Remover campos que não devem ser atualizados diretamente
         const updateData = { ...req.body };
@@ -302,7 +276,7 @@ router.patch('/kanban/services/:id/update', async (req, res) => {
 });
 
 // Rota para desarquivar
-router.patch('/kanban/services/:id/unarchive', async (req, res) => {
+router.patch('/services/:id/unarchive', async (req, res) => {
     try {
         const service = await Service.findByIdAndUpdate(
             req.params.id,
@@ -324,7 +298,7 @@ router.patch('/kanban/services/:id/unarchive', async (req, res) => {
 });
 
 // Adicionar rota para obter um serviço específico
-router.get('/kanban/services/:id', async (req, res) => {
+router.get('/services/:id', async (req, res) => {
     try {
         const service = await Service.findById(req.params.id);
         if (!service) {
@@ -337,7 +311,7 @@ router.get('/kanban/services/:id', async (req, res) => {
 });
 
 // Rota para obter histórico de tempo
-router.get('/kanban/services/:id/time-history', async (req, res) => {
+router.get('/services/:id/time-history', async (req, res) => {
     try {
         const service = await Service.findById(req.params.id);
         if (!service) {
@@ -354,7 +328,7 @@ router.get('/kanban/services/:id/time-history', async (req, res) => {
 });
 
 // Atualizar etapas do serviço
-router.patch('/kanban/services/:id/steps', async (req, res) => {
+router.patch('/services/:id/steps', async (req, res) => {
     try {
         const service = await Service.findById(req.params.id);
         if (!service) {
@@ -372,7 +346,7 @@ router.patch('/kanban/services/:id/steps', async (req, res) => {
 });
 
 // Atualizar status de uma etapa específica
-router.patch('/kanban/services/:serviceId/steps/:stepId/status', async (req, res) => {
+router.patch('/services/:serviceId/steps/:stepId/status', async (req, res) => {
     try {
         const { serviceId, stepId } = req.params;
         const { status } = req.body;
