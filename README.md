@@ -80,22 +80,18 @@ As seguintes variáveis de ambiente são necessárias:
 1. **Faça um Fork do projeto**
 2. **Crie uma branch para sua feature**:
    ```bash
-   git checkout -b feature/AmazingFeature
+   git checkout -b feature/featureIncrivel
    ```
 3. **Commit suas mudanças**:
    ```bash
-   git commit -m 'Add some AmazingFeature'
+   git commit -m 'Add some featureIncrivel'
    ```
 4. **Push para a branch**:
    ```bash
-   git push origin feature/AmazingFeature
+   git push origin feature/featureIncrivel
    ```
 5. **Abra um Pull Request**
 
 ## 📝 Licença
 
 Este projeto está sob a licença [MIT](LICENSE).
-
-## 📞 Contato
-
-Para mais informações, entre em contato com a equipe de desenvolvimento através do e-mail: contato@neohub.com.
