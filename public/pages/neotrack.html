@@ -111,7 +111,14 @@
                 <div class="kanban-header">
                     <div class="kanban-title">
                         <i class="fas fa-tasks"></i>
-                        <h3 class="title is-5">Em Andamento</h3>
+                        <div class="title-controls">
+                            <h3 class="title is-5" title="Clique duas vezes para renomear">
+                                <span class="icon is-small mr-2">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                Em Andamento
+                            </h3>
+                        </div>
                     </div>
                     <button class="add-task-button" onclick="showNewServiceModal('in-progress')">
                         <i class="fas fa-plus-circle fa-lg"></i>
@@ -122,24 +129,26 @@
                 </div>
             </div>
             
-            <div class="kanban-column">
+            <div class="kanban-column" id="completed">
                 <div class="kanban-header">
                     <div class="kanban-title">
-                        <span class="icon"><i class="fas fa-check-circle"></i></span>
-                        <h3>Concluídos</h3>
+                        <i class="fas fa-check-circle"></i>
+                        <div class="title-controls">
+                            <h3 class="title is-5" title="Clique duas vezes para renomear">
+                                <span class="icon is-small mr-2">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                Concluídos
+                            </h3>
+                        </div>
                     </div>
+                    <button class="add-task-button" onclick="showNewServiceModal('completed')">
+                        <i class="fas fa-plus-circle fa-lg"></i>
+                    </button>
                 </div>
-                <div class="service-list" id="completed-list"></div>
-            </div>
-
-            <div class="kanban-column archived-column">
-                <div class="kanban-header">
-                    <div class="kanban-title">
-                        <span class="icon"><i class="fas fa-archive"></i></span>
-                        <h3>Arquivados</h3>
-                    </div>
+                <div class="service-list" id="completed-list">
+                    <!-- Serviços serão inseridos aqui -->
                 </div>
-                <div class="service-list" id="archived-list"></div>
             </div>
 
             <!-- Adicionar após o último quadro do kanban -->
@@ -618,12 +627,6 @@
             footer.innerHTML = `
                 <button class="button is-success" onclick="saveService(event)">Salvar</button>
                 <button class="button" onclick="closeModal('new-service-modal')">Cancelar</button>
-                <button class="button is-warning archive-button" onclick="${service.archived ? 'unarchiveService' : 'archiveService'}('${serviceId}')">
-                    <span class="icon">
-                        <i class="fas fa-${service.archived ? 'box-open' : 'archive'}"></i>
-                    </span>
-                    <span>${service.archived ? 'Desarquivar' : 'Arquivar'}</span>
-                </button>
             `;
 
             // Preencher campos
@@ -682,33 +685,33 @@
             modal.classList.add('is-active');
         }
 
-        // Adicionar função para desarquivar
-        async function unarchiveService(serviceId) {
-            try {
-                const response = await fetch(`/api/kanban/services/${serviceId}/unarchive`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+        // // Adicionar função para desarquivar
+        // async function unarchiveService(serviceId) {
+        //     try {
+        //         const response = await fetch(`/api/kanban/services/${serviceId}/unarchive`, {
+        //             method: 'PATCH',
+        //             headers: { 'Content-Type': 'application/json' }
+        //         });
 
-                if (!response.ok) throw new Error('Erro ao desarquivar serviço');
+        //         if (!response.ok) throw new Error('Erro ao desarquivar serviço');
 
-                const card = document.querySelector(`[data-id="${serviceId}"]`);
-                if (card) {
-                    const todoList = document.getElementById('todo-list');
-                    if (todoList) {
-                        todoList.appendChild(card);
-                        card.classList.remove('archived');
-                    }
-                }
+        //         const card = document.querySelector(`[data-id="${serviceId}"]`);
+        //         if (card) {
+        //             const todoList = document.getElementById('todo-list');
+        //             if (todoList) {
+        //                 todoList.appendChild(card);
+        //                 card.classList.remove('archived');
+        //             }
+        //         }
 
-                closeModal('new-service-modal');
-                await loadServices(); // Recarregar para atualizar tudo
-                showToast('Serviço desarquivado com sucesso', 'success');
-            } catch (error) {
-                console.error('Erro ao desarquivar serviço:', error);
-                showToast('Erro ao desarquivar serviço', 'error');
-            }
-        }
+        //         closeModal('new-service-modal');
+        //         await loadServices(); // Recarregar para atualizar tudo
+        //         showToast('Serviço desarquivado com sucesso', 'success');
+        //     } catch (error) {
+        //         console.error('Erro ao desarquivar serviço:', error);
+        //         showToast('Erro ao desarquivar serviço', 'error');
+        //     }
+        // }
 
         // Adicionar função para mover o card quando o quadro é alterado
         function moveCardToBoard(serviceId, newBoardId) {

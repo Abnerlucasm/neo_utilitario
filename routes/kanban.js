@@ -138,21 +138,31 @@ router.post('/services/:id/timer/finish', async (req, res) => {
 // Adicionar esta rota
 router.get('/statistics', async (req, res) => {
     try {
+        const period = req.query.period || 'all';
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        
+        let dateFilter = {};
+        if (period === 'day') {
+            dateFilter = { createdAt: { $gte: today } };
+        } else if (period === 'week') {
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            dateFilter = { createdAt: { $gte: weekStart } };
+        }
 
         const [activeServices, completedToday, totalTimeResult] = await Promise.all([
             Service.countDocuments({ 
                 status: { $ne: 'completed' },
-                archived: { $ne: true }
+                ...dateFilter
             }),
             Service.countDocuments({
                 status: 'completed',
                 completedAt: { $gte: today },
-                archived: { $ne: true }
+                ...dateFilter
             }),
             Service.aggregate([
-                { $match: { archived: { $ne: true } } },
+                { $match: dateFilter },
                 { $group: { _id: null, total: { $sum: '$totalTimeSpent' } } }
             ])
         ]);

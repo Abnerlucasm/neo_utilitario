@@ -185,23 +185,13 @@ function initKanban() {
                             throw new Error('Erro ao atualizar status');
                         }
                         
-                        // Atualizar o card imediatamente
-                        const data = await response.json();
-                        evt.item.dataset.service = JSON.stringify(data.service);
+                        const { service } = await response.json();
                         
-                        // Atualizar visual do card
-                        const statusTag = evt.item.querySelector('.tag.status-tag');
-                        if (statusTag) {
-                            const statusMap = {
-                                'todo': { text: 'A Fazer', class: 'is-info' },
-                                'in-progress': { text: 'Em Andamento', class: 'is-warning' },
-                                'completed': { text: 'Concluído', class: 'is-success' }
-                            };
-                            const status = statusMap[newStatus] || { text: newStatus, class: 'is-light' };
-                            
-                            statusTag.className = 'tag status-tag ' + status.class;
-                            statusTag.textContent = status.text;
-                        }
+                        // Atualizar dados do card
+                        evt.item.dataset.service = JSON.stringify(service);
+                        
+                        // Atualizar status visual usando a função atualizada
+                        updateCardStatus(evt.item, newStatus);
                         
                         showToast('Status atualizado com sucesso', 'success');
                         await updateStatistics();
@@ -216,13 +206,14 @@ function initKanban() {
 }
 
 function getServiceStatus(status) {
+    // Mapear status personalizados para os status padrão mais próximos
     const statusMap = {
         'todo': 'planejamento',
         'in-progress': 'em_andamento',
-        'completed': 'concluido',
-        'archived': 'arquivado'
+        'completed': 'concluido'
     };
-    return statusMap[status] || status;
+    
+    return statusMap[status] || 'planejamento';
 }
 
 function showNewServiceModal(columnId = 'todo') {
@@ -370,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadServices() {
     try {
         const response = await fetch('/api/kanban/services');
-        
         if (!response.ok) throw new Error('Erro ao carregar serviços');
         
         const services = await response.json();
@@ -378,28 +368,25 @@ async function loadServices() {
         // Limpar todas as listas
         document.querySelectorAll('.service-list').forEach(list => list.innerHTML = '');
         
-        // Separar serviços ativos e arquivados
-        const activeServices = services.filter(s => !s.archived);
-        const archivedServices = services.filter(s => s.archived);
-        
-        // Distribuir serviços ativos
-        activeServices.forEach(service => {
+        // Distribuir serviços
+        services.forEach(service => {
             const card = createServiceCard(service);
-            const targetList = document.getElementById(`${service.status}-list`);
+            // Verificar se é uma coluna customizada
+            const targetList = document.getElementById(`${service.status}-list`) || 
+                             document.querySelector(`#${service.status}-list`);
+            
             if (targetList) {
                 targetList.appendChild(card);
+            } else {
+                // Se não encontrar a lista, mover para 'todo'
+                const todoList = document.getElementById('todo-list');
+                if (todoList) {
+                    service.status = 'todo';
+                    card.dataset.service = JSON.stringify(service);
+                    todoList.appendChild(card);
+                }
             }
         });
-        
-        // Distribuir serviços arquivados
-        const archivedList = document.getElementById('archived-list');
-        if (archivedList) {
-            archivedServices.forEach(service => {
-                const card = createServiceCard(service);
-                card.classList.add('archived');
-                archivedList.appendChild(card);
-            });
-        }
         
         updateStatistics();
     } catch (error) {
@@ -471,6 +458,24 @@ function createServiceCard(service) {
         </div>
     `;
 
+    const timeSpentField = `
+        <div class="time-spent-field">
+            <label class="label">
+                <i class="fas fa-clock mr-2"></i>
+                Tempo Total
+            </label>
+            <div class="control">
+                <input class="input" type="text" value="${formatTime(service.totalTimeSpent || 0)}" readonly>
+            </div>
+            <div class="time-history mt-2">
+                <button class="button is-small is-info" onclick="event.preventDefault(); showTimeHistory('${service._id}', event)">
+                    <span class="icon"><i class="fas fa-history"></i></span>
+                    <span>Ver Histórico</span>
+                </button>
+            </div>
+        </div>
+    `;
+
     card.innerHTML = `
         ${delayBadgeHtml}
         <div class="card-controls">
@@ -507,6 +512,7 @@ function createServiceCard(service) {
                 <span class="is-size-7">${getCompletedSteps(service.steps)}/${service.steps.length} etapas</span>
             </div>
         </div>
+        ${timeSpentField}
     `;
     
     return card;
@@ -542,13 +548,20 @@ function finishService(serviceId) {
     // Implementação da finalização
 }
 
-async function updateStatistics() {
-    const stats = await fetchStatistics();
-    
-    document.getElementById('active-services-count').textContent = stats.activeCount;
-    document.getElementById('completed-today').textContent = stats.completedToday;
-    document.getElementById('total-time').textContent = formatTime(stats.totalTime);
-    document.getElementById('efficiency').textContent = `${stats.efficiency}%`;
+async function updateStatistics(period = 'all') {
+    try {
+        const response = await fetch(`/api/kanban/statistics?period=${period}`);
+        if (!response.ok) throw new Error('Erro ao carregar estatísticas');
+        
+        const stats = await response.json();
+        
+        document.getElementById('active-services-count').textContent = stats.activeServices;
+        document.getElementById('completed-today').textContent = stats.completedToday;
+        document.getElementById('total-time').textContent = formatTime(stats.totalTime);
+        document.getElementById('efficiency').textContent = `${stats.efficiency}%`;
+    } catch (error) {
+        console.error('Erro ao atualizar estatísticas:', error);
+    }
 }
 
 // Inicialização
@@ -556,7 +569,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadServices();
     initKanban();
     initSortableSteps();
-    updateStatistics();
+    updateStatistics('all');
     setInterval(updateStatistics, 60000);
     initEditableKanbanTitles();
     loadKanbanTitles();
@@ -568,6 +581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     cleanupInvalidColumns();
     ensureDefaultColumns();
     restoreActiveTimers();
+    addPeriodSelector();
 });
 
 // Adicionar função para fechar o modal
@@ -832,10 +846,8 @@ function makeEditable(element) {
 
 // Função para criar novo quadro usando o modal
 function createNewColumn() {
-    const nameInput = document.getElementById('new-column-name');
-    const name = nameInput?.value?.trim();
-    
-    if (!name) {
+    const name = document.getElementById('new-column-name')?.value;
+    if (!name && document.getElementById('new-column-modal')?.classList.contains('is-active')) {
         showToast('Nome do quadro é obrigatório', 'warning');
         return;
     }
@@ -891,45 +903,89 @@ function createNewColumn() {
     // Inicializar Sortable na nova lista
     initKanban();
     
-    // Limpar e fechar modal
-    nameInput.value = '';
     closeModal('new-column-modal');
+    document.getElementById('new-column-name').value = '';
     
     // Salvar configuração dos quadros
     saveKanbanColumns();
-    
     showToast('Quadro criado com sucesso', 'success');
 }
 
+// Função para salvar configuração dos quadros
 function saveKanbanColumns() {
     const columns = document.querySelectorAll('.kanban-column');
-    const config = Array.from(columns).map(column => ({
-        id: column.id,
-        name: column.querySelector('.kanban-title h3').textContent,
-        order: Array.from(column.parentNode.children).indexOf(column)
-    }));
+    const config = Array.from(columns).map(column => {
+        // Ignorar o botão de adicionar coluna
+        if (column.classList.contains('add-column')) return null;
+        
+        return {
+            id: column.id,
+            name: column.querySelector('.kanban-title h3')?.textContent || '',
+            order: Array.from(column.parentNode.children).indexOf(column)
+        };
+    }).filter(Boolean); // Remover null values
     
     localStorage.setItem('kanbanColumns', JSON.stringify(config));
 }
 
-// Função para carregar configurações salvas
+// Função para carregar configuração dos quadros
 function loadKanbanColumns() {
-    const savedConfig = localStorage.getItem('kanbanColumns');
-    if (savedConfig) {
-        try {
-            const config = JSON.parse(savedConfig);
-            config.forEach(column => {
-                const columnElement = document.getElementById(column.id);
-                if (columnElement) {
-                    const titleElement = columnElement.querySelector('.kanban-title h3');
-                    if (titleElement) {
-                        titleElement.textContent = column.name;
-                    }
+    try {
+        const savedConfig = localStorage.getItem('kanbanColumns');
+        if (!savedConfig) return;
+        
+        const config = JSON.parse(savedConfig);
+        const board = document.querySelector('.kanban-board');
+        const addColumnButton = document.querySelector('.add-column');
+        
+        config.forEach(column => {
+            // Não recriar colunas padrão
+            if (['todo', 'in-progress', 'completed'].includes(column.id)) return;
+            
+            // Verificar se a coluna já existe
+            if (!document.getElementById(column.id)) {
+                const newColumn = document.createElement('div');
+                newColumn.className = 'kanban-column';
+                newColumn.id = column.id;
+                newColumn.innerHTML = `
+                    <div class="kanban-header">
+                        <div class="kanban-title">
+                            <i class="fas fa-list-ul"></i>
+                            <div class="title-controls">
+                                <h3 class="title is-5" title="Clique duas vezes para renomear">${column.name}</h3>
+                            </div>
+                        </div>
+                        <div class="column-controls">
+                            <button class="add-task-button" onclick="showNewServiceModal('${column.id}')">
+                                <i class="fas fa-plus-circle fa-lg"></i>
+                            </button>
+                            <button class="button is-small is-danger" onclick="deleteColumn('${column.id}')">
+                                <span class="icon is-small">
+                                    <i class="fas fa-trash"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="service-list" id="${column.id}-list"></div>
+                `;
+                
+                // Inserir antes do botão de adicionar coluna
+                if (addColumnButton) {
+                    board.insertBefore(newColumn, addColumnButton);
+                } else {
+                    board.appendChild(newColumn);
                 }
-            });
-        } catch (error) {
-            console.error('Erro ao carregar configuração dos quadros:', error);
-        }
+                
+                // Tornar o título editável
+                const titleElement = newColumn.querySelector('.kanban-title h3');
+                makeEditable(titleElement);
+            }
+        });
+        
+        // Reinicializar Sortable nas novas listas
+        initKanban();
+    } catch (error) {
+        console.error('Erro ao carregar configuração dos quadros:', error);
     }
 }
 
@@ -1238,28 +1294,41 @@ function initializeCardLimits() {
     });
 }
 
-// Adicionar função fetchStatistics
-async function fetchStatistics() {
-    try {
-        const response = await fetch('/api/kanban/statistics');
-        if (!response.ok) throw new Error('Erro ao carregar estatísticas');
-        
-        const stats = await response.json();
-        return {
-            activeCount: stats.activeServices || 0,
-            completedToday: stats.completedToday || 0,
-            totalTime: stats.totalTime || 0,
-            efficiency: stats.efficiency || 0
-        };
-    } catch (error) {
-        console.error('Erro ao buscar estatísticas:', error);
-        return {
-            activeCount: 0,
-            completedToday: 0,
-            totalTime: 0,
-            efficiency: 0
-        };
-    }
+// Adicionar seletor de período após as estatísticas
+function addPeriodSelector() {
+    const statsSection = document.querySelector('.section');
+    const selector = document.createElement('div');
+    selector.className = 'field has-addons is-justify-content-center mb-4';
+    selector.innerHTML = `
+        <p class="control">
+            <button class="button" data-period="day">
+                <span>Hoje</span>
+            </button>
+        </p>
+        <p class="control">
+            <button class="button" data-period="week">
+                <span>Esta Semana</span>
+            </button>
+        </p>
+        <p class="control">
+            <button class="button is-info is-selected" data-period="all">
+                <span>Todo Período</span>
+            </button>
+        </p>
+    `;
+    
+    statsSection.insertBefore(selector, statsSection.firstChild);
+    
+    // Adicionar eventos aos botões
+    selector.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+            selector.querySelectorAll('button').forEach(b => {
+                b.classList.remove('is-info', 'is-selected');
+            });
+            button.classList.add('is-info', 'is-selected');
+            updateStatistics(button.dataset.period);
+        });
+    });
 }
 
 function initCharCounters() {
@@ -1315,14 +1384,20 @@ function initCharCounters() {
 function updateCardStatus(card, newStatus) {
     const statusTag = card.querySelector('.status-tag');
     if (statusTag) {
+        // Primeiro, tentar mapear para um status padrão
+        let mappedStatus = newStatus;
+        if (newStatus.startsWith('column-')) {
+            // Se for uma coluna customizada, mapear para 'in-progress'
+            mappedStatus = 'in-progress';
+        }
+
         const statusMap = {
             'todo': { text: 'A Fazer', class: 'is-info' },
             'in-progress': { text: 'Em Andamento', class: 'is-warning' },
-            'completed': { text: 'Concluído', class: 'is-success' },
-            'archived': { text: 'Arquivado', class: 'is-dark' }
+            'completed': { text: 'Concluído', class: 'is-success' }
         };
         
-        const status = statusMap[newStatus] || { text: newStatus, class: 'is-light' };
+        const status = statusMap[mappedStatus] || statusMap['in-progress']; // Usar 'Em Andamento' como padrão
         
         // Remover todas as classes existentes
         statusTag.className = '';
@@ -1379,5 +1454,92 @@ function restoreActiveTimers() {
             console.error('Erro ao restaurar timer:', error);
         }
     });
+}
+
+function showTimeHistory(serviceId, event) {
+    // Prevenir qualquer propagação de evento
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    // Criar um modal isolado
+    const modalId = `time-history-${serviceId}`;
+    let modal = document.getElementById(modalId);
+    
+    if (modal) {
+        modal.remove();
+    }
+
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Histórico de Tempo</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <div id="time-history-content-${serviceId}">
+                    <div class="is-loading">Carregando...</div>
+                </div>
+            </section>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Adicionar eventos isolados
+    modal.querySelector('.delete').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    modal.querySelector('.modal-background').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    // Prevenir propagação de eventos
+    modal.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+    
+    modal.classList.add('is-active');
+    loadTimeHistory(serviceId);
+}
+
+async function loadTimeHistory(serviceId) {
+    try {
+        const response = await fetch(`/api/kanban/services/${serviceId}/time-history`);
+        if (!response.ok) throw new Error('Erro ao carregar histórico');
+        
+        const history = await response.json();
+        const content = document.getElementById(`time-history-content-${serviceId}`);
+        
+        if (!history.entries || history.entries.length === 0) {
+            content.innerHTML = '<p class="has-text-centered">Nenhum registro encontrado</p>';
+            return;
+        }
+
+        content.innerHTML = history.entries.map(entry => `
+            <div class="box">
+                <div class="columns is-mobile">
+                    <div class="column">
+                        <p class="is-size-7">${new Date(entry.date).toLocaleString()}</p>
+                        <p class="has-text-weight-bold">${formatTime(entry.duration)}</p>
+                    </div>
+                    <div class="column has-text-right">
+                        <span class="tag ${entry.action === 'start' ? 'is-success' : 'is-warning'}">
+                            ${entry.action === 'start' ? 'Início' : entry.action === 'stop' ? 'Pausa' : 'Reset'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        showToast('Erro ao carregar histórico', 'error');
+    }
 }
 
