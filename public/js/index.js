@@ -40,3 +40,32 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Configurações salvas com sucesso!', 'success');
     });
 });
+
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); // Prevenir que o mini-infobar apareça no navegador
+    deferredPrompt = e; // Armazenar o evento para que possamos chamar `prompt()` depois
+    const installContainer = document.getElementById('install-container');
+    installContainer.style.display = 'block'; // Exibir o botão de instalação
+
+    const installButton = document.getElementById('install-button');
+    installButton.addEventListener('click', () => {
+        installContainer.style.display = 'none'; // Esconder o botão de instalação
+        deferredPrompt.prompt(); // Mostrar o prompt de instalação
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('Usuário aceitou a instalação do PWA');
+            } else {
+                console.log('Usuário rejeitou a instalação do PWA');
+            }
+            deferredPrompt = null; // Limpar o evento
+        });
+    });
+});
+
+// Verificar se o aplicativo já está instalado
+if (window.matchMedia('(display-mode: standalone)').matches) {
+    const installContainer = document.getElementById('install-container');
+    installContainer.style.display = 'none'; // Ocultar o botão se já estiver instalado
+}

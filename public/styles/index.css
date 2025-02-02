@@ -55,3 +55,39 @@
     right: 10px;
     z-index: 10;
 }
+
+/* Estilo para o botão de instalação */
+#install-container {
+    margin-top: 20px; /* Espaçamento acima do botão */
+}
+
+#install-button {
+    font-size: 1.2rem; /* Ajustar o tamanho da fonte */
+    padding: 0.75rem 1.5rem; /* Ajustar o padding para um botão mais equilibrado */
+    background-color: #3273dc; /* Cor de fundo do botão */
+    color: white; /* Cor do texto */
+    border-radius: 5px; /* Bordas arredondadas */
+    transition: background-color 0.3s; /* Transição suave para hover */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra para destaque */
+}
+
+/* Animação de pulsação para o botão inteiro */
+.pulsate {
+    animation: pulse 1.5s infinite; /* Animação de pulsação */
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05); /* Aumentar um pouco mais para o efeito de pulsação */
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+#install-button:hover {
+    background-color: #0056b3; /* Cor ao passar o mouse */
+}
