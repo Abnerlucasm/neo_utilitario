@@ -916,11 +916,7 @@ body.dark-theme .card.is-warning .card-content {
 /* Ajuste para o texto do card quando o serviço estiver em uso */
 body.dark-theme .card.is-warning .title.is-4,
 body.dark-theme .card.is-warning .subtitle.is-6,
-body.dark-theme .card.is-warning .card-footer-item {
+body.dark-theme .card.is-warning .card-footer-item,
+body.dark-theme .card.is-warning .card {
     color: #000; 
 }
-
-/* Ajuste para o texto de todos os elementos dentro do card */
-body.dark-theme .card * {
-    color: #010101 !important; 
-} 
