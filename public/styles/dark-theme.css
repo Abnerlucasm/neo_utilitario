@@ -79,6 +79,9 @@ body.dark-theme .card.is-warning .status-active {
     background-color: #56fc56;
 }
 
+body.dark-theme .card.is-warning * {
+    color:  #000000  !important;
+}
 
 
 /* Welcome Section */
