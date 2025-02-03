@@ -719,7 +719,7 @@ body.dark-theme .button.is-light:hover {
 
 body.dark-theme .title,
 body.dark-theme .subtitle {
-    color: var(--text-primary) !important;
+    color: #000000 !important; /* Texto em preto */
 }
 
 /* Ajustes para os ícones */
@@ -918,4 +918,9 @@ body.dark-theme .card.is-warning .title.is-4,
 body.dark-theme .card.is-warning .subtitle.is-6,
 body.dark-theme .card.is-warning .card-footer-item {
     color: #000; 
+}
+
+/* Ajuste para o texto de todos os elementos dentro do card */
+body.dark-theme .card * {
+    color: #010101 !important; 
 } 
