@@ -916,7 +916,12 @@ body.dark-theme .card.is-warning .card-content {
 /* Ajuste para o texto do card quando o serviço estiver em uso */
 body.dark-theme .card.is-warning .title.is-4,
 body.dark-theme .card.is-warning .subtitle.is-6,
-body.dark-theme .card.is-warning .card-footer-item,
-body.dark-theme .card.is-warning .card {
-    color: #000; 
+body.dark-theme .card.is-warning .card-footer-item {
+    color: #000; /* Texto em preto para melhor legibilidade */
+}
+
+/* Manter a cor padrão para outros cards */
+body.dark-theme .card .title,
+body.dark-theme .card .subtitle {
+    color: var(--text-primary) !important; 
 }
