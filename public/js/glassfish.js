@@ -156,7 +156,7 @@
                             <p class="subtitle is-6">
                                 IP: ${service.ip}
                             </p>
-                            <p class="subtitle is-6">
+                            <p class="subtitle is-6 has-text-weight-bold">
                                 Usuário Atual: ${service.currentUser || 'Nenhum'}
                             </p>
                             <div class="card-actions">
