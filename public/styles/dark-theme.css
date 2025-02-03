@@ -75,6 +75,12 @@ body.dark-theme .card.is-warning .title {
     color: #000000; 
 }
 
+body.dark-theme .card.is-warning .status-active {
+    background-color: #56fc56;
+}
+
+
+
 /* Welcome Section */
 body.dark-theme .welcome-section {
     background-color: var(--bg-secondary);
@@ -716,11 +722,6 @@ body.dark-theme .button.is-light {
 body.dark-theme .button.is-light:hover {
     background-color: var(--accent-color);
     color: white;
-}
-
-body.dark-theme .title,
-body.dark-theme .subtitle {
-    color: #000000 !important; /* Texto em preto */
 }
 
 /* Ajustes para os ícones */
