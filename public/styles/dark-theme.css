@@ -72,7 +72,13 @@ body.dark-theme .card:hover {
 /* Sobreposição apenas para cards em uso */
 body.dark-theme .card.is-warning .card-content {
     background-color: #fff3cd;
-    color: #000;
+}
+body.dark-theme .card.is-warning .icon {
+    background-color: #ffffff;
+}
+
+body.dark-theme .card.is-warning .title {
+    color: #000000; 
 }
 
 /* Welcome Section */
