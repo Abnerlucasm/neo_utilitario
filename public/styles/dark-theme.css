@@ -71,14 +71,14 @@ body.dark-theme .card:hover {
 
 /* Sobreposição apenas para cards em uso */
 body.dark-theme .card.is-warning .card-content {
-    background-color: #fff3cd;
-    color: #000;
+    background-color: #2d2d2d;
+    color: #fff3cd;
 }
 
 body.dark-theme .card.is-warning .title.is-4,
 body.dark-theme .card.is-warning .subtitle.is-6,
 body.dark-theme .card.is-warning .card-footer-item {
-    color: #000;
+    color: #fff3cd;
 }
 
 /* Welcome Section */
@@ -912,10 +912,4 @@ body.dark-theme .content code {
     color: var(--text-primary);
     padding: 0.2em 0.4em;
     border-radius: 3px;
-}
-
-/* Manter a cor padrão para outros cards */
-body.dark-theme .card .title,
-body.dark-theme .card .subtitle {
-    color: var(--text-primary) !important; 
 }
