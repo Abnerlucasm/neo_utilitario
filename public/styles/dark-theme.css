@@ -905,4 +905,10 @@ body.dark-theme .content code {
     color: var(--text-primary);
     padding: 0.2em 0.4em;
     border-radius: 3px;
+}
+
+/* Ajuste para o card quando o serviço estiver em uso */
+body.dark-theme .card.is-warning {
+    background-color: #fff3cd;
+    color: #000;
 } 
