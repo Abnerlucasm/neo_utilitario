@@ -61,3 +61,7 @@
 .suggestion-list::-webkit-scrollbar-thumb:hover {
     background: #0056b3; /* Cor da barra de rolagem ao passar o mouse */
 }
+
+pre {
+     white-space: pre-wrap;
+}
