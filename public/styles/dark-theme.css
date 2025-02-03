@@ -46,17 +46,12 @@ body.dark-theme .brand-title {
 
 /* Cards */
 body.dark-theme .card {
-    background-color: var(--bg-secondary) !important;
-    border: 1px solid var(--border-color);
-}
-
-body.dark-theme .card-content {
     background-color: var(--bg-secondary);
-    color: var(--text-primary);
 }
 
 body.dark-theme .card .title,
-body.dark-theme .card .subtitle {
+body.dark-theme .card .subtitle,
+body.dark-theme .card .card-content {
     color: var(--text-primary);
 }
 
@@ -72,6 +67,18 @@ body.dark-theme .card-footer-item {
 body.dark-theme .card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Sobreposição apenas para cards em uso */
+body.dark-theme .card.is-warning .card-content {
+    background-color: #fff3cd;
+    color: #000;
+}
+
+body.dark-theme .card.is-warning .title.is-4,
+body.dark-theme .card.is-warning .subtitle.is-6,
+body.dark-theme .card.is-warning .card-footer-item {
+    color: #000;
 }
 
 /* Welcome Section */
@@ -905,19 +912,6 @@ body.dark-theme .content code {
     color: var(--text-primary);
     padding: 0.2em 0.4em;
     border-radius: 3px;
-}
-
-/* Ajuste para o conteúdo do card quando o serviço estiver em uso */
-body.dark-theme .card.is-warning .card-content {
-    background-color: #fff3cd; 
-    color: #000; 
-}
-
-/* Ajuste para o texto do card quando o serviço estiver em uso */
-body.dark-theme .card.is-warning .title.is-4,
-body.dark-theme .card.is-warning .subtitle.is-6,
-body.dark-theme .card.is-warning .card-footer-item {
-    color: #000; /* Texto em preto para melhor legibilidade */
 }
 
 /* Manter a cor padrão para outros cards */
