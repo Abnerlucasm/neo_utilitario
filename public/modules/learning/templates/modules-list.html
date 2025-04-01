@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Módulos - Central de Aprendizado</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="stylesheet" href="/styles/admin-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="container mt-6">
+        <div class="columns">
+            <div class="column is-10 is-offset-1">
+                <div class="section">
+                    <div class="level">
+                        <div class="level-left">
+                            <h1 class="title">Módulos de Aprendizado</h1>
+                        </div>
+                        <div class="level-right">
+                            <a href="#" data-route="new-module" class="button is-primary">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>Novo Módulo</span>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div id="modules-container" class="modules-list">
+                        <div class="notification is-info is-light">
+                            <p>Carregando módulos...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para edição/criação de módulo -->
+    <div class="modal" id="moduleModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Módulo</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form id="moduleForm">
+                    <div class="field">
+                        <label class="label">ID do Módulo</label>
+                        <div class="control">
+                            <input class="input" type="text" id="moduleId" required>
+                            <p class="help">Identificador único (ex: postgresql, mongodb)</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Título</label>
+                        <div class="control">
+                            <input class="input" type="text" id="moduleTitle" required>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Descrição</label>
+                        <div class="control">
+                            <textarea class="textarea" id="moduleDescription"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" type="submit" form="moduleForm">Salvar</button>
+                <button class="button" type="button">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+    <script src="/components/navbar/navbar.js"></script>
+    <script src="/components/footer/footer.js"></script>
+</body>
+</html> 

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Módulo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="stylesheet" href="/styles/admin-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="container mt-6">
+        <div class="columns">
+            <div class="column is-10 is-offset-1">
+                <div class="section">
+                    <div class="level">
+                        <div class="level-left">
+                            <h1 class="title">Editor de Módulo</h1>
+                        </div>
+                        <div class="level-right">
+                            <a href="#" data-route="modules-list" class="button is-light">
+                                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                                <span>Voltar</span>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="box">
+                        <form id="module-form" enctype="multipart/form-data">
+                            <div class="field">
+                                <label class="label">Título</label>
+                                <div class="control">
+                                    <input id="module-title" class="input" type="text" name="title" required>
+                                </div>
+                            </div>
+                            
+                            <div class="field">
+                                <label class="label">Descrição</label>
+                                <div class="control">
+                                    <textarea id="module-description" class="textarea" name="description" required></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="field">
+                                <label class="label">Imagem do Módulo</label>
+                                <div class="file has-name is-fullwidth">
+                                    <label class="file-label">
+                                        <input id="module-image-upload" class="file-input" type="file" name="image" accept="image/*">
+                                        <span class="file-cta">
+                                            <span class="file-icon">
+                                                <i class="fas fa-upload"></i>
+                                            </span>
+                                            <span class="file-label">
+                                                Escolher uma imagem...
+                                            </span>
+                                        </span>
+                                        <span class="file-name">
+                                            Nenhum arquivo selecionado
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="mt-2">
+                                    <img id="module-image-preview" src="" alt="Preview" style="max-width: 100%; max-height: 200px; display: none;">
+                                </div>
+                            </div>
+                            
+                            <div class="field">
+                                <label class="label">Status</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select id="module-status" name="status">
+                                            <option value="draft">Rascunho</option>
+                                            <option value="published">Publicado</option>
+                                            <option value="archived">Arquivado</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="field is-grouped is-grouped-right">
+                                <div class="control">
+                                    <button id="cancel-btn" type="button" class="button is-light">Cancelar</button>
+                                </div>
+                                <div class="control">
+                                    <button type="submit" class="button is-primary">Salvar</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/components/navbar/navbar.js"></script>
+    <script>
+        // Atualiza o nome do arquivo quando um arquivo é selecionado
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('module-image-upload');
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const fileName = e.target.files[0] ? e.target.files[0].name : 'Nenhum arquivo selecionado';
+                    const fileNameElement = this.nextElementSibling.nextElementSibling;
+                    fileNameElement.textContent = fileName;
+                    
+                    // Mostrar preview da imagem
+                    if (e.target.files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const preview = document.getElementById('module-image-preview');
+                            preview.src = e.target.result;
+                            preview.style.display = 'block';
+                        }
+                        reader.readAsDataURL(e.target.files[0]);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

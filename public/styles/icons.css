@@ -1,0 +1,26 @@
+/* Garantir que os ícones do Font Awesome funcionem em toda a aplicação */
+.fa,
+.fas,
+.far,
+.fal,
+.fab {
+    font-family: "Font Awesome 6 Free" !important;
+}
+
+.fas {
+    font-weight: 900 !important;
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon i {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+} 

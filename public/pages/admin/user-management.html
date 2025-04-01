@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Usuários - NeoHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            background-color: transparent;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table th {
+            border-top: none;
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .user-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .user-status.active {
+            background-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+        }
+
+        .user-status.inactive {
+            background-color: #dc3545;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+        }
+
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            margin: 0 0.25rem;
+        }
+
+        .btn-action i {
+            font-size: 0.875rem;
+        }
+
+        .roles-badge {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 0.25rem 0.5rem;
+            border-radius: 15px;
+            font-size: 0.875rem;
+            margin: 0.125rem;
+            display: inline-block;
+        }
+
+        .roles-container {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+
+        .form-check {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s;
+        }
+
+        .form-check:hover {
+            background-color: #f8f9fa;
+        }
+
+        .modal-content {
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            border-bottom: 2px solid #f8f9fa;
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            border-top: 2px solid #f8f9fa;
+            padding: 1.5rem;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+
+        .stats-label {
+            color: #6c757d;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .dark-theme .card {
+            background-color: #2d3238;
+        }
+
+        .dark-theme .stats-card {
+            background-color: #2d3238;
+        }
+
+        .dark-theme .form-check:hover {
+            background-color: #343a40;
+        }
+    </style>
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="mb-0">Gerenciamento de Usuários</h1>
+                    <p class="mb-0">Gerencie os usuários do sistema</p>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-light" onclick="userManager.openUserModal()">
+                        <i class="fas fa-plus"></i> Novo Usuário
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Estatísticas -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalUsers">0</div>
+                    <div class="stats-label">Total de Usuários</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number" id="activeUsers">0</div>
+                    <div class="stats-label">Usuários Ativos</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalRoles">0</div>
+                    <div class="stats-label">Papéis Disponíveis</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Usuários -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Usuários do Sistema</h5>
+                <div class="input-group" style="width: 300px;">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" placeholder="Buscar usuários..." id="searchInput">
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Papéis</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userList">
+                        <!-- Lista de usuários será carregada aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Usuário -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Novo Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <div class="mb-3">
+                            <label for="userName" class="form-label">Nome</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <input type="text" class="form-control" id="userName" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userEmail" class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control" id="userEmail" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPassword" class="form-label">Senha</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control" id="userPassword">
+                            </div>
+                            <small class="form-text text-muted">
+                                Deixe em branco para manter a senha atual (ao editar)
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="userStatus" checked>
+                                <label class="form-check-label" for="userStatus">Usuário Ativo</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Papéis</label>
+                            <div class="roles-container" id="rolesCheckboxes">
+                                <!-- Papéis serão carregados aqui -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="userManager.saveUser()">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <neo-footer></neo-footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/components/navbar/navbar.js" type="module"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin/user-management.js"></script>
+</body>
+</html> 

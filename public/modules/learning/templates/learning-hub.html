@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Central de Aprendizado</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="stylesheet" href="/modules/learning/css/learning-hub.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+    
+    <main class="container">
+        <div class="section">
+            <h1 class="title">Central de Aprendizado</h1>
+            
+            <div class="search-container mb-5">
+                <div class="field">
+                    <div class="control has-icons-left">
+                        <input type="text" class="input" id="moduleSearch" placeholder="Buscar módulos...">
+                        <span class="icon is-left">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modules-grid" id="modulesContainer">
+                <!-- Módulos serão carregados aqui -->
+            </div>
+        </div>
+    </main>
+
+    <neo-footer></neo-footer>
+
+    <!-- Scripts -->
+    <script src="/components/navbar/navbar.js" type="module"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/modules/learning/js/learning-hub.js"></script>
+</body>
+</html> 

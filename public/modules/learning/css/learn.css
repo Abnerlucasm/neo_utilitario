@@ -1,0 +1,200 @@
+.learning-container {
+    display: flex;
+    min-height: calc(100vh - 52px);
+    background-color: var(--background-color);
+}
+
+.learning-sidebar {
+    width: 280px;
+    padding: 2rem;
+    background-color: var(--sidebar-background);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+}
+
+.learning-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.content-navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.menu-label {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    font-weight: 600;
+    margin-top: 1.5rem;
+}
+
+.menu-list a {
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    color: var(--text-color);
+}
+
+.menu-list a:hover {
+    background-color: var(--hover-background);
+}
+
+.menu-list a.is-active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.progress-section {
+    margin-top: 2rem;
+    padding: 1rem;
+    background-color: var(--card-background);
+    border-radius: 4px;
+}
+
+#exerciseArea {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background-color: var(--card-background);
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.code-example {
+    background-color: var(--code-background);
+    padding: 1rem;
+    border-radius: 4px;
+    font-family: monospace;
+    margin: 1rem 0;
+}
+
+/* Tema Claro */
+:root {
+    --background-color: #ffffff;
+    --sidebar-background: #f5f5f5;
+    --text-color: #4a4a4a;
+    --text-muted: #7a7a7a;
+    --border-color: #dbdbdb;
+    --hover-background: #f0f0f0;
+    --primary-color: #3273dc;
+    --card-background: #ffffff;
+    --code-background: #f6f8fa;
+}
+
+/* Tema Escuro */
+[data-theme="dark"] {
+    --background-color: #1a1a1a;
+    --sidebar-background: #2c2c2c;
+    --text-color: #e4e4e4;
+    --text-muted: #888888;
+    --border-color: #404040;
+    --hover-background: #363636;
+    --primary-color: #4a9eff;
+    --card-background: #2c2c2c;
+    --code-background: #282c34;
+}
+
+.sql-keyword {
+    color: #d73a49;
+    font-weight: bold;
+}
+
+/* Estilo para a visualização em árvore das tabelas */
+.table-structure {
+    background: var(--sidebar-background);
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.table-structure ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.table-name {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.table-name:hover {
+    background-color: var(--hover-background);
+}
+
+.table-name::before {
+    content: '▶';
+    margin-right: 0.5rem;
+    transition: transform 0.2s;
+}
+
+.table-name.expanded::before {
+    transform: rotate(90deg);
+}
+
+.table-details {
+    margin-left: 1.5rem;
+    padding: 0.5rem;
+    border-left: 2px solid var(--border-color);
+}
+
+/* Estilo para blocos de código SQL */
+.code-sql {
+    background-color: var(--code-background);
+    padding: 1rem;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+
+.sql-keyword { color: #569cd6; }
+.sql-function { color: #dcdcaa; }
+.sql-number { color: #b5cea8; }
+.sql-string { color: #ce9178; }
+.sql-comment { color: #6a9955; }
+
+/* Estilo para o modal do SQL Runner */
+.modal-content {
+    width: 90%;
+    max-height: 90vh;
+    overflow: auto;
+}
+
+.modal-content .box {
+    margin: 0;
+    height: 100%;
+}
+
+/* Estilos para a barra de ferramentas Markdown */
+.markdown-toolbar {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: var(--sidebar-background);
+    border: 1px solid var(--border-color);
+}
+
+.markdown-toolbar .buttons {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.markdown-toolbar button {
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.5rem;
+    transition: all 0.2s;
+}
+
+.markdown-toolbar button:hover {
+    background-color: var(--hover-background);
+    transform: translateY(-1px);
+}
+
+.markdown-toolbar .icon {
+    margin: 0;
+}

@@ -1,40 +1,26 @@
-const { createLogger, format, transports } = require('winston');
-const path = require('path');
+const winston = require('winston');
 
-const logger = createLogger({
-    format: format.combine(
-        format.timestamp(),
-        format.json()
+const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
     ),
     transports: [
-        // Console para desenvolvimento
-        new transports.Console({
-            format: format.combine(
-                format.colorize(),
-                format.simple()
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.colorize(),
+                winston.format.simple()
             )
         }),
-        // Arquivo para logs gerais
-        new transports.File({ 
-            filename: path.join(__dirname, '../logs/app.log'),
-            maxsize: 5242880, // 5MB
-            maxFiles: 5
+        new winston.transports.File({ 
+            filename: 'error.log', 
+            level: 'error' 
         }),
-        // Arquivo separado para erros
-        new transports.File({ 
-            filename: path.join(__dirname, '../logs/error.log'),
-            level: 'error',
-            maxsize: 5242880, // 5MB
-            maxFiles: 5
+        new winston.transports.File({ 
+            filename: 'combined.log' 
         })
     ]
 });
-
-// Criar diretório de logs se não existir
-const fs = require('fs');
-const logDir = path.join(__dirname, '../logs');
-if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
-}
 
 module.exports = logger; 

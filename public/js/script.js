@@ -112,6 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
     buttons.neoChamados.addEventListener('click', () => {
         window.open('https://app.neosistemas.com.br/neo-chamados/', '_blank');
     });
+
+    // Verificar se o elemento existe antes de adicionar o evento
+    const element = document.querySelector('#seu-elemento');
+    if (element) {
+        element.addEventListener('click', () => {
+            // seu código aqui
+        });
+    }
 });
 
 // Função para configurar o modal e seus event listeners

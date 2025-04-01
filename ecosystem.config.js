@@ -1,13 +1,17 @@
 module.exports = {
   apps: [{
-    name: "glassfish-manager",
+    name: "neohub",
     script: "./server.js",
     instances: 1,
     exec_mode: "cluster",
     env: {
       NODE_ENV: "production",
-      PORT: 3000,
-      MONGODB_URI: "mongodb://root:09042003@localhost:27017/neoutilitario?authSource=neoutilitario"
+      PORT: 3020,
+      DB_HOST: "localhost",
+      DB_PORT: 5432,
+      DB_NAME: "neohub",
+      DB_USER: "postgres",
+      DB_PASSWORD: "sua_senha"
     },
     env_production: {
       NODE_ENV: "production"

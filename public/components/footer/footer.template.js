@@ -1,33 +1,13 @@
-export function getFooterTemplate(isDark) {
-    const currentYear = new Date().getFullYear();
-    
+export function getFooterTemplate(isDark = false) {
     return `
         <footer class="neo-footer ${isDark ? 'dark-theme' : ''}">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3 class="footer-title">Sobre o NeoHub</h3>
-                    <p>Plataforma integrada para gerenciamento de serviços, sugestões e utilitários da equipe Neo.</p>
-                </div>
-                
-                <div class="footer-section">
-                    <h3 class="footer-title">Links Úteis</h3>
-                    <ul class="footer-links">
-                        <li><a href="/"><i class="fas fa-home"></i> Início</a></li>
-                        <li><a href="/config.html"><i class="fas fa-cog"></i> Configurações</a></li>
-                        <li><a href="/utilitarios.html"><i class="fas fa-tools"></i> Utilitários</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-section">
-                    <h3 class="footer-title">Recursos</h3>
-                    <ul class="footer-links">
-                        <li><a href="/neotrack.html"><i class="fas fa-tasks"></i> NeoTrack</a></li>
-                        <li><a href="/glassfish.html"><i class="fas fa-server"></i> Glassfish</a></li>
-                        <li><a href="/sugestoes-dev.html"><i class="fas fa-lightbulb"></i> Sugestões</a></li>
-                    </ul>
+                    <p class="has-text-centered">
+                        <strong>NeoHub</strong> - Plataforma integrada de colaboração e gerenciamento
+                    </p>
                 </div>
             </div>
-            
             <div class="footer-bottom">
                 <a href="https://github.com/Abnerlucasm/neo_utilitario" 
                    class="github-link" 
@@ -38,7 +18,7 @@ export function getFooterTemplate(isDark) {
                     </svg>
                     Contribua no GitHub
                 </a>
-                <p style="margin-top: 1rem;">© ${currentYear} NeoHub. Todos os direitos reservados.</p>
+                <p style="margin-top: 1rem;">© ${new Date().getFullYear()} Neo. Todos os direitos reservados.</p>
             </div>
         </footer>
     `;

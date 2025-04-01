@@ -1,0 +1,122 @@
+.progress-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.progress {
+    border-radius: 0;
+}
+
+.menu {
+    padding: 1rem;
+    height: 100vh;
+    overflow-y: auto;
+    background-color: #f5f5f5;
+    position: sticky;
+    top: 0;
+}
+
+.menu-label {
+    color: #363636;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+.menu-list a {
+    border-radius: 4px;
+}
+
+.menu-list a.is-active {
+    background-color: #485fc7;
+    color: white;
+}
+
+#mainContent {
+    min-height: 100vh;
+}
+
+.code-example {
+    background-color: #f5f5f5;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+}
+
+pre code {
+    display: block;
+    padding: 1em;
+    overflow-x: auto;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--primary-color, #485fc7);
+    width: 0;
+    transition: width 0.3s ease;
+}
+
+.menu-list a.is-completed {
+    position: relative;
+}
+
+.menu-list a.is-completed::after {
+    content: '✓';
+    position: absolute;
+    right: 1rem;
+    color: var(--success-color, #48c774);
+}
+
+.progress-stats {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.progress-stats .icon {
+    color: var(--primary-color, #485fc7);
+}
+
+.content {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.content h1 {
+    margin-bottom: 2rem;
+    color: #363636;
+}
+
+.content pre {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.content code {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9em;
+}
+
+.custom-component {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid #dbdbdb;
+    border-radius: 4px;
+}
+
+#learningContainer {
+    padding-top: 56px;
+} 

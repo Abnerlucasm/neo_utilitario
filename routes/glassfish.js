@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { Client } = require('ssh2');
-const Glassfish = require('../models/glassfish');
-const logger = require('../utils/logger');
 const { NodeSSH } = require('node-ssh');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const xml2js = require('xml2js');
+const { Glassfish } = require('../models/postgresql/associations');
+const authMiddleware = require('../middlewares/auth');
+const logger = require('../utils/logger');
 
 // Configuração do diretório de uploads
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -295,170 +296,104 @@ function buildGlassfishPaths(service) {
     return paths;
 }
 
-// Rotas CRUD principais
-router.get('/servicos', async (req, res) => {
+// Listar todos os servidores
+router.get('/servicos', authMiddleware, async (req, res) => {
     try {
-        const services = await Glassfish.find();
-        res.json(services);
+        const servers = await Glassfish.findAll({
+            order: [['name', 'ASC']]
+        });
+        res.json(servers);
     } catch (error) {
-        logger.error('Erro ao listar serviços:', error);
-        res.status(500).json({ error: 'Erro ao listar serviços' });
+        logger.error('Erro ao listar servidores:', error);
+        res.status(500).json({ error: 'Erro ao listar servidores' });
     }
 });
 
-router.post('/servicos', async (req, res) => {
+// Obter estatísticas gerais
+router.get('/servicos/stats/overview', authMiddleware, async (req, res) => {
     try {
-        const { 
-            name, 
-            ip, 
-            port, 
-            domain, 
-            password, 
-            sshUsername, 
-            sshPassword, 
-            installPath,
-            status,
-            setor,
-            productionPort,
-            accessType
-        } = req.body;
-
-        // Validação dos campos obrigatórios
-        const requiredFields = ['name', 'ip', 'domain', 'sshUsername', 'sshPassword'];
-        const missingFields = requiredFields.filter(field => !req.body[field]);
+        const servers = await Glassfish.findAll();
         
-        if (missingFields.length > 0) {
-            return res.status(400).json({ 
-                error: 'Campos obrigatórios faltando', 
-                fields: missingFields 
-            });
-        }
+        const stats = {
+            total: servers.length,
+            active: servers.filter(s => s.status === 'active').length,
+            inactive: servers.filter(s => s.status === 'inactive').length,
+            avgMemory: servers.reduce((acc, s) => acc + (s.memoryUsage || 0), 0) / servers.length || 0,
+            avgCpu: servers.reduce((acc, s) => acc + (s.cpuUsage || 0), 0) / servers.length || 0
+        };
 
-        logger.info('Dados recebidos para criação de serviço:', {
-            ...req.body,
-            password: '***',
-            sshPassword: '***'
-        });
-
-        const newService = new Glassfish({ 
-            name, 
-            ip, 
-            port: port || 8080, 
-            domain, 
-            password: password || 'admin', 
-            sshUsername,
-            sshPassword,
-            installPath: installPath || '/srv/glassfish6.2.5',
-            status: status || 'inactive',
-            setor: setor || 'Setor Sup. Externo',
-            productionPort: productionPort,
-            accessType: accessType
-        });
-
-        await newService.save();
-        res.status(201).json(newService);
-    } catch (err) {
-        logger.error('Erro ao criar serviço:', {
-            error: err.message,
-            stack: err.stack,
-            validationErrors: err.errors
-        });
-
-        if (err.name === 'ValidationError') {
-            return res.status(400).json({
-                error: 'Erro de validação',
-                details: Object.values(err.errors).map(e => e.message)
-            });
-        }
-
-        res.status(500).json({ 
-            error: 'Erro ao criar serviço', 
-            details: err.message 
-        });
-    }
-});
-
-router.put('/servicos/:id', async (req, res) => {
-    try {
-        const allowedUpdates = [
-            'name', 'ip', 'port', 'domain', 'password', 
-            'sshUsername', 'sshPassword', 'installPath', 
-            'status', 'setor', 'productionPort', 'accessType'
-        ];
-        
-        const updates = {};
-        Object.keys(req.body).forEach(key => {
-            if (allowedUpdates.includes(key)) {
-                updates[key] = req.body[key];
-            }
-        });
-
-        const updatedService = await Glassfish.findByIdAndUpdate(
-            req.params.id, 
-            updates, 
-            { new: true, runValidators: true }
-        );
-
-        if (!updatedService) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
-
-        res.json(updatedService);
-    } catch (err) {
-        logger.error('Erro ao atualizar serviço:', err);
-        res.status(500).json({ 
-            error: 'Erro ao atualizar serviço',
-            details: err.message 
-        });
-    }
-});
-
-router.delete('/servicos/:id', async (req, res) => {
-    try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ 
-                error: 'Serviço não encontrado',
-                details: 'O serviço solicitado não existe ou já foi removido'
-            });
-        }
-
-        logger.info('Removendo serviço:', {
-            id: service._id,
-            name: service.name,
-            ip: service.ip
-        });
-
-        await Glassfish.findByIdAndDelete(req.params.id);
-        
-        logger.info('Serviço removido com sucesso');
-        
-        res.json({ 
-            message: 'Serviço removido com sucesso',
-            details: {
-                name: service.name,
-                id: service._id
-            }
-        });
+        res.json(stats);
     } catch (error) {
-        logger.error('Erro ao deletar serviço:', {
-            id: req.params.id,
-            error: error.message,
-            stack: error.stack
-        });
-        
-        res.status(500).json({ 
-            error: 'Erro ao deletar serviço',
-            details: error.message
-        });
+        logger.error('Erro ao obter estatísticas:', error);
+        res.status(500).json({ error: 'Erro ao obter estatísticas' });
+    }
+});
+
+// Criar novo servidor
+router.post('/servicos', authMiddleware, async (req, res) => {
+    try {
+        const serverData = {
+            name: req.body.name,
+            host: req.body.ip,
+            port: req.body.port || 4848,
+            username: req.body.sshUsername || 'admin',
+            password: req.body.password || 'admin',
+            domain: req.body.domain,
+            status: 'inactive',
+            config: {
+                sshPassword: req.body.sshPassword,
+                installPath: req.body.installPath || '/srv/glassfish6.2.5',
+                productionPort: req.body.productionPort || 8080,
+                setor: req.body.setor,
+                accessType: req.body.accessType || 'local'
+            }
+        };
+
+        const server = await Glassfish.create(serverData);
+        res.status(201).json(server);
+    } catch (error) {
+        logger.error('Erro ao criar servidor:', error);
+        res.status(500).json({ error: 'Erro ao criar servidor', details: error.message });
+    }
+});
+
+// Atualizar servidor
+router.put('/servicos/:id', authMiddleware, async (req, res) => {
+    try {
+        const server = await Glassfish.findByPk(req.params.id);
+        if (!server) {
+            return res.status(404).json({ error: 'Servidor não encontrado' });
+        }
+
+        await server.update(req.body);
+        res.json(server);
+    } catch (error) {
+        logger.error('Erro ao atualizar servidor:', error);
+        res.status(500).json({ error: 'Erro ao atualizar servidor' });
+    }
+});
+
+// Excluir servidor
+router.delete('/servicos/:id', authMiddleware, async (req, res) => {
+    try {
+        const server = await Glassfish.findByPk(req.params.id);
+        if (!server) {
+            return res.status(404).json({ error: 'Servidor não encontrado' });
+        }
+
+        await server.destroy();
+        res.status(204).send();
+    } catch (error) {
+        logger.error('Erro ao excluir servidor:', error);
+        res.status(500).json({ error: 'Erro ao excluir servidor' });
     }
 });
 
 // Rota para verificar status
-router.get('/servicos/:id/status', async (req, res) => {
+router.get('/:id/status', async (req, res) => {
     let service;
     try {
-        service = await Glassfish.findById(req.params.id);
+        service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -537,74 +472,10 @@ async function collectServerStats(service) {
     }
 }
 
-// Rota para estatísticas
-router.get('/servicos/stats/overview', async (req, res) => {
-    try {
-        const services = await Glassfish.find();
-        const activeServices = services.filter(s => s.status === 'active');
-        
-        // Array para armazenar as promessas de coleta de estatísticas
-        const statsPromises = activeServices.map(async service => {
-            try {
-                // Comando para obter uso de RAM
-                const memoryCommand = `free -m | grep Mem | awk '{print int($3/$2 * 100)}'`;
-                const memoryResult = await executeSSHCommand(service, memoryCommand);
-                const memoryUsage = parseInt(memoryResult.stdout) || 0;
-
-                // Comando para obter uso de CPU
-                const cpuCommand = `top -bn1 | grep "Cpu(s)" | awk '{print int($2)}'`;
-                const cpuResult = await executeSSHCommand(service, cpuCommand);
-                const cpuUsage = parseInt(cpuResult.stdout) || 0;
-
-                return {
-                    id: service._id,
-                    name: service.name,
-                    status: service.status,
-                    memory: memoryUsage,
-                    cpu: cpuUsage
-                };
-            } catch (error) {
-                logger.error(`Erro ao coletar estatísticas para ${service.name}:`, error);
-                return {
-                    id: service._id,
-                    name: service.name,
-                    status: service.status,
-                    memory: 0,
-                    cpu: 0
-                };
-            }
-        });
-
-        // Aguardar todas as coletas de estatísticas
-        const serverDetails = await Promise.all(statsPromises);
-
-        // Calcular médias
-        const totalMemory = serverDetails.reduce((sum, server) => sum + server.memory, 0);
-        const totalCpu = serverDetails.reduce((sum, server) => sum + server.cpu, 0);
-        const activeCount = serverDetails.length || 1; // Evitar divisão por zero
-
-        const stats = {
-            totalServers: services.length,
-            activeServers: activeServices.length,
-            averageMemory: Math.round(totalMemory / activeCount),
-            averageCpu: Math.round(totalCpu / activeCount),
-            serverDetails: serverDetails
-        };
-
-        res.json(stats);
-    } catch (error) {
-        logger.error('Erro ao obter estatísticas:', error);
-        res.status(500).json({ 
-            error: 'Erro ao obter estatísticas',
-            details: error.message
-        });
-    }
-});
-
 // Rotas de logs
-router.get('/servicos/:id/logs', async (req, res) => {
+router.get('/:id/logs', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -625,10 +496,10 @@ router.get('/servicos/:id/logs', async (req, res) => {
 });
 
 // WebSocket para logs em tempo real
-router.get('/servicos/:id/logs/live', (req, res) => {
+router.get('/:id/logs/live', (req, res) => {
     wss.handleUpgrade(req, req.socket, Buffer.alloc(0), async (ws) => {
         try {
-            const service = await Glassfish.findById(req.params.id);
+            const service = await Glassfish.findByPk(req.params.id);
             if (!service) {
                 ws.close();
                 return;
@@ -665,9 +536,9 @@ router.get('/servicos/:id/logs/live', (req, res) => {
 });
 
 // Rotas de configuração
-router.get('/servicos/:id/domain-config', async (req, res) => {
+router.get('/:id/domain-config', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -745,9 +616,9 @@ router.get('/servicos/:id/domain-config', async (req, res) => {
 });
 
 // Rota para atualizar configurações do domínio
-router.put('/servicos/:id/domain-config', async (req, res) => {
+router.put('/:id/domain-config', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -904,9 +775,9 @@ router.put('/servicos/:id/domain-config', async (req, res) => {
 });
 
 // Rotas de aplicações
-router.get('/servicos/:id/applications', async (req, res) => {
+router.get('/:id/applications', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -969,9 +840,9 @@ router.get('/servicos/:id/applications', async (req, res) => {
 });
 
 // Rota para parar o serviço
-router.post('/servicos/:id/stop', async (req, res) => {
+router.post('/:id/stop', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -1012,7 +883,7 @@ router.post('/servicos/:id/stop', async (req, res) => {
 });
 
 // Rota para upload de aplicação
-router.post('/servicos/:id/upload-application', upload.single('file'), async (req, res) => {
+router.post('/:id/upload-application', upload.single('file'), async (req, res) => {
     let localFilePath = null;
     
     try {
@@ -1020,7 +891,7 @@ router.post('/servicos/:id/upload-application', upload.single('file'), async (re
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
 
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -1137,10 +1008,10 @@ router.post('/test-ssh', async (req, res) => {
 });
 
 // Rota para marcar serviço como em uso
-router.post('/servicos/:id/in-use', async (req, res) => {
+router.post('/:id/in-use', async (req, res) => {
     try {
         const { user } = req.body;
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -1157,9 +1028,9 @@ router.post('/servicos/:id/in-use', async (req, res) => {
 });
 
 // Rota para marcar serviço como disponível
-router.post('/servicos/:id/available', async (req, res) => {
+router.post('/:id/available', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -1176,9 +1047,9 @@ router.post('/servicos/:id/available', async (req, res) => {
 });
 
 // Rota para iniciar o serviço
-router.post('/servicos/:id/start', async (req, res) => {
+router.post('/:id/start', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -1218,9 +1089,9 @@ router.post('/servicos/:id/start', async (req, res) => {
 });
 
 // Rota para reiniciar o serviço
-router.post('/servicos/:id/restart', async (req, res) => {
+router.post('/:id/restart', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -1260,9 +1131,9 @@ router.post('/servicos/:id/restart', async (req, res) => {
 });
 
 // Rota para executar manutenção no serviço
-router.post('/servicos/:id/maintenance', async (req, res) => {
+router.post('/:id/maintenance', async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
+        const service = await Glassfish.findByPk(req.params.id);
         if (!service) {
             return res.status(404).json({ error: 'Serviço não encontrado' });
         }
@@ -1401,6 +1272,28 @@ router.post('/servicos/:id/maintenance', async (req, res) => {
             error: 'Erro ao executar manutenção',
             details: error.message
         });
+    }
+});
+
+// Atualizar status do servidor
+router.patch('/:id/status', async (req, res) => {
+    try {
+        const server = await Glassfish.findByPk(req.params.id);
+        if (!server) {
+            return res.status(404).json({ error: 'Servidor não encontrado' });
+        }
+
+        await server.update({
+            status: req.body.status,
+            memoryUsage: req.body.memoryUsage,
+            cpuUsage: req.body.cpuUsage,
+            lastCheck: new Date()
+        });
+
+        res.json(server);
+    } catch (error) {
+        logger.error('Erro ao atualizar status:', error);
+        res.status(500).json({ error: 'Erro ao atualizar status' });
     }
 });
 

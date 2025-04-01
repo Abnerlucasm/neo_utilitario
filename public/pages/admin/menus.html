@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Menus - NeoHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            background-color: transparent;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+
+        .menu-tree {
+            margin-top: 1rem;
+        }
+
+        .menu-item {
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s;
+        }
+
+        .menu-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .menu-item.active {
+            background-color: #e7f1ff;
+            border-color: #b8daff;
+        }
+
+        .menu-item .icon-preview {
+            width: 30px;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        .submenu-container {
+            margin-left: 2rem;
+        }
+
+        .menu-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .icon-selector {
+            max-height: 200px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            margin-top: 10px;
+        }
+
+        .icon-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .icon-option:hover {
+            background-color: #e9ecef;
+        }
+
+        .icon-option.selected {
+            background-color: #e7f1ff;
+            border: 1px solid #b8daff;
+        }
+
+        .dark-theme .menu-item {
+            background-color: #343a40;
+            border-color: #495057;
+        }
+
+        .dark-theme .menu-item:hover {
+            background-color: #495057;
+        }
+
+        .dark-theme .menu-item.active {
+            background-color: #0d6efd33;
+            border-color: #0d6efd;
+        }
+
+        .dark-theme .icon-option {
+            color: #f8f9fa;
+        }
+
+        .dark-theme .icon-option:hover {
+            background-color: #495057;
+        }
+
+        .dark-theme .icon-option.selected {
+            background-color: #0d6efd33;
+            border-color: #0d6efd;
+        }
+
+        .menu-path {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        .dark-theme .menu-path {
+            color: #adb5bd;
+        }
+
+        .admin-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #dc3545;
+            color: white;
+            margin-left: 0.5rem;
+        }
+
+        .inactive-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #6c757d;
+            color: white;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="mb-0">Gerenciamento de Menus</h1>
+                    <p class="mb-0">Configure os menus do sistema</p>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-light" onclick="menuManager.openMenuModal()">
+                        <i class="fas fa-plus"></i> Novo Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Lista de Menus -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Estrutura do Menu</h5>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="showInactiveMenus">
+                            <label class="form-check-label" for="showInactiveMenus">Mostrar inativos</label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="menuTree" class="menu-tree">
+                            <!-- Menus serão carregados aqui -->
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                                <p class="mt-2">Carregando menus...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Detalhes do Menu -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Detalhes do Menu</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="menuDetails">
+                            <p class="text-muted text-center">Selecione um menu para ver os detalhes</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dicas -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Dicas</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li>Menus principais aparecem na barra lateral</li>
+                            <li>Submenus são exibidos quando o menu pai é clicado</li>
+                            <li>Menus marcados como "Admin" só são visíveis para administradores</li>
+                            <li>O campo "Caminho do Recurso" é usado para verificar permissões</li>
+                            <li>Menus inativos não são exibidos no sistema</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Menu -->
+    <div class="modal fade" id="menuModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Novo Menu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="menuForm">
+                        <input type="hidden" id="menuId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="menuTitle" class="form-label">Título</label>
+                                    <input type="text" class="form-control" id="menuTitle" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="menuPath" class="form-label">Caminho (URL)</label>
+                                    <input type="text" class="form-control" id="menuPath" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="menuIcon" class="form-label">Ícone</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i id="iconPreview" class="fas fa-link"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="menuIcon" value="fas fa-link">
+                                        <button class="btn btn-outline-secondary" type="button" id="iconSelectorBtn">
+                                            Selecionar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="menuOrder" class="form-label">Ordem</label>
+                                    <input type="number" class="form-control" id="menuOrder" min="0" value="0">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="menuParent" class="form-label">Menu Pai</label>
+                            <select class="form-select" id="menuParent">
+                                <option value="">Nenhum (Menu Principal)</option>
+                                <!-- Opções serão carregadas dinamicamente -->
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="menuResourcePath" class="form-label">Caminho do Recurso</label>
+                            <input type="text" class="form-control" id="menuResourcePath">
+                            <div class="form-text">
+                                Caminho usado para verificar permissões. Se vazio, será usado o mesmo do caminho (URL).
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="menuIsAdminOnly">
+                                    <label class="form-check-label" for="menuIsAdminOnly">
+                                        Apenas para Administradores
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="menuIsActive" checked>
+                                    <label class="form-check-label" for="menuIsActive">
+                                        Ativo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Seletor de Ícones (inicialmente oculto) -->
+                        <div id="iconSelector" class="icon-selector" style="display: none;">
+                            <!-- Ícones serão carregados dinamicamente -->
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="menuManager.saveMenu()">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <neo-footer></neo-footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/components/navbar/navbar.js" type="module"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin/menu-manager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            AuthManager.checkAuth();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,319 @@
+.search-container {
+    margin-bottom: 2rem;
+}
+
+.navigation-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin: 2rem 0;
+}
+
+.progress-container {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.markdown-content {
+    line-height: 1.6;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+.markdown-content p {
+    margin-bottom: 1em;
+}
+
+.markdown-content strong {
+    font-weight: bold;
+}
+
+.markdown-content em {
+    font-style: italic;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    margin-bottom: 1em;
+    padding-left: 2em;
+}
+
+.markdown-content code {
+    background: #f5f5f5;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+}
+
+.markdown-content pre code {
+    display: block;
+    padding: 1em;
+    overflow-x: auto;
+}
+
+.search-results-list .box {
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.search-results-list .box:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.search-results-list .tags {
+    margin-bottom: 0.75rem;
+}
+
+.search-results-list .tag {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.search-results-list mark {
+    background-color: #ffffa3;
+    padding: 0.1em 0.3em;
+    border-radius: 2px;
+}
+
+/* Tema escuro */
+.dark-theme .search-results-list mark {
+    background-color: #3273dc;
+    color: #fff;
+}
+
+/* Ajustes de layout */
+main.container {
+    min-height: calc(100vh - 52px - 88px); /* altura total - navbar - footer */
+    padding-bottom: 2rem;
+}
+
+/* Estilos para visualização de módulo */
+
+/* Seções e Menus */
+.menu-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+    color: #4a4a4a;
+}
+
+.menu-list a {
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    color: #4a4a4a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-list a:hover {
+    background-color: #f5f5f5;
+    color: #3273dc;
+}
+
+.menu-list a.is-active {
+    background-color: #3273dc;
+    color: white;
+}
+
+.menu-list a.has-text-danger {
+    color: #f14668;
+    border: 1px dashed #f14668;
+    background-color: rgba(241, 70, 104, 0.05);
+}
+
+.menu-list a.has-text-danger:hover {
+    background-color: rgba(241, 70, 104, 0.1);
+}
+
+/* Área de Conteúdo */
+.content-area {
+    padding: 1.5rem;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
+}
+
+.markdown-content {
+    min-height: 300px;
+}
+
+.markdown-content h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #363636;
+}
+
+.markdown-content h2 {
+    font-size: 1.5rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #363636;
+}
+
+.markdown-content h3 {
+    font-size: 1.25rem;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: #363636;
+}
+
+.markdown-content p {
+    margin-bottom: 1rem;
+}
+
+.markdown-content ul, .markdown-content ol {
+    margin-left: 2rem;
+    margin-bottom: 1rem;
+}
+
+.markdown-content pre {
+    background-color: #f5f5f5;
+    padding: 1rem;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    margin-bottom: 1rem;
+}
+
+.markdown-content code {
+    background-color: #f5f5f5;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.markdown-content blockquote {
+    border-left: 4px solid #dbdbdb;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #6c757d;
+}
+
+/* Botões de navegação */
+.navigation-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+/* Barra de progresso */
+.progress-container {
+    margin-top: 2rem;
+}
+
+.progress-container .progress {
+    height: 0.75rem;
+}
+
+/* Estilos para tema escuro */
+.dark-theme .content-area {
+    background-color: #2b2b2b;
+    color: #f5f5f5;
+}
+
+.dark-theme .markdown-content h1,
+.dark-theme .markdown-content h2,
+.dark-theme .markdown-content h3 {
+    color: #f5f5f5;
+}
+
+.dark-theme .markdown-content pre,
+.dark-theme .markdown-content code {
+    background-color: #363636;
+    color: #f5f5f5;
+}
+
+.dark-theme .menu-label {
+    color: #f5f5f5;
+}
+
+.dark-theme .menu-list a {
+    color: #f5f5f5;
+}
+
+.dark-theme .menu-list a:hover {
+    background-color: #363636;
+    color: #3273dc;
+}
+
+/* Botões de ação */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* Mensagem de página não encontrada */
+.page-not-found {
+    border: 2px dashed #f14668;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    background-color: rgba(241, 70, 104, 0.05);
+}
+
+.page-not-found h3 {
+    color: #f14668;
+    margin-bottom: 1rem;
+}
+
+/* Estilo para destacar páginas completadas */
+.menu-list a .icon {
+    margin-left: 8px;
+}
+
+.menu-list a .icon .fa-check {
+    color: #48c774;
+}
+
+.menu-list a .icon .fa-exclamation-triangle {
+    color: #f14668;
+}
+
+/* Estilo para a área de busca */
+.search-container .input {
+    box-shadow: none;
+    border: 1px solid #dbdbdb;
+}
+
+.search-container .input:focus {
+    border-color: #3273dc;
+}
+
+/* Estilo para páginas no menu lateral */
+.menu-list li a.is-active .tag {
+    background-color: #fff;
+    color: #4a4a4a;
+}
+
+/* Dark theme support */
+.is-dark-theme .search-results-list mark {
+    background-color: #664500;
+    color: #fff;
+}
+
+.is-dark-theme .search-results-list .tag.is-info.is-light {
+    background-color: #1d4e89;
+    color: #f5f5f5;
+}
+
+/* Estilos responsivos */
+@media screen and (max-width: 768px) {
+    .search-results-list .tag {
+        font-size: 0.7rem;
+    }
+    
+    .search-results-list .box {
+        padding: 0.75rem;
+    }
+} 

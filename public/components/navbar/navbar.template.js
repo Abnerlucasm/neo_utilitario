@@ -1,51 +1,69 @@
-export function getNavbarTemplate(isDark) {
+/**
+ * Retorna o template HTML para a barra de navegação
+ * @param {boolean} isDarkTheme - Se o tema escuro está ativo
+ * @returns {string} Template HTML
+ */
+export function getNavbarTemplate(isDarkTheme = false) {
     return `
-        <nav class="navbar ${isDark ? 'dark-theme' : ''}" role="navigation" aria-label="main navigation">
+        <style>
+            @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+            @import url('/components/navbar/navbar.css');
+        </style>
+
+        <nav class="navbar ${isDarkTheme ? 'dark-theme' : ''}">
             <div class="navbar-brand">
-                <a class="navbar-item" href="/">
+                <a href="/">
                     <img src="/assets/neo-logo-small.png" alt="Neo Logo">
                 </a>
-                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
-                    <span aria-hidden="true"></span>
-                    <span aria-hidden="true"></span>
-                    <span aria-hidden="true"></span>
-                </a>
             </div>
-            <div class="navbar-menu">
-                <button class="menu-toggle">☰</button>
+
+            <div class="navbar-end">
+                <button id="themeToggle" class="button is-light" title="Alternar tema">
+                    <span class="icon">
+                        <i class="fas ${isDarkTheme ? 'fa-sun' : 'fa-moon'}"></i>
+                    </span>
+                </button>
+                
+                <button id="userMenuBtn" class="button is-light" title="Menu do usuário">
+                    <span class="icon">
+                        <i class="fas fa-user"></i>
+                    </span>
+                </button>
+
+                <button class="menu-toggle" title="Menu principal">
+                    <span class="icon">
+                        <i class="fas fa-bars"></i>
+                    </span>
+                </button>
             </div>
         </nav>
 
         <div class="breadcrumb-container">
             <ul class="breadcrumb">
-                <li><a href="/">Início</a></li>
-                <li class="is-active"><a href="#" aria-current="page">Página Atual</a></li>
+                <!-- Breadcrumb será gerado dinamicamente -->
             </ul>
         </div>
 
-        <div class="overlay"></div>
-
         <div class="sidebar">
-            <button class="close-sidebar">×</button>
-            <nav>
-                <ul class="menu-list">
-                    <li><a href="index.html"><span class="icon">🏠</span>Menu Principal</a></li>
-                    <li><a href="../config.html"><span class="icon">⚙️</span>Configurar Ambiente</a></li>
-                    <li><a href="rotinas.html"><span class="icon">📋</span>Rotinas</a></li>
-                    <li class="submenu-parent">
-                        <a href="utilitarios.html"><span class="icon">🔧</span>Utilitários</a>
-                        <ul class="submenu">
-                            <li><a href="glassfish.html">NeoWeb</a></li>
-                            <li><a href="utilitarios-neodesktop.html">Neocorp Desktop</a></li>
-                            <li><a href="utilitarios-bd.html">Banco de Dados</a></li>
-                            <li><a href="utilitarios-chamados.html">Neo Chamados</a></li>
-                            <li><a href="neotrack.html">NeoTrack</a></li>
-                        </ul>
-                    </li>
-                    <li><a href="recursos-dev.html"><span class="icon">🚀</span>Recursos em Desenvolvimento</a></li>
-                    <li><a href="sugestoes-dev.html"><span class="icon">💡</span>Sugestões de Desenvolvimento</a></li>
-                </ul>
-            </nav>
+            <button class="close-sidebar">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div id="userInfoPanel" style="padding: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #eee; cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #e9ecef; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div id="userName" style="font-weight: 500;">Carregando...</div>
+                        <div id="userRole" style="font-size: 0.875rem; color: #6c757d;">...</div>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="menu-list"></ul>
         </div>
+
+        <div class="overlay"></div>
     `;
 } 

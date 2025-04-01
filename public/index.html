@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoHub - Redirecionando...</title>
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        .loading {
+            text-align: center;
+        }
+        .loading h1 {
+            margin-bottom: 20px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <h1>NeoHub</h1>
+        <div class="spinner"></div>
+        <p>Redirecionando...</p>
+    </div>
+    <script src="/js/redirect.js"></script>
+</body>
+</html> 

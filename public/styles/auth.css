@@ -1,0 +1,143 @@
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 2rem;
+}
+
+.auth-box {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    padding: 2rem;
+    transition: transform 0.3s ease;
+}
+
+.auth-box:hover {
+    transform: translateY(-5px);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-logo {
+    width: 120px;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+.auth-title {
+    color: #363636;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+    color: #7a7a7a;
+    font-size: 0.9rem;
+}
+
+.field {
+    margin-bottom: 1.5rem;
+}
+
+.control {
+    position: relative;
+}
+
+.input {
+    border: 2px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 0.8rem 1rem 0.8rem 2.5rem;
+    transition: all 0.3s ease;
+}
+
+.input:focus {
+    border-color: #3273dc;
+    box-shadow: 0 0 0 1px #3273dc1a;
+}
+
+.icon.is-small.is-left {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    color: #7a7a7a;
+}
+
+.button.is-primary {
+    background-color: #3273dc;
+    border: none;
+    border-radius: 8px;
+    padding: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.button.is-primary:hover {
+    background-color: #2366d1;
+    transform: translateY(-2px);
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 0.9rem;
+}
+
+.auth-footer a {
+    color: #3273dc;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Tema escuro */
+.dark-theme .auth-container {
+    background: linear-gradient(135deg, #2c2d31 0%, #1a1b1f 100%);
+}
+
+.dark-theme .auth-box {
+    background: #2c2d31;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.dark-theme .auth-title {
+    color: #ffffff;
+}
+
+.dark-theme .auth-subtitle {
+    color: #b5b5b5;
+}
+
+.dark-theme .input {
+    background-color: #363636;
+    border-color: #404246;
+    color: #ffffff;
+}
+
+.dark-theme .input:focus {
+    border-color: #3273dc;
+}
+
+.dark-theme .icon.is-small.is-left {
+    color: #b5b5b5;
+}
+
+.dark-theme .help {
+    color: #b5b5b5;
+}
+
+/* Adicionar regra para ocultar elementos */
+.d-none {
+    display: none !important;
+} 

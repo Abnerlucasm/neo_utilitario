@@ -1,3 +1,19 @@
+import {
+    closeModal,
+    handleCardClick,
+    toggleLogViewer,
+    openUserNameModal,
+    saveUserName,
+    markServiceAvailable,
+    viewLogs,
+    executeMaintenance,
+    openMaintenanceModal,
+    openDomainConfigModal,
+    saveDomainConfig,
+    uploadApplication,
+    showToast
+} from './glassfish-modals.js';
+
         // Registrar o Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -16,6 +32,7 @@
         const resultsCount = document.getElementById('results-count');
         const modalTitle = document.getElementById('modal-title');
         let editingIndex = null;
+let currentServiceIndex = null;
         let services = [];
         let currentWebSocket = null;
         let currentServiceId = null;
@@ -24,19 +41,40 @@
         let currentDomainConfigIndex = null;
         let logViewerActive = false;
 
+// Função para atualizar a lista de serviços
+function updateServicesList(servicesData) {
+    services = servicesData;
+    renderCards(services);
+}
+
         // Função para obter os dados do MongoDB
         async function fetchServices() {
             try {
-                const response = await fetch('/api/servicos');
+                const response = await fetch('/api/glassfish/servicos', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+
                 if (!response.ok) {
                     throw new Error('Erro ao obter serviços');
                 }
-                services = await response.json();
-                renderCards(services);
-                await checkAllServicesStatus(); // Verificar status inicial
+
+        const servicesData = await response.json();
+        updateServicesList(servicesData);
+        
+        // Atualizar contagem de resultados
+        if (resultsCount) {
+            resultsCount.textContent = `${servicesData.length} serviço(s) encontrado(s)`;
+        }
+        
+        // Mostrar/esconder mensagem de vazio
+        if (emptyMessage) {
+            emptyMessage.style.display = servicesData.length === 0 ? 'block' : 'none';
+        }
             } catch (error) {
                 console.error('Erro ao carregar serviços:', error);
-                showToast('Erro ao carregar serviços. Por favor, recarregue a página.', 'danger');
+                showToast('Erro ao carregar serviços', 'danger');
             }
         }
 
@@ -52,375 +90,358 @@
         }
 
         function openAddModal(editIndex = null) {
-            editingIndex = editIndex;
-            if (editIndex !== null) {
+    const modal = document.getElementById('add-modal');
+    if (!modal) return;
+
+    // Limpar o formulário
+    const form = document.getElementById('service-form');
+    if (form) {
+        form.reset();
+    }
+
+    // Se estiver editando, preencher com os dados do serviço
+    if (editIndex !== null && services[editIndex]) {
                 const service = services[editIndex];
-                document.getElementById('service-name').value = service.name;
-                document.getElementById('service-ip').value = service.ip;
-                document.getElementById('service-port').value = service.port;
-                document.getElementById('service-domain').value = service.domain;
-                document.getElementById('service-ssh-username').value = service.sshUsername;
-                document.getElementById('service-ssh-password').value = service.sshPassword;
-                document.getElementById('service-install-path').value = service.installPath;
-                document.getElementById('service-category').value = service.setor || 'Cliente';
-                document.getElementById('service-access-type').value = service.accessType || 'local';
-                document.getElementById('production-port').value = service.productionPort || '8081';
+        const nameInput = document.getElementById('service-name');
+        const ipInput = document.getElementById('service-ip');
+        const portInput = document.getElementById('service-port');
+        const domainInput = document.getElementById('service-domain');
+        const sshUsernameInput = document.getElementById('service-ssh-username');
+        const sshPasswordInput = document.getElementById('service-ssh-password');
+        const installPathInput = document.getElementById('service-install-path');
+        const productionPortInput = document.getElementById('production-port');
+        const categoryInput = document.getElementById('service-category');
+        const accessTypeInput = document.getElementById('service-access-type');
+
+        if (nameInput) nameInput.value = service.name;
+        if (ipInput) ipInput.value = service.ip;
+        if (portInput) portInput.value = service.port;
+        if (domainInput) domainInput.value = service.domain;
+        if (sshUsernameInput) sshUsernameInput.value = service.sshUsername;
+        if (sshPasswordInput) sshPasswordInput.value = service.sshPassword;
+        if (installPathInput) installPathInput.value = service.installPath;
+        if (productionPortInput) productionPortInput.value = service.productionPort;
+        if (categoryInput) categoryInput.value = service.setor;
+        if (accessTypeInput) accessTypeInput.value = service.accessType;
+
+        currentServiceIndex = editIndex;
                 modalTitle.textContent = 'Editar Glassfish';
             } else {
-                document.getElementById('service-name').value = '';
-                document.getElementById('service-ip').value = '';
-                document.getElementById('service-port').value = 8080;
-                document.getElementById('service-domain').value = '';
-                document.getElementById('service-ssh-username').value = '';
-                document.getElementById('service-ssh-password').value = '';
-                document.getElementById('service-install-path').value = '/glassfish6.2.5';
-                document.getElementById('service-category').value = 'Cliente';
-                document.getElementById('service-access-type').value = 'local';
-                document.getElementById('production-port').value = '8081';
+        currentServiceIndex = null;
                 modalTitle.textContent = 'Adicionar Glassfish';
             }
-            document.getElementById('add-modal').classList.add('is-active');
+
+    // Abrir o modal
+    modal.classList.add('is-active');
         }
 
         function closeAddModal() {
-            document.getElementById('add-modal').classList.remove('is-active');
-            editingIndex = null;
+    const modal = document.getElementById('add-modal');
+    if (modal) {
+        modal.classList.remove('is-active');
+        currentServiceIndex = null;
+    }
         }
 
         // Função para salvar ou editar serviço no MongoDB
         async function saveGlassfish() {
-                const service = {
+            try {
+        const serviceData = {
                     name: document.getElementById('service-name').value,
                     ip: document.getElementById('service-ip').value,
                     port: parseInt(document.getElementById('service-port').value),
                     domain: document.getElementById('service-domain').value,
-                    password: document.getElementById('service-password').value || 'admin',
                     sshUsername: document.getElementById('service-ssh-username').value,
                     sshPassword: document.getElementById('service-ssh-password').value,
-                    installPath: document.getElementById('service-install-path').value || '/srv/glassfish6.2.5',
-                    productionPort: parseInt(document.getElementById('production-port').value),
+            installPath: document.getElementById('service-install-path').value,
                     setor: document.getElementById('service-category').value,
-                    accessType: document.getElementById('service-access-type').value
-                };
+            accessType: document.getElementById('service-access-type').value,
+            productionPort: parseInt(document.getElementById('production-port').value) || 8091
+        };
 
-                if (!service.name || !service.ip || !service.domain || !service.sshUsername || !service.sshPassword) {
-                    showToast('Por favor, preencha todos os campos obrigatórios', 'danger');
-                    return;
-                }
+        // Validação dos campos obrigatórios
+        if (!serviceData.name || !serviceData.ip || !serviceData.domain || 
+            !serviceData.sshUsername || !serviceData.sshPassword || !serviceData.installPath) {
+            throw new Error('Todos os campos obrigatórios devem ser preenchidos');
+        }
 
-                const url = editingIndex !== null ? 
-                    `/api/servicos/${services[editingIndex]._id}` : 
-                    '/api/servicos';
+        // Validação do tipo de acesso
+        if (serviceData.accessType === 'external' && !serviceData.productionPort) {
+            throw new Error('A porta de produção é obrigatória para acesso externo');
+        }
 
-                const method = editingIndex !== null ? 'PUT' : 'POST';
+        const url = currentServiceIndex !== null ? 
+            `/api/glassfish/servicos/${services[currentServiceIndex].id}` : 
+            '/api/glassfish/servicos';
 
-                console.log('Enviando dados do serviço:', { ...service, sshPassword: '***' });
+        const method = currentServiceIndex !== null ? 'PUT' : 'POST';
 
-                const response = await fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(service)
+        const response = await fetch(url, {
+            method,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+            body: JSON.stringify(serviceData)
                 });
 
-                const data = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(data.error || 'Erro ao salvar serviço');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao salvar serviço');
                 }
 
-                showToast('Serviço salvo com sucesso!', 'success');
-                closeAddModal();
-                await fetchServices(); // Recarrega a lista de serviços
+                await fetchServices();
+        closeAddModal();
+        showToast('Serviço salvo com sucesso', 'success');
+            } catch (error) {
+                console.error('Erro ao salvar serviço:', error);
+        showToast(error.message || 'Erro ao salvar serviço', 'error');
+            }
         }
 
         async function renderCards(servicesData) {
-            console.log('Renderizando cards com dados:', servicesData);
-            cardsContainer.innerHTML = '';
-            servicesData.forEach((service, index) => {
-                console.log('Renderizando serviço:', service);
-                const card = document.createElement('div');
-                card.className = 'column is-one-third';
-                
-                // Garantir que a categoria tenha um valor padrão se não estiver definida
-                const categoria = service.setor || 'Cliente';
-                
-                card.innerHTML = `
-                    <div class="card ${service.inUse ? 'is-warning' : ''}" onclick="handleCardClick(event, ${index})">
-                        <div class="card-content has-text-centered">
-                            <span id="status-${service._id}" class="status-indicator ${service.status === 'active' ? 'status-active' : 'status-inactive'}"></span>
-                            <div class="category-badge is-info">
-                                <img src="/assets/neo-logo-small.png" alt="Neo" style="height: 20px;">
+    const container = document.getElementById('cards-container');
+    if (!container) return;
+
+    container.innerHTML = servicesData.map((service, index) => `
+        <div class="card ${service.inUse ? 'is-warning' : ''}" data-index="${index}" data-action="editService">
+            <div class="card-content">
+                <div class="media">
+                    <div class="media-left">
+                        <span class="icon is-large has-text-info">
+                            <i class="fas fa-server fa-3x"></i>
+                        </span>
                             </div>
-                            <span class="card-icon"><i class="fas fa-server"></i></span>
+                    <div class="media-content">
                             <p class="title is-4">${service.name}</p>
-                            <p class="subtitle is-6">
-                                IP: ${service.ip}
-                            </p>
-                            <p class="subtitle is-6 has-text-weight-bold">
-                                Usuário Atual: ${service.currentUser || 'Nenhum'}
-                            </p>
-                            <div class="card-actions">
-                                <button class="button is-small is-success" onclick="startService(${index})" title="Iniciar Serviço"
-                                    id="start-btn-${service._id}">
-                                    <span class="icon"><i class="fas fa-play"></i></span>
-                                </button>
-                                <button class="button is-small is-danger" onclick="stopService(${index})" title="Parar Serviço"
-                                    id="stop-btn-${service._id}">
-                                    <span class="icon"><i class="fas fa-stop"></i></span>
-                                </button>
-                                <button class="button is-small is-info" onclick="restartService(${index})" title="Reiniciar Serviço">
-                                    <span class="icon"><i class="fas fa-sync"></i></span>
-                                </button>
-                                <button class="button is-small" onclick="viewLogs(${index})" title="Ver Logs">
-                                    <span class="icon"><i class="fas fa-file-alt"></i></span>
-                                </button>
-                                <button class="button is-small is-warning" onclick="openMaintenanceModal(${index})" title="Manutenção">
-                                    <span class="icon"><i class="fas fa-tools"></i></span>
-                                </button>
-                                <button class="button is-small is-danger" onclick="removeService(${index})" title="Excluir Serviço">
-                                    <span class="icon"><i class="fas fa-trash"></i></span>
-                                </button>
-                                <button class="button is-small is-info" onclick="openDomainConfigModal(${index})" title="Configurar Domain">
-                                    <span class="icon"><i class="fas fa-cog"></i></span>
-                                </button>
-                            </div>
-                            <div class="user-buttons">
-                                <button class="button is-small is-info" onclick="openUserNameModal(${index})" title="Marcar como em uso">
-                                    <span class="icon"><i class="fas fa-user-check"></i></span>
-                                </button>
-                                <button class="button is-small is-success" onclick="markServiceAvailable(${index})" title="Marcar como disponível">
-                                    <span class="icon"><i class="fas fa-user-times"></i></span>
-                                </button>
-                            </div>
-                        </div>
+                        <p class="subtitle is-6">${service.ip}:${service.port}</p>
                     </div>
-                `;
-                cardsContainer.appendChild(card);
-            });
+                </div>
+                <div class="content">
+                    <div class="tags">
+                        <span class="tag ${service.status === 'active' ? 'is-success' : 'is-danger'}">
+                            ${service.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </span>
+                        ${service.inUse ? `<span class="tag is-warning">Em uso por ${service.inUseBy}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <footer class="card-footer">
+                <button class="card-footer-item button is-info is-light" data-action="viewLogs" data-index="${index}">
+                    <span class="icon"><i class="fas fa-file-alt"></i></span>
+                    <span>Ver logs</span>
+                </button>
+                <button class="card-footer-item button is-success is-light" data-action="startService" data-index="${index}">
+                                    <span class="icon"><i class="fas fa-play"></i></span>
+                    <span>Iniciar</span>
+                                </button>
+                <button class="card-footer-item button is-danger is-light" data-action="stopService" data-index="${index}">
+                                    <span class="icon"><i class="fas fa-stop"></i></span>
+                    <span>Parar</span>
+                                </button>
+                <button class="card-footer-item button is-warning is-light" data-action="restartService" data-index="${index}">
+                                    <span class="icon"><i class="fas fa-sync"></i></span>
+                    <span>Reiniciar</span>
+                                </button>
+                <button class="card-footer-item button is-info is-light" data-action="domainConfig" data-index="${index}">
+                                    <span class="icon"><i class="fas fa-cog"></i></span>
+                    <span>Configurar Domain</span>
+                                </button>
+                ${!service.inUse ? `
+                    <button class="card-footer-item button is-warning is-light" data-action="markInUse" data-index="${index}">
+                        <span class="icon"><i class="fas fa-user"></i></span>
+                        <span>Marcar como em uso</span>
+                                </button>
+                ` : `
+                    <button class="card-footer-item button is-success is-light" data-action="markAvailable" data-index="${index}">
+                        <span class="icon"><i class="fas fa-check"></i></span>
+                        <span>Marcar como disponível</span>
+                                </button>
+                `}
+            </footer>
+                            </div>
+    `).join('');
+}
 
-            emptyMessage.style.display = servicesData.length > 0 ? 'none' : 'block';
-            resultsCount.textContent = `Exibindo ${servicesData.length} serviços`;
-        }
+// Função para filtrar cards
+function filterCards() {
+    const statusFilter = document.getElementById('filter-status').value;
+    const setorFilter = document.getElementById('filter-setor').value;
+    const searchQuery = document.getElementById('search-input').value.toLowerCase();
 
-        // Funções de manipulação de status
-        async function startService(index) {
+    const filteredServices = services.filter(service => {
+        const matchStatus = statusFilter === 'all' || 
+            (statusFilter === 'active' && service.status === 'active') ||
+            (statusFilter === 'inactive' && service.status !== 'active');
+
+        const matchSetor = setorFilter === 'all' || service.setor === setorFilter;
+
+        const matchSearch = service.name.toLowerCase().includes(searchQuery) ||
+            service.domain.toLowerCase().includes(searchQuery) ||
+            service.ip.toLowerCase().includes(searchQuery);
+
+        return matchStatus && matchSetor && matchSearch;
+    });
+
+    renderCards(filteredServices);
+}
+
+// Função para remover serviço
+async function removeService(index) {
             const service = services[index];
-            try {
-                const response = await fetch(`/api/servicos/${service._id}/start`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+    if (!confirm(`Tem certeza que deseja excluir o serviço "${service.name}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/glassfish/servicos/${service._id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erro ao iniciar serviço');
+            throw new Error('Erro ao excluir serviço');
                 }
 
-                const data = await response.json();
-                showToast(data.message, 'success');
-                await checkServiceStatus(service);
+        showToast('Serviço removido com sucesso!', 'success');
+        await fetchServices();
             } catch (error) {
+        console.error('Erro ao excluir serviço:', error);
                 showToast(error.message, 'danger');
             }
         }
 
-        async function stopService(index) {
-            const service = services[index];
+// Função para iniciar serviço
+async function startService(index) {
             try {
-                const response = await fetch(`/api/servicos/${service._id}/stop`, {
+        const service = services[index];
+        const response = await fetch(`/api/glassfish/servicos/${service._id}/start`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erro ao parar serviço');
+            throw new Error('Erro ao iniciar serviço');
                 }
 
-                const data = await response.json();
-                showToast(data.message, 'success');
-                await checkServiceStatus(service);
+        showToast('Serviço iniciado com sucesso!', 'success');
+        await fetchServices();
             } catch (error) {
+        console.error('Erro ao iniciar serviço:', error);
                 showToast(error.message, 'danger');
             }
         }
 
-        // Atualizar a função restart
-        async function restartService(index) {
+// Função para parar serviço
+async function stopService(index) {
+    try {
             const service = services[index];
-            
-            // Obter referência aos botões
-            const restartButton = document.querySelector(`button[onclick="restartService(${index})"]`);
-            const startButton = document.getElementById(`start-btn-${service._id}`);
-            const stopButton = document.getElementById(`stop-btn-${service._id}`);
-            
-            try {
-                // Desabilitar todos os botões e mostrar loading
-                restartButton.classList.add('is-loading');
-                startButton.disabled = true;
-                stopButton.disabled = true;
-                restartButton.disabled = true;
+        if (!service || !service.id) {
+            throw new Error('Serviço não encontrado');
+        }
 
-                // Usar a rota de restart
-                const response = await fetch(`/api/servicos/${service._id}/restart`, {
+        const response = await fetch(`/api/glassfish/servicos/${service.id}/stop`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
                 });
                 
                 if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data.error || 'Erro ao reiniciar serviço');
-                }
-                
-                const data = await response.json();
-                showToast('Serviço reiniciado com sucesso!', 'success');
-                
-                // Atualizar status após alguns segundos
-                setTimeout(() => {
-                    checkServiceStatus(service);
-                }, 5000);
-            } catch (error) {
-                console.error('Erro ao reiniciar serviço:', error);
-                showToast('Erro ao reiniciar serviço: ' + error.message, 'danger');
-            } finally {
-                // Reabilitar todos os botões e remover loading
-                restartButton.classList.remove('is-loading');
-                startButton.disabled = false;
-                stopButton.disabled = false;
-                restartButton.disabled = false;
-            }
+            throw new Error('Erro ao parar serviço');
         }
 
-        async function removeService(index) {
+        await fetchServices();
+        showToast('Serviço parado com sucesso', 'success');
+            } catch (error) {
+        console.error('Erro ao parar serviço:', error);
+        showToast('Erro ao parar serviço', 'error');
+    }
+}
+
+// Função para reiniciar serviço
+async function restartService(index) {
+    try {
             const service = services[index];
-            
-            if (!confirm(`Tem certeza que deseja excluir o serviço "${service.name}"?`)) {
-                return;
+        if (!service || !service.id) {
+            throw new Error('Serviço não encontrado');
             }
             
-                try {
-                    const response = await fetch(`/api/servicos/${service._id}`, { 
-                    method: 'DELETE',
+        const response = await fetch(`/api/glassfish/servicos/${service.id}/restart`, {
+            method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                     });
                     
                     if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data.details || data.error || 'Erro ao excluir serviço');
+            throw new Error('Erro ao reiniciar serviço');
                     }
                     
-                services.splice(index, 1);
-                renderCards(services);
-                showToast(`Serviço "${service.name}" removido com sucesso`, 'success');
+        await fetchServices();
+        showToast('Serviço reiniciado com sucesso', 'success');
                 } catch (error) {
-                    console.error('Erro ao excluir serviço:', error);
-                showToast(`Erro ao excluir serviço: ${error.message}`, 'danger');
+        console.error('Erro ao reiniciar serviço:', error);
+        showToast('Erro ao reiniciar serviço', 'error');
+    }
+}
+
+// Função para verificar status do serviço
+async function checkServiceStatus(service) {
+    try {
+        if (!service || !service._id) {
+            console.error('Serviço inválido:', service);
+            return;
+        }
+
+        const response = await fetch(`/api/glassfish/servicos/${service._id}/status`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
             }
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao verificar status do serviço');
         }
 
-        async function filterCards() {
-            const statusFilter = document.getElementById('filter-status').value;
-            const setorFilter = document.getElementById('filter-setor').value;
-            const searchQuery = document.getElementById('search-input').value.toLowerCase();
-
-            const filteredServices = services.filter(service => {
-                const matchesStatus = statusFilter === 'all' || service.status === statusFilter;
-                const matchesSetor = setorFilter === 'all' || 
-                     (setorFilter === 'except' ? service.setor !== 'Setor Sup. Externo' : service.setor === setorFilter);
-                const matchesSearch = service.name.toLowerCase().includes(searchQuery);
-
-                return matchesStatus && matchesSetor && matchesSearch;
-            });
-
-            renderCards(filteredServices);
+        const status = await response.json();
+        const statusIndicator = document.getElementById(`status-${service._id}`);
+        if (statusIndicator) {
+            statusIndicator.className = `status-indicator ${status.status === 'active' ? 'status-active' : 'status-inactive'}`;
         }
 
-        // Ordenação
-        function sortCards(criteria) {
-            const sortedServices = [...services].sort((a, b) => {
-                if (criteria === 'name') {
-                    return a.name.localeCompare(b.name);
-                } else if (criteria === 'status') {
-                    return a.status.localeCompare(b.status);
-                } else if (criteria === 'setor') {
-                    return a.setor.localeCompare(b.setor);
-                }
-                return 0;
-            });
-            renderCards(sortedServices);
-        }
-
-        function toggleLiveLog() {
-            const statusElement = document.getElementById('live-log-status');
-            
-            if (currentWebSocket) {
-                currentWebSocket.close();
-                currentWebSocket = null;
-                statusElement.textContent = 'Iniciar Live Log';
-                return;
-            }
-
-            const service = services[currentServiceId];
-            const ws = new WebSocket(`ws://${window.location.host}/api/servicos/${service._id}/logs/live`);
-            
-            ws.onmessage = (event) => {
-                const logsContent = document.getElementById('logs-content');
-                logsContent.textContent += event.data;
-                logsContent.scrollTop = logsContent.scrollHeight;
-            };
-
-            ws.onclose = () => {
-                statusElement.textContent = 'Iniciar Live Log';
-                currentWebSocket = null;
-            };
-
-            currentWebSocket = ws;
-            statusElement.textContent = 'Parar Live Log';
-        }
-
-        async function viewLogs(index) {
-            currentServiceId = index;
-            try {
-                const service = services[index];
-                const response = await fetch(`/api/servicos/${service._id}/logs`);
-                const data = await response.json();
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
-                document.getElementById('logs-content').textContent = data.logs;
-                document.getElementById('logs-modal').classList.add('is-active');
+        return status;
             } catch (error) {
-                console.error('Erro ao obter logs:', error);
-                alert('Erro ao obter logs');
-            }
-        }
+        console.error('Erro ao verificar status:', error);
+        return null;
+    }
+}
 
-        function closeLogsModal() {
-            if (currentWebSocket) {
-                currentWebSocket.close();
-                currentWebSocket = null;
-            }
-            document.getElementById('logs-modal').classList.remove('is-active');
-        }
+// Função para abrir painel admin
+function openAdminPanel() {
+    const service = services[editingIndex];
+    if (!service) return;
 
-        function toggleSSHPasswordVisibility() {
-            const passwordInput = document.getElementById('service-ssh-password');
-            const eyeIcon = document.getElementById('ssh-eye-icon');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                eyeIcon.classList.remove('fa-eye');
-                eyeIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                eyeIcon.classList.remove('fa-eye-slash');
-                eyeIcon.classList.add('fa-eye');
-            }
-        }
+    const url = `http://${service.ip}:${service.port}`;
+    window.open(url, '_blank');
+}
 
+// Função para acessar NeoWeb
+function accessNeoWeb() {
+    const service = services[editingIndex];
+    if (!service) return;
+
+    const url = `http://${service.ip}:${service.productionPort}/neoweb`;
+    window.open(url, '_blank');
+}
+
+// Função para alternar visibilidade da senha
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('service-password');
             const eyeIcon = document.getElementById('eye-icon');
@@ -436,763 +457,260 @@
             }
         }
 
+// Função para testar conexão SSH
         async function testSSHConnection() {
-            const ip = document.getElementById('service-ip').value;
+    const host = document.getElementById('service-ip').value;
             const username = document.getElementById('service-ssh-username').value;
             const password = document.getElementById('service-ssh-password').value;
+    const resultElement = document.getElementById('ssh-test-result');
 
-            // Validar se todos os campos estão preenchidos
-            if (!ip || !username || !password) {
-                showToast('Por favor, preencha todos os campos SSH', 'warning');
+    if (!host || !username || !password) {
+        resultElement.textContent = 'Preencha todos os campos de conexão SSH';
+        resultElement.className = 'help is-danger';
                 return;
             }
 
             try {
-                const response = await fetch('/api/test-ssh', {
+                const response = await fetch('/api/glassfish/test-ssh', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                     },
                     body: JSON.stringify({
-                        ip: ip,
+                ip: host,
                         username: username,
                         password: password
                     })
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    showToast('Conexão SSH testada com sucesso', 'success');
-                } else {
-                    showToast(data.error || 'Erro ao testar conexão SSH', 'danger');
-                }
-            } catch (error) {
-                showToast('Erro ao testar conexão SSH: ' + error.message, 'danger');
-            }
-        }
-
-        function showToast(message, type) {
-            if (type === 'success' || type === 'info') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast is-${type} show`;
-            
-            setTimeout(() => {
-                    toast.className = toast.className.replace('show', '');
-            }, 3000);
-            }
-
-            // Adicionar ao log para todos os tipos de mensagem
-            addLogEntry(message, type);
-        }
-
-        function addLogEntry(message, type) {
-            if (!logViewerActive) return; // Não adicionar logs se o visualizador estiver desativado
-
-            const logViewer = document.getElementById('log-viewer');
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry ${type}`;
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${type.toUpperCase()}: ${message}`;
-            logViewer.appendChild(logEntry);
-
-            // Manter o scroll no final
-            logViewer.scrollTop = logViewer.scrollHeight;
-        }
-
-        function openAdminPanel() {
-            const ip = document.getElementById('service-ip').value;
-            const port = document.getElementById('service-port').value;
-            const url = `https://${ip}:${port}`;
-            window.open(url, '_blank');
-        }
-
-        // Atualizar a função updateDashboardStats para refletir as sugestões
-        async function updateDashboardStats() {
-            try {
-                const response = await fetch('/api/servicos/stats/overview');
                 if (!response.ok) {
-                    throw new Error('HTTP error! status: ' + response.status);
-                }
-                const overview = await response.json();
+            const error = await response.json();
+            throw new Error(error.details || error.error || 'Erro ao testar conexão SSH');
+        }
 
-                // Atualizar contadores
-                document.getElementById('total-servers').textContent = overview.totalServers;
-                document.getElementById('active-servers').textContent = overview.activeServers;
-                
-                // Atualizar médias e barras de progresso
-                document.getElementById('avg-ram-usage').textContent = `${overview.averageMemory}%`;
-                document.getElementById('avg-cpu-usage').textContent = `${overview.averageCpu}%`;
-                
-                const ramProgress = document.getElementById('ram-progress');
-                const cpuProgress = document.getElementById('cpu-progress');
-                
-                if (ramProgress && cpuProgress) {
-                    ramProgress.value = overview.averageMemory || 0;
-                    cpuProgress.value = overview.averageCpu || 0;
-                updateProgressColor(ramProgress, overview.averageMemory);
-                updateProgressColor(cpuProgress, overview.averageCpu);
-                }
-
-                // Atualizar detalhes dos servidores
-                const detailsContainer = document.getElementById('server-details');
-                if (detailsContainer) {
-                    if (overview.serverDetails && Array.isArray(overview.serverDetails)) {
-                        const detailsHtml = overview.serverDetails.map(server => `
-                            <div class="box server-detail">
-                                <div class="columns is-vcentered">
-                                    <div class="column is-3">
-                                        <strong>${server.name}</strong>
-                                    </div>
-                                    <div class="column is-2">
-                                        <span class="tag ${server.status === 'active' ? 'is-success' : 'is-danger'}">
-                                            ${server.status}
-                                        </span>
-                                    </div>
-                                    <div class="column is-3">
-                                        <div class="level is-mobile">
-                                            <div class="level-item">
-                                                <div>
-                                                    <p class="heading">RAM</p>
-                                                    <p class="title is-6">${server.memory}%</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="column is-3">
-                                        <div class="level is-mobile">
-                                            <div class="level-item">
-                                                <div>
-                                                    <p class="heading">CPU</p>
-                                                    <p class="title is-6">${server.cpu}%</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('');
-                        detailsContainer.innerHTML = detailsHtml;
-                    } else {
-                        detailsContainer.innerHTML = `
-                            <div class="notification is-info is-light">
-                                <p>Nenhum detalhe disponível</p>
-                            </div>
-                        `;
-                    }
-                }
-
+        const data = await response.json();
+        resultElement.textContent = data.message;
+        resultElement.className = 'help is-success';
             } catch (error) {
-                console.error('Erro ao atualizar estatísticas:', error);
-                showToast('Erro ao atualizar estatísticas: ' + error.message, 'danger');
-            }
-        }
+        console.error('Erro ao testar conexão SSH:', error);
+        resultElement.textContent = error.message;
+        resultElement.className = 'help is-danger';
+    }
+}
 
-        // Função para atualizar cores das barras de progresso
-        function updateProgressColor(progressBar, value) {
-            progressBar.classList.remove('is-success', 'is-warning', 'is-danger');
-            if (value < 60) {
-                progressBar.classList.add('is-success');
-            } else if (value < 80) {
-                progressBar.classList.add('is-warning');
-            } else {
-                progressBar.classList.add('is-danger');
-            }
-        }
-
-        // Iniciar monitoramento
-        function startMonitoring() {
-            // Primeira verificação imediata
-            updateDashboardStats();
-            checkAllServicesStatus();
-            
-            // Reduzir frequência das verificações
-            const statsInterval = setInterval(updateDashboardStats, 60000);  // 1 minuto
-            const statusInterval = setInterval(checkAllServicesStatus, 30000); // 30 segundos
-            
-            // Limpar intervalos quando a página for fechada
-            window.addEventListener('beforeunload', () => {
-                clearInterval(statsInterval);
-                clearInterval(statusInterval);
-            });
-        }
-
+// Função para lidar com mudança no tipo de acesso
         function handleAccessTypeChange() {
             const accessType = document.getElementById('service-access-type').value;
-            const ipInput = document.getElementById('service-ip');
-            const portInput = document.getElementById('service-port');
+    const productionPortField = document.getElementById('production-port').parentElement.parentElement;
             
             if (accessType === 'external') {
-                ipInput.placeholder = "IP externo ou hostname";
-                // Você pode adicionar validações específicas para IPs externos
+        productionPortField.style.display = 'block';
             } else {
-                ipInput.placeholder = "IP local (192.168.x.x)";
-            }
-        }
+        productionPortField.style.display = 'none';
+    }
+}
 
-        function openMaintenanceModal(index) {
-            event.stopPropagation(); // Evita que o modal de edição abra
-            currentMaintenanceIndex = index;
-            const service = services[index];
-            if (!service) {
-                showToast('Serviço não encontrado', 'danger');
-                return;
-            }
-            // Armazenar o ID do serviço no botão de execução
-            const executeButton = document.querySelector('#maintenance-modal .button.is-danger');
-            executeButton.setAttribute('data-service-id', service._id);
-            // Limpa os checkboxes
-            document.getElementById('clean-applications').checked = false;
-            document.getElementById('clean-logs').checked = false;
-            document.getElementById('clean-generated').checked = false;
-            document.getElementById('clean-autodeploy').checked = false;
-            // Abre o modal
-            document.getElementById('maintenance-modal').classList.add('is-active');
-        }
-
-        function closeMaintenanceModal() {
-            document.getElementById('maintenance-modal').classList.remove('is-active');
-            currentMaintenanceIndex = null;
-        }
-
-        async function executeMaintenanceFromModal(button) {
-            const serviceId = button.getAttribute('data-service-id');
-            if (!serviceId) {
-                showToast('ID do serviço não encontrado', 'danger');
-                return;
-            }
-
-            // Coletar todas as tarefas selecionadas
-            const tasks = [];
-            if (document.getElementById('clean-applications').checked) {
-                tasks.push('cleanApplications');
-            }
-            if (document.getElementById('clean-logs').checked) {
-                tasks.push('cleanLogs');
-            }
-            if (document.getElementById('clean-generated').checked) {
-                tasks.push('cleanGenerated');
-            }
-            if (document.getElementById('clean-autodeploy').checked) {
-                tasks.push('cleanAutodeploy');
-            }
-
-            // Verificar se pelo menos uma tarefa foi selecionada
-            if (tasks.length === 0) {
-                showToast('Selecione pelo menos uma opção de limpeza', 'warning');
-                return;
-            }
-
-            // Adicionar loading state
-            button.classList.add('is-loading');
-            button.disabled = true;
-            
-            try {
-                await executeMaintenanceTasks(serviceId, tasks);
-                closeMaintenanceModal();
-            } catch (error) {
-                showToast(error.message, 'danger');
-            } finally {
-                button.classList.remove('is-loading');
-                button.disabled = false;
-            }
-        }
-
-        async function executeMaintenanceTasks(serviceId, tasks) {
-            try {
-                // Primeiro, obter o serviço
-                const service = services.find(s => s._id === serviceId);
-                if (!service) {
+// Função para marcar serviço como em uso
+async function markInUse(index) {
+    try {
+        const service = services[index];
+        if (!service || !service.id) {
                     throw new Error('Serviço não encontrado');
                 }
 
-                // Executar a manutenção
-                const response = await fetch(`/api/servicos/${serviceId}/maintenance`, {
+        const response = await fetch(`/api/glassfish/servicos/${service.id}/in-use`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tasks })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                inUse: true,
+                inUseBy: localStorage.getItem('username') || 'Usuário desconhecido'
+            })
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Erro HTTP! status: ${response.status}`);
-                }
+            throw new Error('Erro ao marcar serviço como em uso');
+        }
 
-                const data = await response.json();
-                console.log('Resposta da manutenção:', data);
-                
-                // Mostrar resultados detalhados
-                let message = 'Tarefas executadas:\n';
-                data.results.forEach(result => {
-                    message += `\n${result.task}: ${result.success ? '✓' : '✗'} ${result.message}`;
-                });
-                showToast(message, 'success');
-                
-                // Atualizar o status do serviço
                 await fetchServices();
-                
+        showToast('Serviço marcado como em uso com sucesso', 'success');
             } catch (error) {
-                console.error('Erro na manutenção:', error);
-                showToast('Erro ao executar a manutenção: ' + error.message, 'danger');
-            }
-        }
+        console.error('Erro ao marcar serviço como em uso:', error);
+        showToast(error.message || 'Erro ao marcar serviço como em uso', 'error');
+    }
+}
 
-        function openDomainConfigModal(index) {
-            event.stopPropagation();
-            currentDomainConfigIndex = index;
-            const service = services[index];
-            
-            // Limpar campos e mostrar loading
-            setLoadingState(true);
-            
-            // Resetar campos
-            document.getElementById('db-server').value = '';
-            document.getElementById('db-user').value = '';
-            document.getElementById('db-password').value = '';
-            document.getElementById('db-name').value = '';
-            
-            // Resetar aplicações
-            const loadingEl = document.getElementById('applications-loading');
-            const contentEl = document.getElementById('applications-content');
-            contentEl.innerHTML = '';
-            loadingEl.classList.remove('is-hidden');
-            contentEl.classList.add('is-hidden');
-            
-            // Abrir modal
-            document.getElementById('domain-config-modal').classList.add('is-active');
-            
-            // Carregar configurações
-            loadDomainConfig(service);
-            loadApplicationsList(service);
-        }
-
-        function closeDomainConfigModal() {
-            document.getElementById('domain-config-modal').classList.remove('is-active');
-            currentDomainConfigIndex = null;
-        }
-
-        async function loadDomainConfig(service) {
-            setLoadingState(true);
-            
-            try {
-                const response = await fetch(`/api/servicos/${service._id}/domain-config`);
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Erro ao carregar configurações');
-                }
-                
-                // Atualizar os campos com os valores
-                document.getElementById('db-server').value = data.serverName || '';
-                document.getElementById('db-user').value = data.user || '';
-                document.getElementById('db-password').value = data.password || '';
-                document.getElementById('db-name').value = data.databaseName || '';
-                
+// Inicialização
+document.addEventListener('DOMContentLoaded', async () => {
+    // Registrar service worker
+    if ('serviceWorker' in navigator) {
+        try {
+            await navigator.serviceWorker.register('/sw.js');
+            console.log('Service Worker registrado com sucesso');
             } catch (error) {
-                console.error('Erro ao carregar configurações:', error);
-                showToast(`Erro ao carregar configurações: ${error.message}`, 'danger');
-            } finally {
-                setLoadingState(false);
-            }
+            console.error('Erro ao registrar Service Worker:', error);
         }
+    }
 
-        function setLoadingState(isLoading) {
-            const fields = ['server', 'user', 'password', 'name'];
-            fields.forEach(field => {
-                const input = document.getElementById(`db-${field}`);
-                const loadingIcon = document.getElementById(`db-${field}-loading`);
-                
-                input.disabled = isLoading;
-                input.placeholder = isLoading ? 'Carregando...' : '';
-                
-                if (loadingIcon) {
-                    loadingIcon.style.display = isLoading ? 'block' : 'none';
-                }
-            });
-        }
+    // Inicializar variáveis
+    let services = [];
+    let currentServiceIndex = null;
+    let currentMaintenanceIndex = null;
+    let currentDomainConfigIndex = null;
+    let isLogViewerOpen = false;
+    let logWebSocket = null;
 
-        function getDefaultPlaceholder(field) {
-            switch (field) {
-                case 'server': return '192.168.1.103';
-                case 'user': return 'postgres';
-                case 'name': return 'neocorp';
-                default: return '';
-            }
-        }
+    // Adicionar event listeners com verificações
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterCards);
+    }
 
-        function updateDatabaseFields(config) {
-            document.getElementById('db-server').value = config.serverName || '';
-            document.getElementById('db-user').value = config.user || '';
-            document.getElementById('db-password').value = config.password || '';
-            document.getElementById('db-name').value = config.databaseName || '';
-        }
-
-        async function loadApplicationsList(service) {
-            const loadingEl = document.getElementById('applications-loading');
-            const contentEl = document.getElementById('applications-content');
-            
-            try {
-            loadingEl.classList.remove('is-hidden');
-            contentEl.classList.add('is-hidden');
-
-                const response = await fetch(`/api/servicos/${service._id}/applications`);
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.details || data.error || 'Erro ao listar aplicações');
-                }
-                
-                let content = '';
-                if (data.error) {
-                    content = `
-                        <div class="notification is-warning">
-                            <p>${data.message || 'Erro ao carregar aplicações'}</p>
-                        </div>
-                    `;
-                } else if (!data.applications || data.applications.length === 0) {
-                    content = `
-                        <div class="notification is-info">
-                            <p>Nenhuma aplicação instalada</p>
-                        </div>
-                    `;
-                } else {
-                    content = data.applications.map(app => `
-                            <div class="box">
-                                <strong>${app.name}</strong>
-                            <p class="help">Status: ${app.status}</p>
-                            <p class="help">Engine: ${app.engine}</p>
-                                <p class="help">Localização: ${app.location}</p>
-                            </div>
-                    `).join('');
-                }
-                
-                contentEl.innerHTML = content;
-            } catch (error) {
-                console.error('Erro ao carregar aplicações:', error);
-                contentEl.innerHTML = `
-                    <div class="notification is-danger">
-                        <p>Erro ao carregar aplicações: ${error.message}</p>
-                    </div>
-                `;
-            } finally {
-                loadingEl.classList.add('is-hidden');
-                contentEl.classList.remove('is-hidden');
-            }
-        }
-
-        async function saveDomainConfig() {
-            try {
-            const service = services[currentDomainConfigIndex];
-                if (!service) {
-                    throw new Error('Serviço não encontrado');
-                }
-
-                // Coletar os valores dos campos
-            const config = {
-                    serverName: document.getElementById('db-server').value.trim(),
-                    user: document.getElementById('db-user').value.trim(),
-                    password: document.getElementById('db-password').value.trim(),
-                    databaseName: document.getElementById('db-name').value.trim()
-                };
-
-                // Validar se todos os campos estão preenchidos
-                if (!config.serverName || !config.user || !config.password || !config.databaseName) {
-                    showToast('Por favor, preencha todos os campos', 'warning');
-                    return;
-                }
-
-                // Adicionar loading state
-                const saveButton = document.querySelector('#domain-config-modal .button.is-success');
-                saveButton.classList.add('is-loading');
-                saveButton.disabled = true;
-
-            try {
-                const response = await fetch(`/api/servicos/${service._id}/domain-config`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
-                });
-
-                if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || errorData.details || 'Erro ao salvar configurações');
-                }
-
-                    const data = await response.json();
-                showToast('Configurações salvas com sucesso!', 'success');
-                closeDomainConfigModal();
-            } catch (error) {
-                console.error('Erro ao salvar configurações:', error);
-                    showToast(error.message, 'danger');
-                    throw error;
-                } finally {
-                    // Remover loading state
-                    saveButton.classList.remove('is-loading');
-                    saveButton.disabled = false;
-                }
-            } catch (error) {
-                console.error('Erro ao salvar configurações:', error);
-                showToast(error.message, 'danger');
-            }
-        }
-
-        function switchTab(tab) {
-            const tabs = document.querySelectorAll('.tabs li');
-            const contents = document.querySelectorAll('.tab-content');
-            
-            // Remover classe ativa de todas as tabs
-            tabs.forEach(t => t.classList.remove('is-active'));
-            
-            // Esconder todos os conteúdos
-            contents.forEach(c => {
-                c.style.display = 'none';
-                // Garantir que o conteúdo está oculto usando classes também
-                c.classList.remove('is-active');
-            });
-            
-            // Ativar a tab selecionada
-            const activeTab = document.querySelector(`.tabs li a[onclick="switchTab('${tab}')"]`).parentElement;
-            activeTab.classList.add('is-active');
-            
-            // Mostrar o conteúdo da tab selecionada
-            const activeContent = document.getElementById(`${tab}-tab`);
-            activeContent.style.display = 'block';
-            activeContent.classList.add('is-active');
-        }
-
-        document.getElementById('application-file').addEventListener('change', function(e) {
+    const applicationFile = document.getElementById('application-file');
+    if (applicationFile) {
+        applicationFile.addEventListener('change', (e) => {
             const fileName = e.target.files[0]?.name || 'Nenhum arquivo selecionado';
-            document.getElementById('file-name').textContent = fileName;
-            document.getElementById('upload-button').disabled = !e.target.files[0];
-        });
-
-        async function uploadApplication() {
-            const fileInput = document.getElementById('application-file');
+            const fileNameElement = document.getElementById('file-name');
             const uploadButton = document.getElementById('upload-button');
-            const file = fileInput.files[0];
-            if (!file) {
-                showToast('Selecione um arquivo para upload', 'warning');
-                return;
-            }
-
-            const service = services[currentDomainConfigIndex];
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                uploadButton.classList.add('is-loading');
-                uploadButton.disabled = true;
-                
-                // Corrigir a URL para usar o ID correto do serviço
-                const response = await fetch(`/api/servicos/${service._id}/upload-application`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                // Verificar se a resposta não é OK antes de tentar parsear JSON
-                if (!response.ok) {
-                    const contentType = response.headers.get('content-type');
-                    let errorMessage;
-                    
-                    if (contentType && contentType.includes('application/json')) {
-                        const errorData = await response.json();
-                        errorMessage = errorData.error || 'Erro ao fazer upload da aplicação';
-                    } else {
-                        errorMessage = `Erro ${response.status}: ${response.statusText}`;
-                    }
-                    throw new Error(errorMessage);
-                }
-
-                const data = await response.json();
-                showToast('Upload realizado com sucesso!', 'success');
-                fileInput.value = '';
-                document.getElementById('file-name').textContent = 'Nenhum arquivo selecionado';
-                uploadButton.disabled = true;
-                
-                // Recarregar lista de aplicações
-                await loadApplicationsList(service);
-            } catch (error) {
-                console.error('Erro no upload:', error);
-                let errorMessage = error.message;
-                if (error.message.includes('Failed to fetch')) {
-                    errorMessage = 'Erro de conexão. Verifique o tamanho do arquivo e tente novamente.';
-                }
-                showToast('Erro ao fazer upload: ' + errorMessage, 'danger');
-            } finally {
-                uploadButton.classList.remove('is-loading');
-                uploadButton.disabled = false;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchServices();
-            startMonitoring();
-
-            const copyLogButton = document.getElementById('copy-log-button');
-            const logContent = document.getElementById('logs-content');
-
-            copyLogButton.addEventListener('click', () => {
-                const range = document.createRange();
-                range.selectNode(logContent);
-                window.getSelection().removeAllRanges(); // Limpar seleções anteriores
-                window.getSelection().addRange(range);
-
-                try {
-                    const successful = document.execCommand('copy');
-                    const msg = successful ? 'Logs copiados com sucesso!' : 'Falha ao copiar logs';
-                    showToast(msg, successful ? 'success' : 'danger');
-                } catch (err) {
-                    showToast('Erro ao copiar logs', 'danger');
-                }
-
-                window.getSelection().removeAllRanges(); // Limpar seleção após copiar
-            });
+            
+            if (fileNameElement) fileNameElement.textContent = fileName;
+            if (uploadButton) uploadButton.disabled = !e.target.files[0];
         });
+    }
 
-        async function checkServiceStatus(service) {
-            try {
-                const response = await fetch(`/api/servicos/${service._id}/status`);
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.details || data.error || 'Erro ao verificar status');
+    // Adicionar event listener para o botão de adicionar serviço
+    const addButton = document.querySelector('[data-action="openAddModal"]');
+    if (addButton) {
+        addButton.addEventListener('click', () => {
+            const modal = document.getElementById('add-modal');
+            if (modal) {
+                modal.classList.add('is-active');
+            }
+        });
+    }
+
+    // Adicionar event listener para o botão de salvar
+    const saveButton = document.querySelector('[data-action="saveGlassfish"]');
+    if (saveButton) {
+        saveButton.addEventListener('click', saveGlassfish);
+    }
+
+    // Adicionar event listener para o botão de cancelar
+    const cancelButton = document.querySelector('[data-action="closeAddModal"]');
+    if (cancelButton) {
+        cancelButton.addEventListener('click', closeAddModal);
+    }
+
+    // Adicionar event listeners para elementos com data-action
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        switch (action) {
+            case 'filter':
+                filterCards();
+                break;
+            case 'openAddModal':
+                openAddModal();
+                break;
+            case 'closeAddModal':
+                closeAddModal();
+                break;
+            case 'testSSHConnection':
+                testSSHConnection();
+                break;
+            case 'openAdminPanel':
+                openAdminPanel();
+                break;
+            case 'accessNeoWeb':
+                accessNeoWeb();
+                break;
+            case 'closeModal':
+                const modalId = target.dataset.modal;
+                closeModal(modalId);
+                break;
+            case 'saveUserName':
+                saveUserName(services, fetchServices);
+                break;
+            case 'saveDomainConfig':
+                saveDomainConfig();
+                break;
+            case 'uploadApplication':
+                uploadApplication();
+                break;
+            case 'executeMaintenance':
+                executeMaintenance(services, fetchServices);
+                break;
+            case 'viewLogs':
+                const logIndex = parseInt(target.dataset.index);
+                viewLogs(logIndex, services);
+                break;
+            case 'editService':
+                const editIndex = parseInt(target.dataset.index);
+                openAddModal(editIndex);
+                break;
+            case 'startService':
+                const startIndex = parseInt(target.dataset.index);
+                startService(startIndex);
+                break;
+            case 'stopService':
+                const stopIndex = parseInt(target.dataset.index);
+                stopService(stopIndex);
+                break;
+            case 'restartService':
+                const restartIndex = parseInt(target.dataset.index);
+                restartService(restartIndex);
+                break;
+            case 'domainConfig':
+                const domainIndex = parseInt(target.dataset.index);
+                openDomainConfigModal(domainIndex, services);
+                break;
+            case 'markInUse':
+                const markIndex = parseInt(target.dataset.index);
+                markInUse(markIndex);
+                break;
+            case 'markAvailable':
+                const availableIndex = parseInt(target.dataset.index);
+                markServiceAvailable(availableIndex, services, fetchServices);
+                break;
+            case 'toggleLogViewer':
+                toggleLogViewer();
+                break;
+            case 'clearLogViewer':
+                const logViewer = document.getElementById('log-viewer');
+                if (logViewer) {
+                    logViewer.innerHTML = '';
                 }
+                break;
+        }
+    });
 
-                // Se houver erro de instalação, mostrar mensagem específica
-                if (data.status === 'error' && data.details?.error === 'installation_not_found') {
-                    showToast(`Erro no servidor ${service.name}: ${data.details.message}`, 'warning');
-                    return data;
-                }
-
-                const statusIndicator = document.querySelector(`#status-${service._id}`);
-                if (statusIndicator) {
-                    statusIndicator.className = `status-indicator ${data.status === 'active' ? 'status-active' : 'status-inactive'}`;
-                    service.status = data.status;
-                    service.pid = data.pid;
-                }
-
-                return data;
-            } catch (error) {
-                console.error(`Erro ao verificar status de ${service.name}:`, error);
-                return { 
-                    status: 'error', 
-                    pid: null,
-                    error: error.message
-                };
-            }
+    // Adicionar event listeners para fechar o modal
+    const addModal = document.getElementById('add-modal');
+    if (addModal) {
+        // Fechar ao clicar no background
+        const modalBackground = addModal.querySelector('.modal-background');
+        if (modalBackground) {
+            modalBackground.addEventListener('click', () => {
+                addModal.classList.remove('is-active');
+                currentServiceIndex = null;
+            });
         }
 
-        async function markServiceInUse(index, userName) {
-            const service = services[index];
-            try {
-                const response = await fetch(`/api/servicos/${service._id}/in-use`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user: userName })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erro ao marcar serviço como em uso');
-                }
-
-                const data = await response.json();
-                showToast(`${data.message} por ${data.currentUser}`, 'success');
-                service.inUse = true;
-                service.currentUser = data.currentUser;
-                renderCards(services);
-            } catch (error) {
-                showToast(error.message, 'danger');
-            }
+        // Fechar ao clicar no botão de fechar
+        const closeButton = addModal.querySelector('.delete');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => {
+                addModal.classList.remove('is-active');
+                currentServiceIndex = null;
+            });
         }
+    }
 
-        async function markServiceAvailable(index) {
-            const service = services[index];
-            try {
-                const response = await fetch(`/api/servicos/${service._id}/available`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erro ao marcar serviço como disponível');
-                }
-
-                const data = await response.json();
-                showToast(data.message, 'success');
-                service.inUse = false;
-                service.currentUser = '';
-                renderCards(services);
-            } catch (error) {
-                showToast(error.message, 'danger');
-            }
-        }
-
-        function openUserNameModal(index) {
-            const modal = document.getElementById('user-name-modal');
-            modal.classList.add('is-active');
-
-            // Tentar buscar o nome do usuário do localStorage
-            const storedUserName = localStorage.getItem('userName');
-            if (storedUserName) {
-                document.getElementById('modal-user-name').value = storedUserName;
-            }
-
-            // Armazenar o índice do serviço atual para uso posterior
-            modal.dataset.serviceIndex = index;
-        }
-
-        function closeUserNameModal() {
-            const modal = document.getElementById('user-name-modal');
-            modal.classList.remove('is-active');
-        }
-
-        function confirmUserName() {
-            const modal = document.getElementById('user-name-modal');
-            const userName = document.getElementById('modal-user-name').value.trim();
-
-            if (userName) {
-                // Salvar o nome do usuário no localStorage
-                localStorage.setItem('userName', userName);
-
-                // Obter o índice do serviço e marcar como em uso
-                const serviceIndex = modal.dataset.serviceIndex;
-                markServiceInUse(serviceIndex, userName);
-
-                closeUserNameModal();
-                    } else {
-                showToast('Por favor, insira seu nome', 'warning');
-            }
-        }
-
-        function handleCardClick(event, index) {
-            // Verificar se o clique foi em um botão
-            if (event.target.closest('button')) {
-                return; // Não fazer nada se o clique foi em um botão
-            }
-            openAddModal(index); // Abrir o modal se o clique não foi em um botão
-        }
-
-        function toggleLogViewer() {
-            logViewerActive = !logViewerActive;
-            const logViewer = document.getElementById('log-viewer');
-            logViewer.style.display = logViewerActive ? 'block' : 'none';
-        }
-
-        function clearLogViewer() {
-            const logViewer = document.getElementById('log-viewer');
-            logViewer.innerHTML = '';
-        }
-
-        function accessNeoWeb() {
-            const ip = document.getElementById('service-ip').value.trim();
-            const productionPort = document.getElementById('production-port').value.trim();
-
-            if (!ip || !productionPort) {
-                showToast('Por favor, preencha o IP e a Porta de Produção', 'warning');
-                return;
-            }
-
-            const url = `https://${ip}:${productionPort}/neocorp`;
-            window.open(url, '_blank');
-        }
+    // Carregar serviços iniciais
+    await fetchServices();
+});

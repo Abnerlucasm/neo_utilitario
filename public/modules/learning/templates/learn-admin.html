@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - Central de Aprendizado</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="stylesheet" href="/modules/learning/css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="container">
+        <div class="section">
+            <h1 class="title">Administração da Central de Aprendizado</h1>
+            <div id="adminContainer">
+                <!-- Conteúdo será carregado dinamicamente -->
+                <div class="notification is-info">
+                    <p>Carregando painel administrativo...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <neo-footer></neo-footer>
+
+    <script src="/components/navbar/navbar.js" type="module"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/modules/learning/js/admin.js" type="module"></script>
+    
+    <!-- Script de debug para ambiente de desenvolvimento -->
+    <script src="/modules/learning/js/auth-debug.js"></script>
+</body>
+</html> 

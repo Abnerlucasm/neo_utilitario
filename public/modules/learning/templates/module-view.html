@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Módulo de Aprendizagem</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="stylesheet" href="/modules/learning/css/view.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+    
+    <main class="container">
+        <div class="section">
+            <h1 class="title" id="moduleName"></h1>
+            
+            <div class="columns">
+                <div class="column is-3">
+                    <aside class="menu">
+                        <p class="menu-label">Seções</p>
+                        <ul class="menu-list" id="moduleSections">
+                            <!-- Seções serão carregadas aqui -->
+                        </ul>
+                    </aside>
+                </div>
+                <div class="column is-9">
+                    <div class="content-area">
+                        <div class="search-container mb-4">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    <input type="text" class="input" id="searchInput" placeholder="Buscar conteúdo...">
+                                    <span class="icon is-left">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="searchResults" class="content mb-4" style="display: none;">
+                            <!-- Resultados da busca serão mostrados aqui -->
+                        </div>
+                        <div id="pageContent" class="content markdown-content">
+                            <!-- Conteúdo da página será carregado aqui -->
+                        </div>
+                        <div class="navigation-buttons mt-4">
+                            <!-- Botões de navegação serão inseridos aqui -->
+                        </div>
+                        <div class="progress-container mt-4">
+                            <!-- Barra de progresso será inserida aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <neo-footer></neo-footer>
+
+    <!-- Scripts -->
+    <script src="/components/navbar/navbar.js" type="module"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/modules/learning/js/module-view.js"></script>
+    <!-- Script de diagnóstico - remova em produção -->
+    <script src="/modules/learning/js/debug-module.js"></script>
+    <!-- Script de correção - remova em produção -->
+    <script src="/modules/learning/js/fix-module-client.js"></script>
+</body>
+</html> 

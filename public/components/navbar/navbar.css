@@ -1,3 +1,5 @@
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -22,8 +24,60 @@
 .navbar-brand {
     display: flex;
     align-items: center;
+}
+
+.navbar-end {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.navbar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.menu-toggle {
+    background: none;
+    border: none;
     cursor: pointer;
-    transition: transform 0.2s ease;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    color: #363636;
+}
+
+.dark-theme .menu-toggle {
+    color: #ffffff;
+}
+
+.button.is-light {
+    background-color: #f5f5f5;
+    border-color: transparent;
+    color: #363636;
+    transition: background-color 0.3s ease;
+}
+
+.button.is-light:hover {
+    background-color: #e8e8e8;
+}
+
+/* Tema escuro */
+.dark-theme .navbar {
+    background: #2c2d31;
+}
+
+.dark-theme .button.is-light {
+    background-color: #363636;
+    color: #f5f5f5;
+}
+
+.dark-theme .button.is-light:hover {
+    background-color: #404040;
+}
+
+.dark-theme .menu-toggle {
+    color: #ffffff;
 }
 
 .navbar-brand:hover {
@@ -40,6 +94,15 @@
     padding: 0.8rem 1rem;
     margin-top: 60px;
     border-bottom: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.dark-theme .breadcrumb-container {
+    background: #2c2d31;
+    border-bottom: 1px solid #404246;
 }
 
 .breadcrumb {
@@ -51,6 +114,9 @@
     flex-wrap: wrap;
     padding: 0;
     margin: 0;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .breadcrumb li {
@@ -66,15 +132,20 @@
     line-height: 1;
 }
 
+.dark-theme .breadcrumb li:not(:last-child)::after {
+    color: #808080;
+}
+
 .breadcrumb a {
-    color:rgb(106, 160, 12);
+    color: #6a7a0c;
     text-decoration: none;
     transition: all 0.2s ease;
     padding: 0.3rem 0.6rem;
     border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+}
+
+.dark-theme .breadcrumb a {
+    color: #9bb72c;
 }
 
 .breadcrumb a:not(.is-active)::before {
@@ -100,25 +171,8 @@
     pointer-events: none;
 }
 
-/* Menu Toggle Button aprimorado */
-.menu-toggle {
-    background: rgba(33, 150, 243, 0.1);
-    border: 2px solid rgb(45, 45, 45);
-    border-radius: 8px;
-    font-size: 20px;
-    color: rgb(45, 45, 45);
-    cursor: pointer;
-    padding: 8px 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.menu-toggle:hover {
-    background:rgb(140, 200, 105);
-    color: white;
-    transform: scale(1.05);
+.dark-theme .breadcrumb .is-active a {
+    color: #ffffff;
 }
 
 /* Sidebar Styles Aprimorados */
@@ -263,4 +317,107 @@
 .navbar.dark-theme .navbar-link:hover {
     background-color: #3a3b3f !important;
     color: #3273dc !important;
+}
+
+.navbar-end .button.is-light {
+    border: none;
+    background: transparent;
+    padding: 0.5rem;
+    color: #363636;
+}
+
+.navbar-end .button.is-light .icon {
+    font-size: 1.2rem;
+}
+
+/* Tema escuro */
+.dark-theme .navbar-end .button.is-light,
+.dark-theme .navbar-end .button.is-light .icon,
+.dark-theme .navbar-end .button.is-light i {
+    color: #ffffff !important;
+}
+
+/* Menu burger */
+.menu-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+/* Hover effects */
+.navbar-end .button.is-light:hover,
+.dark-theme .navbar-end .button.is-light:hover,
+.dark-theme .menu-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Estilos dos ícones do navbar */
+.navbar-end .button.is-light,
+.menu-toggle {
+    background: transparent;
+    border: none;
+    color: inherit;
+    padding: 0.7rem;
+    margin: 0 0.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.navbar-end .icon {
+    margin: 0;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Garantir que os ícones sejam visíveis no tema escuro */
+.dark-theme .navbar-end .button.is-light,
+.dark-theme .menu-toggle {
+    color: #fff;
+}
+
+/* Garantir que os ícones sejam visíveis no tema claro */
+.navbar-end .button.is-light,
+.menu-toggle {
+    color: #363636;
+}
+
+/* Efeito de elevação */
+.navbar-end .button.is-light,
+.menu-toggle {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.dark-theme .navbar-end .button.is-light,
+.dark-theme .menu-toggle {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Garantir que os ícones sejam carregados */
+.fa,
+.fas,
+.far,
+.fal,
+.fab {
+    font-family: "Font Awesome 6 Free" !important;
+}
+
+.fas {
+    font-weight: 900 !important;
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon i {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
 }

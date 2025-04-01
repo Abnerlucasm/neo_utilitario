@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecionando...</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <style>
+        .center-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
+        }
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #ddd;
+            border-bottom-color: #485fc7;
+            border-radius: 50%;
+            animation: rotation 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .auth-debug {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div class="center-container">
+        <div class="loader"></div>
+        <h1 class="title">Verificando acesso...</h1>
+        <p class="subtitle" id="statusMessage">Aguarde enquanto verificamos sua autenticação</p>
+        
+        <div class="buttons mt-4" id="actionButtons" style="display: none;">
+            <button class="button is-primary" id="loginBtn">Fazer Login</button>
+            <button class="button is-info" id="retryBtn">Tentar Novamente</button>
+        </div>
+        
+        <div class="auth-debug" id="authDebug" style="display: none;">
+            <h3 class="is-size-5 mb-2">Informações de Depuração</h3>
+            <pre id="debugInfo" style="text-align: left; white-space: pre-wrap;"></pre>
+        </div>
+    </div>
+
+    <script>
+        // Verificação de autenticação
+        document.addEventListener('DOMContentLoaded', async () => {
+            const statusMessage = document.getElementById('statusMessage');
+            const actionButtons = document.getElementById('actionButtons');
+            const loginBtn = document.getElementById('loginBtn');
+            const retryBtn = document.getElementById('retryBtn');
+            const authDebug = document.getElementById('authDebug');
+            const debugInfo = document.getElementById('debugInfo');
+            
+            // Obter o token do localStorage
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                showError('Token de autenticação não encontrado. Por favor, faça login.');
+                return;
+            }
+            
+            try {
+                // Verificar informações do token
+                try {
+                    const tokenParts = token.split('.');
+                    if (tokenParts.length === 3) {
+                        const payload = JSON.parse(atob(tokenParts[1]));
+                        debugInfo.textContent = JSON.stringify(payload, null, 2);
+                        authDebug.style.display = 'block';
+                        
+                        // Verificar se o token expirou
+                        if (payload.exp && payload.exp * 1000 < Date.now()) {
+                            showError('Token expirado. Por favor, faça login novamente.');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Erro ao decodificar token:', e);
+                }
+                
+                // Tentar acessar a rota protegida
+                statusMessage.textContent = 'Verificando permissões...';
+                
+                const response = await fetch('/api/learning/modules', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    // Redirecionamento baseado na URL original
+                    const originalPath = window.location.pathname;
+                    let targetPath = '/admin/learning/modules';
+                    
+                    // Verificar se estamos tentando acessar uma página específica
+                    if (originalPath.includes('/module/new')) {
+                        targetPath = '/admin/learning/module/new';
+                    } else if (originalPath.includes('/module/edit/')) {
+                        const moduleId = originalPath.split('/').pop();
+                        targetPath = `/admin/learning/module/edit/${moduleId}`;
+                    }
+                    
+                    statusMessage.textContent = 'Acesso autorizado! Redirecionando...';
+                    setTimeout(() => {
+                        window.location.href = targetPath;
+                    }, 1000);
+                } else {
+                    // Erro de autorização
+                    const errorText = await response.text();
+                    showError(`Acesso negado: ${response.status} - ${errorText || 'Erro de autorização'}`);
+                }
+            } catch (error) {
+                showError(`Erro ao verificar acesso: ${error.message}`);
+            }
+            
+            // Configurar botões
+            loginBtn.addEventListener('click', () => {
+                window.location.href = '/pages/login.html';
+            });
+            
+            retryBtn.addEventListener('click', () => {
+                window.location.reload();
+            });
+            
+            function showError(message) {
+                statusMessage.textContent = message;
+                statusMessage.classList.add('has-text-danger');
+                actionButtons.style.display = 'flex';
+                document.querySelector('.loader').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 

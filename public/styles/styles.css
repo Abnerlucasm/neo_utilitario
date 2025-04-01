@@ -11,13 +11,16 @@ body {
     transition: all 0.3s ease;
 }
 
+main {
+    flex: 1;
+}
 
 /* Container Principal */
 .container {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: 1rem;
 }
 
 /* Título */
@@ -331,4 +334,89 @@ body.dark .new-feature-card .card-footer-item:hover {
     width: auto;
     margin-left: 0.5rem;
     vertical-align: middle;
+}
+
+.card-footer-item:hover {
+    background-color: #f5f5f5;
+    color: #3850b7;
+}
+
+/* Cards desabilitados */
+.card-footer-item.is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+    color: #999;
+}
+
+/* Tag de descontinuado */
+.tag.is-warning.is-light {
+    background-color: #fff3e0;
+    color: #ff9800;
+    font-size: 0.75rem;
+}
+
+/* Responsividade */
+@media screen and (max-width: 768px) {
+    .column.is-4 {
+        width: 100%;
+        padding: 0.75rem;
+    }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1023px) {
+    .column.is-4 {
+        width: 50%;
+    }
+}
+
+.hero.is-fullheight {
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.box {
+    margin-top: -60px;
+}
+
+.notification {
+    margin-bottom: 1rem;
+}
+
+.field:not(:last-child) {
+    margin-bottom: 1rem;
+}
+
+/* Estilos para a central de aprendizado */
+.achievement-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #dbdbdb;
+}
+
+.achievement-item:last-child {
+    border-bottom: none;
+}
+
+.card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-content {
+    flex-grow: 1;
+}
+
+.progress::-webkit-progress-value {
+    transition: width 0.5s ease;
+}
+
+/* Animação para os cards de módulo */
+.card {
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(10, 10, 10, 0.1);
 }

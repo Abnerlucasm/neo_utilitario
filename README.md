@@ -75,6 +75,54 @@ As seguintes variáveis de ambiente são necessárias:
 - `UPLOAD_DIR`: Diretório para uploads
 - `NODE_ENV`: Ambiente de execução (development/production)
 
+## Gerenciamento de Menus
+
+O sistema agora suporta menus dinâmicos armazenados no banco de dados. Isso permite que os menus sejam gerenciados sem alterar o código-fonte.
+
+### Criação da Tabela de Menus
+
+A tabela de menus é criada automaticamente na inicialização do sistema. Se você precisar criar a tabela manualmente, execute:
+
+```bash
+npm run create-menu-table
+```
+
+### Populando Menus Padrão
+
+O sistema verifica automaticamente se existem menus na inicialização e, se não houver, cria os menus padrão. Para executar este processo manualmente:
+
+```bash
+npm run seed-menus
+```
+
+### Interface de Administração de Menus
+
+Os administradores podem gerenciar os menus do sistema através da interface em:
+
+```
+/pages/admin/menus.html
+```
+
+Esta interface permite:
+- Criar novos menus e submenus
+- Editar menus existentes
+- Excluir menus
+- Ativar/desativar menus
+- Definir ícones e ordem de exibição
+- Configurar permissões de acesso
+
+### Estrutura de Menus
+
+Cada menu possui os seguintes atributos:
+- **Título**: Nome exibido no menu
+- **Caminho (URL)**: Link para onde o menu direciona
+- **Ícone**: Ícone do FontAwesome
+- **Ordem**: Posição do menu na lista
+- **Menu Pai**: Para criar submenus
+- **Caminho do Recurso**: Usado para verificação de permissões
+- **Apenas para Administradores**: Se o menu deve ser visível apenas para admins
+- **Ativo**: Se o menu está ativo e visível
+
 ## 👥 Contribuição
 
 1. **Faça um Fork do projeto**

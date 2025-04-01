@@ -11,9 +11,10 @@
     font-weight: 700;
     letter-spacing: -2px;
     margin-bottom: 1rem;
-    background: linear-gradient(45deg, #ffffff, #E0E0E0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 .brand-subtitle {
     font-size: 1.5rem;
@@ -90,4 +91,15 @@
 
 #install-button:hover {
     background-color: #0056b3; /* Cor ao passar o mouse */
+}
+
+.neo-logo {
+    height: 4rem;
+    width: auto;
+}
+
+.brand-title span {
+    background: linear-gradient(45deg, #ffffff, #E0E0E0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }

@@ -1,0 +1,230 @@
+/* Estilos para a interface administrativa */
+
+/* Base */
+body {
+    font-family: 'Roboto', 'Arial', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-container {
+    flex: 1;
+    padding: 1.5rem;
+}
+
+/* Container principal com margem para a navbar */
+.container.mt-6 {
+    margin-top: 5rem !important; /* Aumentar o margin-top para evitar sobreposição com a navbar */
+}
+
+/* Navbar fixa */
+.navbar.is-fixed-top {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    padding: 0.75rem 0;
+}
+
+.breadcrumb li+li::before {
+    color: #b5b5b5;
+}
+
+/* Cards */
+.card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    box-shadow: none;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+/* Botões */
+.button.is-primary {
+    background-color: #3273dc;
+}
+
+.button.is-primary:hover {
+    background-color: #2366d1;
+}
+
+/* Tabelas */
+.table {
+    width: 100%;
+}
+
+.table thead th {
+    border-bottom: 2px solid #dbdbdb;
+}
+
+.table.is-hoverable tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Formulários */
+.label {
+    font-weight: 500;
+}
+
+.input:focus, .textarea:focus, .select select:focus {
+    border-color: #3273dc;
+    box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
+}
+
+/* Footer */
+.footer {
+    padding: 2rem 1.5rem;
+    background-color: #fafafa;
+}
+
+/* Notificações */
+.notification {
+    margin-bottom: 1.5rem;
+}
+
+/* Dashboard */
+.dashboard-tile {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.dashboard-tile:hover {
+    transform: translateY(-5px);
+}
+
+.dashboard-tile .title {
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-tile .subtitle {
+    color: #7a7a7a;
+}
+
+.dashboard-tile .icon-large {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* Módulos de aprendizado */
+.module-card .card-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.module-card .content {
+    flex: 1;
+}
+
+.module-card .card-footer {
+    margin-top: auto;
+}
+
+/* Formulário de módulo */
+.module-form .field {
+    margin-bottom: 1.5rem;
+}
+
+.module-image-preview {
+    max-width: 100%;
+    max-height: 200px;
+    margin-top: 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Tema escuro */
+body.dark-theme {
+    background-color: #121212;
+    color: #eaeaea;
+}
+
+body.dark-theme .navbar {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+body.dark-theme .navbar-item,
+body.dark-theme .navbar-link {
+    color: #eaeaea;
+}
+
+body.dark-theme .navbar-dropdown {
+    background-color: #1a1a1a;
+    border-color: #2c2c2c;
+}
+
+body.dark-theme .card {
+    background-color: #1a1a1a;
+    color: #eaeaea;
+}
+
+body.dark-theme .card-header {
+    border-color: #2c2c2c;
+}
+
+body.dark-theme .table {
+    background-color: #1a1a1a;
+    color: #eaeaea;
+}
+
+body.dark-theme .table thead th {
+    border-color: #2c2c2c;
+}
+
+body.dark-theme .table.is-hoverable tbody tr:hover {
+    background-color: #2c2c2c;
+}
+
+body.dark-theme .notification.is-info.is-light {
+    background-color: #1a1a1a;
+    color: #3298dc;
+    border: 1px solid #3298dc;
+}
+
+body.dark-theme .footer {
+    background-color: #1a1a1a;
+    color: #eaeaea;
+}
+
+body.dark-theme .input,
+body.dark-theme .textarea,
+body.dark-theme .select select {
+    background-color: #2c2c2c;
+    border-color: #3f3f3f;
+    color: #eaeaea;
+}
+
+body.dark-theme .input:focus,
+body.dark-theme .textarea:focus,
+body.dark-theme .select select:focus {
+    border-color: #3273dc;
+}
+
+/* Responsivo */
+@media screen and (max-width: 768px) {
+    .navbar-menu {
+        background-color: inherit;
+    }
+    
+    .main-container {
+        padding: 1rem;
+    }
+} 

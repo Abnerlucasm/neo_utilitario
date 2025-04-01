@@ -1,45 +1,120 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Verificar autenticação
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        window.location.href = '/pages/login.html';
+        return;
+    }
+
+    // Escutar evento de recursos carregados
+    document.addEventListener('userResourcesLoaded', (event) => {
+        const { resources } = event.detail;
+        filterCards(resources);
+    });
+
+    // Carregar recursos imediatamente se disponíveis
+    loadAndFilterResources();
+
     // Carregar configurações salvas
     const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-    
-    // Configurar campos do modal com valores salvos
-    document.getElementById('userNameInput').value = userSettings.userName || '';
-    document.getElementById('themeSelect').value = userSettings.theme || 'light';
     
     // Aplicar tema inicial
     if (userSettings.theme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
         document.body.classList.add('dark-theme');
     }
-    
-    // Salvar configurações quando o botão for clicado
-    document.getElementById('saveSettings').addEventListener('click', () => {
-        const userName = document.getElementById('userNameInput').value;
-        const theme = document.getElementById('themeSelect').value;
-        
-        const settings = {
-            userName: userName,
-            theme: theme
-        };
-        
-        localStorage.setItem('userSettings', JSON.stringify(settings));
-        
-        // Aplicar tema
-        if (theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            document.body.classList.add('dark-theme');
-        } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-            document.body.classList.remove('dark-theme');
-        }
-        
-        // Fechar modal
-        document.getElementById('userSettingsModal').classList.remove('is-active');
-        
-        // Mostrar mensagem de sucesso
-        showToast('Configurações salvas com sucesso!', 'success');
-    });
+
+    // PWA Installation
+    const installContainer = document.getElementById('install-container');
+    const installButton = document.getElementById('install-button');
+
+    if (installContainer && installButton) {
+        installButton.addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Usuário aceitou a instalação do PWA');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+    }
+
+    // Atualizar saudação
+    updateGreeting();
 });
+
+async function loadAndFilterResources() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
+
+        // Verificar se o usuário é admin através do token
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const isAdmin = decodedToken.roles && decodedToken.roles.includes('admin');
+        
+        console.log('Verificando permissões - Usuário é admin?', isAdmin);
+
+        if (isAdmin) {
+            console.log('Usuário é admin - mostrando todos os cards');
+            
+            // Para admin, mostrar todos os cards
+            const cards = document.querySelectorAll('.column[data-resource]');
+            cards.forEach(card => {
+                card.style.display = '';
+            });
+            
+            return;
+        }
+
+        // Para usuários não-admin, buscar recursos dos papéis
+        const response = await fetch('/api/auth/user-resources', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Erro ao carregar recursos');
+        
+        const resources = await response.json();
+        console.log('Recursos carregados (detalhado):', JSON.stringify(resources, null, 2));
+        
+        // Disparar evento com os recursos
+        const event = new CustomEvent('userResourcesLoaded', { 
+            detail: { resources }
+        });
+        document.dispatchEvent(event);
+        
+        filterCards(resources);
+    } catch (error) {
+        console.error('Erro ao carregar recursos:', error);
+    }
+}
+
+async function updateGreeting() {
+    try {
+        const greeting = document.getElementById('greeting');
+        if (!greeting) return;
+
+        const response = await fetch('/api/user/settings');
+        if (!response.ok) throw new Error('Erro ao buscar dados do usuário');
+
+        const userData = await response.json();
+        
+        if (userData.name) {
+            const hour = new Date().getHours();
+            const timeGreeting = hour < 12 ? 'Bom dia' : 
+                               hour < 18 ? 'Boa tarde' : 
+                               'Boa noite';
+            
+            greeting.textContent = `${timeGreeting}, ${userData.name}!`;
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar saudação:', error);
+    }
+}
 
 let deferredPrompt;
 
@@ -68,4 +143,34 @@ window.addEventListener('beforeinstallprompt', (e) => {
 if (window.matchMedia('(display-mode: standalone)').matches) {
     const installContainer = document.getElementById('install-container');
     installContainer.style.display = 'none'; // Ocultar o botão se já estiver instalado
+}
+
+function filterCards(userResources) {
+    console.log('Filtrando cards com recursos:', JSON.stringify(userResources, null, 2));
+    const cards = document.querySelectorAll('.column[data-resource]');
+    
+    cards.forEach(card => {
+        const resourcePath = card.querySelector('.card-footer-item')?.getAttribute('href');
+        console.log('Verificando card:', resourcePath);
+        
+        if (resourcePath) {
+            // Normalizar o caminho do recurso para comparação
+            const normalizedPath = resourcePath.startsWith('/pages/') ? 
+                resourcePath : 
+                `/pages${resourcePath}`;
+            
+            const hasAccess = userResources.some(r => {
+                const resourceNormalizedPath = r.path.startsWith('/pages/') ? 
+                    r.path : 
+                    `/pages${r.path}`;
+                    
+                const matches = resourceNormalizedPath === normalizedPath;
+                console.log(`Comparando: ${resourceNormalizedPath} com ${normalizedPath} = ${matches}`);
+                return matches;
+            });
+            
+            console.log(`Acesso ao card ${normalizedPath}: ${hasAccess}`);
+            card.style.display = hasAccess ? '' : 'none';
+        }
+    });
 }

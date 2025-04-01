@@ -3,94 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Utilitários CorpWeb</title>
+    <title>Utilitários</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="../styles/styles.css">
     <link rel="stylesheet" href="../styles/dark-theme.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="manifest" href="../manifest.json">
 </head>
 <body>
     <neo-navbar></neo-navbar>
 
     <div class="container">
         <h1 class="title">Utilitários</h1>
-            <!-- Card NeoCorp -->
-            <div class="card">
-                <div class="card-content">
-                    <div class="media">
-                        <div class="media-left">
-                            <span class="icon is-large">
-                                <i class="fas fa-cogs fa-2x"></i>
-                            </span>
-                        </div>
-                        <div class="media-content">
-                            <p class="title is-5">NeoCorp Desktop</p>
-                            <p class="subtitle is-6">Acesse os utilitários do NeoCorp.</p>
-                        </div>
-                    </div>
-                </div>
-                <footer class="card-footer">
-                    <button id="btn-neocorp" class="card-footer-item button is-primary">Acessar</button>
-                </footer>
-            </div>
+        <div class="columns is-multiline">
 
             <!-- Card Neo Chamados -->
-            <div class="card">
-                <div class="card-content">
-                    <div class="media">
-                        <div class="media-left">
-                            <img src="/assets/neo-logo-small.png" alt="Neo" class="neo-logo">
-                        </div>
-                        <div class="media-content">
-                            <p class="title is-5">Neo Chamados</p>
-                            <p class="subtitle is-6">Acompanhe os chamados e suporte.</p>
+            <div class="column is-4">
+                <div class="card">
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-headset"></i>
+                                </span>
+                                <span>Neo Chamados</span>
+                            </span>
+                        </p>
+                    </header>
+                    <div class="card-content">
+                        <div class="content">
+                            <p>Sistema de gerenciamento de chamados e suporte.</p>
+                            <div class="tags">
+                                <span class="tag is-info">Suporte</span>
+                                <span class="tag is-info">Chamados</span>
+                                <span class="tag is-info">Help Desk</span>
+                            </div>
                         </div>
                     </div>
+                    <footer class="card-footer">
+                        <a href="https://app.neosistemas.com.br/neo-chamados/" class="card-footer-item">
+                            <span class="icon">
+                                <i class="fas fa-external-link-alt"></i>
+                            </span>
+                            <span>Acessar</span>
+                        </a>
+                    </footer>
                 </div>
-                <footer class="card-footer">
-                    <button id="btn-neochamados" class="card-footer-item button is-warning" onclick="window.open('https://app.neosistemas.com.br/neo-chamados/', '_blank')">Acessar</button>
-                </footer>
             </div>
 
-            <!-- Card NeoWeb -->
-            <div class="card">
-                <div class="card-content">
-                    <div class="media">
-                        <div class="media-left">
-                            <span class="icon is-large">
-                                <i class="fas fa-globe fa-2x"></i>
+            <!-- Card Glassfish -->
+            <div class="column is-4">
+                <div class="card">
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-globe"></i>
+                                </span>
+                                <span>Gerenciador Glassfish</span>
                             </span>
-                        </div>
-                        <div class="media-content">
-                            <p class="title is-5">Neocorp Web</p>
-                            <p class="subtitle is-6">Acesse os utilitários do Neocorp Web.</p>
+                        </p>
+                    </header>
+                    <div class="card-content">
+                        <div class="content">
+                            <p>Sistema web para gerenciamento corporativo.</p>
+                            <div class="tags">
+                                <span class="tag is-info">Web</span>
+                                <span class="tag is-info">Sistema</span>
+                                <span class="tag is-info">Gestão</span>
+                            </div>
                         </div>
                     </div>
+                    <footer class="card-footer">
+                        <a href="glassfish.html" class="card-footer-item">
+                            <span class="icon">
+                                <i class="fas fa-external-link-alt"></i>
+                            </span>
+                            <span>Acessar</span>
+                        </a>
+                    </footer>
                 </div>
-                <footer class="card-footer">
-                    <button id="btn-neoweb" class="card-footer-item button is-link" onclick="window.open('glassfish.html')">Acessar</button>
-                </footer>
             </div>
 
-            <!-- Card Banco de Dados -->
-            <div class="card">
-                <div class="card-content">
-                    <div class="media">
-                        <div class="media-left">
-                            <span class="icon is-large">
-                                <i class="fas fa-database fa-2x"></i>
-                            </span>
-                        </div>
-                        <div class="media-content">
-                            <p class="title is-5">Banco de Dados</p>
-                            <p class="subtitle is-6">Utilitários relacionados ao banco de dados.</p>
-                        </div>
-                    </div>
-                </div>
-                <footer class="card-footer">
-                    <button id="btn-utilitarios-bd" class="card-footer-item button is-success">Acessar</button>
-                </footer>
-            </div>
 
             <!-- Card do NeoTrack -->
             <div class="column is-one-third">
@@ -98,9 +92,9 @@
                     <div class="card-content">
                         <div class="media">
                             <div class="media-left">
-                                <figure class="image is-48x48">
-                                    <i class="fas fa-tasks fa-3x"></i>
-                                </figure>
+                                <span class="icon is-large">
+                                    <i class="fas fa-tasks fa-2x"></i>
+                                </span>
                             </div>
                             <div class="media-content">
                                 <p class="title is-4">NeoTrack</p>
@@ -110,7 +104,6 @@
 
                         <div class="content">
                             Sistema de gerenciamento de serviços com kanban, timer e controle de etapas.
-                            <br>
                             <div class="tags mt-2">
                                 <span class="tag is-info">Kanban</span>
                                 <span class="tag is-success">Timer</span>
@@ -128,10 +121,47 @@
                     </footer>
                 </div>
             </div>
+
+            <!-- Card PostgreSQL -->
+            <div class="column is-4">
+                <div class="card">
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-book-reader"></i>
+                                </span>
+                                <span>Central de Aprendizagem</span>
+                            </span>
+                        </p>
+                    </header>
+                    <div class="card-content">
+                        <div class="content">
+                            <p>Acesse todos os materiais de aprendizagem, tutoriais e documentações.</p>
+                            <div class="tags">
+                                <span class="tag is-info">Tutoriais</span>
+                                <span class="tag is-info">Documentação</span>
+                                <span class="tag is-info">Aprendizagem</span>
+                            </div>
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="/learn" class="card-footer-item">
+                            <span class="icon">
+                                <i class="fas fa-book"></i>
+                            </span>
+                            <span>Acessar</span>
+                        </a>
+                    </footer>
+                </div>
+            </div>
         </div>
     </div>
 
+    <neo-footer></neo-footer>
+
     <script src="../components/navbar/navbar.js"></script>
     <script src="../js/utilitarios.js"></script>
+    <script src="../components/footer/footer.js" type="module"></script>
 </body>
 </html>

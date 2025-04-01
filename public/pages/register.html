@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - NeoHub</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="stylesheet" href="/styles/auth.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <img src="/assets/neo-logo-small.png" alt="NeoHub Logo" class="auth-logo">
+                <h1 class="auth-title">Criar Conta</h1>
+                <p class="auth-subtitle">Junte-se à plataforma NeoHub</p>
+            </div>
+
+            <form id="registerForm">
+                <div id="errorContainer" class="notification is-danger is-light d-none"></div>
+                <div id="successContainer" class="notification is-success is-light d-none"></div>
+                
+                <div class="field">
+                    <label class="label">Nome</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" id="name" placeholder="Seu nome completo" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-user"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Nome de Usuário</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" id="username" placeholder="Seu nome de usuário" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-id-badge"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Email</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="email" id="email" placeholder="seu@email.com" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Senha</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="password" id="password" placeholder="Crie uma senha forte" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                    </div>
+                    <p class="help">A senha deve ter no mínimo 6 caracteres</p>
+                </div>
+
+                <div class="field">
+                    <label class="label">Confirmar Senha</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="password" id="confirmPassword" placeholder="Digite a senha novamente" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="control">
+                        <button type="submit" class="button is-primary is-fullwidth">
+                            <span class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            <span>Criar Conta</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="auth-footer">
+                <p>Já tem uma conta? <a href="/pages/login.html">Faça login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/theme-manager.js" type="module"></script>
+</body>
+</html> 

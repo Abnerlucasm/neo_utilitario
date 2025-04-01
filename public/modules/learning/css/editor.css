@@ -1,0 +1,451 @@
+.editor-container {
+    display: flex;
+    height: calc(100vh - 150px);
+}
+
+.sidebar {
+    width: 250px;
+    background: #f5f5f5;
+    padding: 1rem;
+    border-right: 1px solid #ddd;
+    overflow-y: auto;
+}
+
+.content-area {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.section-item {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: #f0f0f0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.section-item:hover {
+    background: #e0e0e0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-title {
+    font-weight: bold;
+    flex-grow: 1;
+}
+
+.section-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.section-pages {
+    margin-top: 0.5rem;
+    padding-left: 0.5rem;
+}
+
+.page-item {
+    padding: 0.5rem;
+    padding-left: 1rem;
+    margin: 0.25rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.page-item:hover {
+    background: #e8e8e8;
+}
+
+.page-item.active {
+    background: #e0e7ff;
+    border-left: 4px solid #3273dc;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.page-title {
+    flex-grow: 1;
+}
+
+.page-actions {
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.page-item:hover .page-actions {
+    opacity: 1;
+}
+
+.action-icon {
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #777;
+}
+
+.action-icon:hover {
+    color: #333;
+}
+
+.sections-tree {
+    margin-top: 1rem;
+}
+
+.add-page-button {
+    margin-top: 0.5rem;
+    width: 100%;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+/* Drag and drop styles */
+.drag-over {
+    border: 2px dashed #3273dc;
+    opacity: 0.6;
+}
+
+.dragging {
+    opacity: 0.4;
+}
+
+.editor-toolbar {
+    padding: 0.5rem;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preview-panel {
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+/* Tema escuro */
+.dark-theme .sidebar {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+.dark-theme .section-item {
+    background: #363636;
+}
+
+.dark-theme .section-item:hover {
+    background: #404040;
+}
+
+.dark-theme .page-item:hover {
+    background: #363636;
+}
+
+.dark-theme .page-item.active {
+    background: #363636;
+    border-left: 4px solid #48c774;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.dark-theme .action-icon {
+    color: #aaa;
+}
+
+.dark-theme .action-icon:hover {
+    color: #fff;
+}
+
+.dark-theme .editor-toolbar {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+.dark-theme .preview-panel {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 80%;
+    padding: 1rem;
+    border-radius: 6px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s, fadeOut 0.5s 2.5s;
+    border-left: 4px solid transparent;
+}
+
+.toast-notification.is-success {
+    border-left-color: #48c774;
+}
+
+.toast-notification.is-danger {
+    border-left-color: #f14668;
+}
+
+.toast-notification.is-warning {
+    border-left-color: #ffdd57;
+}
+
+.toast-notification.is-info {
+    border-left-color: #3298dc;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Estilos para o preview e conteúdo renderizado */
+.markdown-content {
+    line-height: 1.6;
+    white-space: pre-line;  /* Respeita quebras de linha */
+}
+
+.markdown-content p {
+    margin-bottom: 1em;  /* Espaço entre parágrafos */
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+/* Ajustes para listas */
+.markdown-content ul,
+.markdown-content ol {
+    margin-bottom: 1em;
+    padding-left: 2em;
+}
+
+/* Ajustes para código */
+.markdown-content pre,
+.markdown-content code {
+    white-space: pre;
+}
+
+/* Estilos para o editor de texto */
+.EasyMDEContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+}
+
+.EasyMDEContainer .CodeMirror {
+    height: 100%;
+    min-height: 400px;
+    font-family: 'Courier New', monospace;
+    line-height: 1.5;
+}
+
+/* Modal para novas páginas/seções */
+.modal-card {
+    width: 100%;
+    max-width: 500px;
+}
+
+/* Responsividade para telas menores */
+@media screen and (max-width: 768px) {
+    .editor-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .sidebar {
+        width: 100%;
+        max-height: 300px;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .content-area {
+        height: calc(100vh - 450px);
+        min-height: 400px;
+    }
+    
+    .dark-theme .sidebar {
+        border-bottom-color: #404040;
+    }
+    
+    .page-item.active {
+        border-left-width: 6px;
+    }
+    
+    .toast-notification {
+        min-width: 250px;
+        width: 90%;
+        right: 5%;
+        left: 5%;
+    }
+}
+
+/* Estilo para o editor quando está ativo */
+.editor-area.is-active {
+    border: 2px solid #3273dc;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.dark-theme .editor-area.is-active {
+    border-color: #48c774;
+}
+
+/* Destacar ação de arrastar e soltar */
+.drag-handle {
+    cursor: move;
+    padding: 4px;
+    margin-right: 8px;
+    color: #999;
+}
+
+.drag-handle:hover {
+    color: #3273dc;
+}
+
+.dark-theme .drag-handle:hover {
+    color: #48c774;
+}
+
+/* Placeholder para quando não há conteúdo */
+.empty-content-placeholder {
+    padding: 40px;
+    text-align: center;
+    color: #999;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.empty-content-placeholder .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.dark-theme .empty-content-placeholder {
+    color: #777;
+    border-color: #444;
+}
+
+/* Adicionar hover effect mais notável */
+.page-item:hover:not(.active) {
+    background: #f5f5f5;
+    transform: translateX(2px);
+    transition: transform 0.2s, background 0.2s;
+}
+
+.dark-theme .page-item:hover:not(.active) {
+    background: #404040;
+}
+
+/* Estilo da área do editor quando ativa */
+.editor-area:not(:empty) {
+    border: 1px solid #dbdbdb;
+    border-radius: 4px;
+    background-color: #fff;
+    min-height: 400px;
+}
+
+.dark-theme .editor-area:not(:empty) {
+    border-color: #555;
+    background-color: #2d2d2d;
+}
+
+/* Animação de salvamento para feedback visual */
+@keyframes saving {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.is-saving {
+    animation: saving 1s infinite;
+}
+
+/* Estilos para o campo de palavras-chave */
+.keywords-section {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+}
+
+.tags-input {
+    border: 1px solid #dbdbdb;
+    border-radius: 4px;
+    padding: 0.5rem;
+    background-color: white;
+    min-height: 2.5rem;
+}
+
+.tags-input .tags {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.tags-input .tag {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    cursor: default;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tags-input .tag .delete {
+    cursor: pointer;
+    margin-left: 0.5rem;
+}
+
+/* Dark theme support */
+.is-dark-theme .keywords-section {
+    background-color: #2c2c2c;
+}
+
+.is-dark-theme .tags-input {
+    background-color: #363636;
+    border-color: #4a4a4a;
+}
+
+.is-dark-theme .tags-input input {
+    background-color: #363636;
+    color: #f5f5f5;
+}
+
+/* Estilos responsivos */
+@media screen and (max-width: 768px) {
+    .tags-input {
+        padding: 0.3rem;
+    }
+    
+    .tags-input .tag {
+        font-size: 0.8rem;
+    }
+} 

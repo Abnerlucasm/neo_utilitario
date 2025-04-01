@@ -1,4 +1,5 @@
-const Service = require('../models/service');
+const { Service } = require('../models/postgresql/associations');
+const logger = require('../utils/logger');
 
 exports.timerController = async (req, res) => {
     try {

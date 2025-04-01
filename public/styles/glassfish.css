@@ -2,15 +2,14 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    position: absolute;
-    top: 10px;
-    right: 10px;
+    display: inline-block;
+    margin-left: 10px;
 }
 .status-active {
-    background-color: green;
+    background-color: #48c774;
 }
 .status-inactive {
-    background-color: red;
+    background-color: #ff3860;
 }
 .card-icon {
     font-size: 3rem;
@@ -305,4 +304,54 @@
 }
 #copy-log-button {
     margin-top: 10px;
+}
+#toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 250px;
+    padding: 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.buttons.is-centered {
+    justify-content: center;
+}
+.card-content .buttons {
+    margin-bottom: 0.5rem;
+}
+.card-content .button {
+    margin: 0.25rem;
+}
+.button.is-small {
+    height: 2rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+.button .icon {
+    margin-right: 0.25rem;
+}
+.card {
+    transition: all 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.tag {
+    margin-left: 0.5rem;
+}
+.mt-2 {
+    margin-top: 0.5rem !important;
+}
+.mt-3 {
+    margin-top: 0.75rem !important;
+}
+.has-text-centered {
+    text-align: center;
+}
+small {
+    font-size: 0.875em;
+    color: #666;
 }

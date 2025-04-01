@@ -1,0 +1,24 @@
+.main-content {
+    min-height: 100vh;
+    padding: 2rem;
+    background: white;
+}
+
+.content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Garantir que os editores do CodeMirror sejam visíveis */
+.CodeMirror {
+    height: 300px;
+    border: 1px solid #ddd;
+}
+
+.code-editor {
+    display: none;
+}
+
+.code-editor.is-active {
+    display: block;
+} 

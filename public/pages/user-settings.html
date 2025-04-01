@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações do Usuário - NeoHub</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <style>
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .settings-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #dbdbdb;
+        }
+
+        .settings-box {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 2rem;
+        }
+
+        .settings-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(10, 10, 10, 0.1);
+        }
+
+        .settings-section {
+            padding: 1.5rem;
+        }
+
+        .settings-section:not(:last-child) {
+            border-bottom: 1px solid #dbdbdb;
+        }
+
+        .field.is-horizontal {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .field-label {
+            flex: 0 0 150px;
+            margin-right: 1rem;
+            padding-top: 0.5rem;
+        }
+
+        .field-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .input, .select select {
+            width: 100%;
+            padding-left: 2.5rem;
+        }
+
+        .control.has-icons-left {
+            width: 100%;
+        }
+
+        .select:not(.is-multiple):not(.is-loading)::after {
+            right: 1.125em;
+        }
+
+        .logout-section {
+            background-color: #fff5f5;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .dark-theme .settings-box {
+            background: #2c2d31;
+            border-color: #404246;
+        }
+
+        .dark-theme .settings-section {
+            border-color: #404246;
+        }
+
+        .dark-theme .logout-section {
+            background-color: #2c2d31;
+        }
+
+        .dark-theme .input,
+        .dark-theme .select select {
+            background-color: #363636;
+            color: #ffffff;
+            border-color: #404246;
+        }
+
+        .dark-theme .input:focus,
+        .dark-theme .select select:focus {
+            border-color: #3273dc;
+            box-shadow: 0 0 0 2px rgba(50, 115, 220, 0.25);
+        }
+
+        .select.is-fullwidth {
+            width: 100%;
+        }
+
+        .select.is-fullwidth select {
+            width: 100%;
+        }
+
+        @media screen and (max-width: 768px) {
+            .settings-container {
+                padding: 1rem;
+            }
+
+            .field.is-horizontal {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .field-label {
+                flex-basis: auto;
+                margin-bottom: 0.5rem;
+                padding-right: 0;
+            }
+
+            .field-body {
+                width: 100%;
+            }
+
+            .control.has-icons-left {
+                width: 100%;
+            }
+
+            .input, .select select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="settings-container">
+        <div class="settings-header">
+            <h1 class="title is-3">
+                <span class="icon-text">
+                    <span class="icon">
+                        <i class="fas fa-user-cog"></i>
+                    </span>
+                    <span>Configurações do Usuário</span>
+                </span>
+            </h1>
+            <p class="subtitle is-6 has-text-grey">
+                Gerencie suas preferências e informações pessoais
+            </p>
+        </div>
+
+        <div class="settings-box">
+            <form id="userSettingsForm">
+                <!-- Seção de Perfil -->
+                <div class="settings-section">
+                    <h2 class="title is-4">Perfil</h2>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Nome</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    <input class="input" type="text" id="userName" placeholder="Seu nome" readonly>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Email</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    <input class="input" type="email" id="userEmail" readonly disabled>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                </div>
+                                <p class="help">O email não pode ser alterado</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção de Aparência -->
+                <div class="settings-section">
+                    <h2 class="title is-4">Aparência</h2>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Tema</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    <div class="select is-fullwidth">
+                                        <select id="themeSelect">
+                                            <option value="light">Claro</option>
+                                            <option value="dark">Escuro</option>
+                                        </select>
+                                    </div>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-paint-brush"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção de Segurança -->
+                <div class="settings-section">
+                    <h2 class="title is-4">Segurança</h2>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Nova Senha</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    <input class="input" type="password" id="newPassword" placeholder="Digite a nova senha">
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                </div>
+                                <p class="help">Deixe em branco para manter a senha atual</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="settings-section">
+                    <div class="field is-grouped is-grouped-right">
+                        <div class="control">
+                            <button type="button" id="toggleEdit" class="button is-info">
+                                <span class="icon">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                <span>Editar</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <button type="submit" class="button is-primary">
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>Salvar Alterações</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Seção de Logout -->
+        <div class="settings-box logout-section">
+            <h2 class="title is-4">Sessão</h2>
+            <div class="field">
+                <div class="control">
+                    <button id="logoutButton" class="button is-danger is-outlined">
+                        <span class="icon">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </span>
+                        <span>Sair da Conta</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção de Administração -->
+        <div id="adminSection" style="display: none;" class="mt-4">
+            <div class="box">
+                <h2 class="title is-4">Administração</h2>
+                <div class="buttons">
+                    <a href="/pages/admin/user-management.html" class="button is-primary">
+                        <span class="icon">
+                            <i class="fas fa-users-cog"></i>
+                        </span>
+                        <span>Gerenciar Usuários</span>
+                    </a>
+                    <a href="/admin/learning/modules" class="button is-info">
+                        <span class="icon">
+                            <i class="fas fa-book"></i>
+                        </span>
+                        <span>Gerenciar Módulos</span>
+                    </a>
+                    <a href="/pages/admin/roles.html" class="button is-warning">
+                        <span class="icon">
+                            <i class="fas fa-user-shield"></i>
+                        </span>
+                        <span>Papéis e Permissões</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <neo-footer></neo-footer>
+
+    <script src="/js/auth.js"></script>
+    <script type="module">
+        import { NeoNavbar } from '/components/navbar/navbar.js';
+        
+        // Aguardar o carregamento do DOM e do AuthManager
+        window.addEventListener('load', async () => {
+            try {
+                // Registrar o componente da navbar se ainda não estiver registrado
+                if (!customElements.get('neo-navbar')) {
+                    customElements.define('neo-navbar', NeoNavbar);
+                }
+
+                // Verificar autenticação
+                if (typeof AuthManager !== 'undefined') {
+                    await AuthManager.checkAuth();
+                } else {
+                    console.error('AuthManager não está definido');
+                }
+            } catch (error) {
+                console.error('Erro ao inicializar a página:', error);
+            }
+        });
+    </script>
+    <script type="module" src="/components/navbar/navbar.js"></script>
+    <script type="module" src="/components/footer/footer.js"></script>
+    <script src="/js/user-settings.js"></script>
+</body>
+</html> 

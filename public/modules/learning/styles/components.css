@@ -1,0 +1,38 @@
+.custom-component-wrapper {
+    margin: 1rem 0;
+}
+
+.custom-component {
+    background: var(--component-background, #fff);
+    border: 1px solid var(--border-color, #dbdbdb);
+    border-radius: 4px;
+    padding: 1rem;
+    position: relative;
+}
+
+.custom-component:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.custom-component .notification {
+    margin: 0;
+}
+
+.component-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    padding: 1rem;
+    background: var(--loading-background, #f5f5f5);
+    border-radius: 4px;
+}
+
+.component-loading .icon {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+} 

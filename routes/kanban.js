@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Service = require('../models/service');
+const { Service } = require('../models/postgresql/associations');
+const logger = require('../utils/logger');
 
 // Listar serviços
 router.get('/services', async (req, res) => {

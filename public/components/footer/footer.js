@@ -35,34 +35,23 @@ class NeoFooter extends HTMLElement {
     }
 
     setupTheme() {
-        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-        if (userSettings.theme === 'dark') {
-            const footer = this.shadowRoot.querySelector('.neo-footer');
-            if (footer) {
+        const theme = localStorage.getItem('theme') || 'light';
+        this.applyTheme(theme);
+
+        window.addEventListener('themeChange', (e) => {
+            this.applyTheme(e.detail.theme);
+        });
+    }
+
+    applyTheme(theme) {
+        const footer = this.shadowRoot.querySelector('.neo-footer');
+        if (footer) {
+            if (theme === 'dark') {
                 footer.classList.add('dark-theme');
+            } else {
+                footer.classList.remove('dark-theme');
             }
         }
-
-        // Observar mudanças no tema
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.attributeName === 'class') {
-                    const footer = this.shadowRoot.querySelector('.neo-footer');
-                    if (footer) {
-                        if (document.body.classList.contains('dark-theme')) {
-                            footer.classList.add('dark-theme');
-                        } else {
-                            footer.classList.remove('dark-theme');
-                        }
-                    }
-                }
-            });
-        });
-
-        observer.observe(document.body, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
     }
 
     render(getTemplate) {

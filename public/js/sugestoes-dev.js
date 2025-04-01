@@ -149,7 +149,7 @@ function updateSuggestionsList(suggestions, filterStatus = null, filterCategorie
         item.className = 'box suggestion-item';
         item.innerHTML = `
             <div class="columns is-vcentered">
-                <div class="column" onclick="openStatusModal('${suggestion._id}')">
+                <div class="column">
                     <p class="is-size-5">#${suggestion.sequentialNumber} - <pre>${suggestion.description}</pre></p>
                     <p class="is-size-7">
                         <span class="tag is-${getCategoryClass(suggestion.category)}">${suggestion.category}</span>
@@ -159,10 +159,10 @@ function updateSuggestionsList(suggestions, filterStatus = null, filterCategorie
                     </p>
                 </div>
                 <div class="column is-narrow">
-                    <button class="button is-small is-warning" onclick="openStatusModal('${suggestion._id}')">
+                    <button class="button is-small is-warning" onclick="openStatusModal(${suggestion.id})">
                         <span class="icon"><i class="fas fa-edit"></i></span>
                     </button>
-                    <button class="button is-small is-danger" onclick="deleteSuggestion('${suggestion._id}')">
+                    <button class="button is-small is-danger" onclick="deleteSuggestion(${suggestion.id})">
                         <span class="icon"><i class="fas fa-trash"></i></span>
                     </button>
                 </div>
@@ -193,142 +193,162 @@ function updateStats() {
         allSuggestions.filter(s => s.status === 'pending').length;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Carregar e aplicar tema salvo
-    const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-    if (userSettings.theme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.body.classList.add('dark-theme');
-    }
-
-    // Atualizar visualização em tempo real
-    if (formattedDescription) {
-        formattedDescription.addEventListener('input', function() {
-            const text = this.innerText;
-            rawDescription.value = text;
-            if (!isRawView) {
-                updateFormattedContent(text);
-            }
-        });
-    }
-
-    // Alternar entre visualização raw e formatada
-    const toggleViewBtn = document.getElementById('toggleView');
-    if (toggleViewBtn) {
-        toggleViewBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            isRawView = !isRawView;
-            
-            if (isRawView) {
-                formattedDescription.style.display = 'none';
-                rawDescription.style.display = 'block';
-                rawDescription.value = formattedDescription.innerText;
-                this.innerHTML = '<span class="icon"><i class="fas fa-eye"></i></span><span>Ver Formatado</span>';
-            } else {
-                rawDescription.style.display = 'none';
-                formattedDescription.style.display = 'block';
-                updateFormattedContent(rawDescription.value);
-                this.innerHTML = '<span class="icon"><i class="fas fa-code"></i></span><span>Ver em Raw</span>';
-            }
-        });
-    }
-
-    // Carregar sugestões iniciais
-    loadSuggestions();
-
-    // Event listener para o botão de ajuda
-    const markdownHelpBtn = document.getElementById('markdownHelp');
-    const markdownHelpModal = document.getElementById('markdownHelpModal');
-    
-    if (markdownHelpBtn) {
-        markdownHelpBtn.addEventListener('click', () => {
-            markdownHelpModal.classList.add('is-active');
-        });
-    }
-
-    // Fechar modal de ajuda
-    const closeButtons = markdownHelpModal.querySelectorAll('.delete, .modal-background');
-    closeButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            markdownHelpModal.classList.remove('is-active');
-        });
-    });
-
-    // Event listener para sugestões de Markdown
-    if (formattedDescription) {
-        formattedDescription.addEventListener('input', function() {
-            const text = this.innerText;
-            rawDescription.value = text;
-            
-            // Verificar por sugestões
-            const suggestion = checkForMarkdownSuggestion(text);
-            if (suggestion) {
-                showSuggestion(suggestion);
-            }
-
-            // Atualizar preview com delay
-            updateFormattedContent(text);
-        });
-    }
-});
-
-document.getElementById('suggestionForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    
+document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const formData = new FormData();
-        formData.append('description', rawDescription.value);
-        formData.append('category', document.getElementById('category').value);
-        formData.append('createdBy', document.getElementById('createdBy').value);
-        
-        const imageFile = document.getElementById('imageUpload').files[0];
-        if (imageFile) {
-            formData.append('image', imageFile);
+        // Buscar dados do usuário
+        const response = await fetch('/api/user/settings');
+        const userData = await response.json();
+
+        // Preencher e desabilitar o campo solicitante
+        const createdByInput = document.getElementById('createdBy');
+        if (createdByInput) {
+            createdByInput.value = userData.name;
+            createdByInput.readOnly = true;
         }
 
-        const response = await fetch('/api/suggestions', {
-            method: 'POST',
-            body: formData
-        });
+        // Event listeners para o formulário
+        const suggestionForm = document.getElementById('suggestionForm');
+        const markdownHelpBtn = document.getElementById('markdownHelp');
+        const markdownHelpModal = document.getElementById('markdownHelpModal');
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao salvar sugestão');
+        if (suggestionForm) {
+            suggestionForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('description', rawDescription.value);
+                    formData.append('category', document.getElementById('category').value);
+                    formData.append('createdBy', createdByInput.value); // Usar o valor preenchido
+                    
+                    const imageFile = document.getElementById('imageUpload').files[0];
+                    if (imageFile) {
+                        formData.append('image', imageFile);
+                    }
+
+                    const response = await fetch('/api/suggestions', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Erro ao salvar sugestão');
+                    }
+
+                    const result = await response.json();
+                    showToast('Sugestão enviada com sucesso!', 'success');
+                    
+                    // Limpar formulário mantendo o nome do solicitante
+                    const createdByValue = createdByInput.value;
+                    event.target.reset();
+                    createdByInput.value = createdByValue;
+                    
+                    // Atualizar lista de sugestões
+                    loadSuggestions();
+                } catch (error) {
+                    console.error('Erro:', error);
+                    showToast(error.message, 'danger');
+                }
+            });
         }
 
-        const result = await response.json();
-        showToast('Sugestão enviada com sucesso!', 'success');
+        if (markdownHelpBtn && markdownHelpModal) {
+            markdownHelpBtn.addEventListener('click', () => {
+                markdownHelpModal.classList.add('is-active');
+            });
+
+            const closeButtons = markdownHelpModal.querySelectorAll('.delete, .modal-background');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    markdownHelpModal.classList.remove('is-active');
+                });
+            });
+        }
+
+        // Carregar e aplicar tema salvo
+        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+        if (userSettings.theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.body.classList.add('dark-theme');
+        }
+
+        // Atualizar visualização em tempo real
+        if (formattedDescription) {
+            formattedDescription.addEventListener('input', function() {
+                const text = this.innerText;
+                rawDescription.value = text;
+                if (!isRawView) {
+                    updateFormattedContent(text);
+                }
+            });
+        }
+
+        // Alternar entre visualização raw e formatada
+        const toggleViewBtn = document.getElementById('toggleView');
+        if (toggleViewBtn) {
+            toggleViewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                isRawView = !isRawView;
+                
+                if (isRawView) {
+                    formattedDescription.style.display = 'none';
+                    rawDescription.style.display = 'block';
+                    rawDescription.value = formattedDescription.innerText;
+                    this.innerHTML = '<span class="icon"><i class="fas fa-eye"></i></span><span>Ver Formatado</span>';
+                } else {
+                    rawDescription.style.display = 'none';
+                    formattedDescription.style.display = 'block';
+                    updateFormattedContent(rawDescription.value);
+                    this.innerHTML = '<span class="icon"><i class="fas fa-code"></i></span><span>Ver em Raw</span>';
+                }
+            });
+        }
+
+        // Carregar sugestões iniciais
+        loadSuggestions();
+
+        // Adicionar listener para preview de markdown se o elemento existir
+        const suggestionDescriptionInput = document.getElementById('suggestionDescriptionInput');
+        const suggestionPreview = document.getElementById('suggestionPreview');
         
-        // Limpar formulário
-        event.target.reset();
-        
-        // Atualizar lista de sugestões
-        updateStats();
+        if (suggestionDescriptionInput && suggestionPreview) {
+            suggestionDescriptionInput.addEventListener('input', function() {
+                const markdownText = this.value;
+                suggestionPreview.innerHTML = marked(markdownText);
+            });
+        }
     } catch (error) {
-        console.error('Erro:', error);
-        showToast(error.message, 'danger');
+        console.error('Erro ao carregar dados do usuário:', error);
     }
 });
 
-// Função para excluir a sugestão
+// Função para excluir sugestão
 async function deleteSuggestion(suggestionId) {
+    if (!suggestionId) {
+        showToast('ID da sugestão não fornecido', 'danger');
+        return;
+    }
+
     if (confirm('Tem certeza que deseja excluir esta sugestão?')) {
         try {
             const response = await fetch(`/api/suggestions/${suggestionId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (!response.ok) {
-                throw new Error('Erro ao excluir sugestão');
+                const error = await response.json();
+                throw new Error(error.message || 'Erro ao excluir sugestão');
             }
 
-            // Remover a sugestão da lista
-            allSuggestions = allSuggestions.filter(s => s._id !== suggestionId);
-            updateSuggestionsList(allSuggestions);
             showToast('Sugestão excluída com sucesso!', 'success');
+            await loadSuggestions(); // Recarregar a lista
         } catch (error) {
             console.error('Erro ao excluir sugestão:', error);
-            showToast('Erro ao excluir sugestão', 'danger');
+            showToast(error.message, 'danger');
         }
     }
 }
@@ -354,11 +374,6 @@ async function loadComments(suggestionId) {
         console.error('Erro ao carregar comentários:', error);
     }
 }
-
-document.getElementById('suggestionDescriptionInput').addEventListener('input', function() {
-    const markdownText = this.value;
-    document.getElementById('suggestionPreview').innerHTML = marked(markdownText);
-});
 
 // Função para atualizar o conteúdo formatado com delay
 function updateFormattedContent(text) {
