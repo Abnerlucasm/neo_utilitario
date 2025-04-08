@@ -91,17 +91,23 @@ class RoleManager {
 
     async loadRoles() {
         try {
-            const response = await fetch(`${this.baseUrl}/list`, {
+            console.log('Carregando papéis...');
+            
+            const response = await fetch(this.baseUrl, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
             
             if (!response.ok) {
+                const error = await response.json();
+                console.error('Resposta da API:', error);
                 throw new Error('Erro ao carregar papéis');
             }
             
             const roles = await response.json();
+            console.log('Papéis carregados:', roles);
+            
             this.renderRoles(roles);
         } catch (error) {
             console.error('Erro ao carregar papéis:', error);
@@ -176,6 +182,7 @@ class RoleManager {
             }
             
             const role = await response.json();
+            console.log('Papel carregado:', role);
             
             // Preencher o modal de edição
             document.getElementById('editRoleId').value = role.id;
@@ -254,6 +261,8 @@ class RoleManager {
             }
             
             const data = await response.json();
+            
+            console.log('Recursos carregados:', data);
             
             // Renderizar recursos disponíveis
             this.renderResources('availableResources', data.availableResources, false);
@@ -363,7 +372,7 @@ class RoleManager {
         const formData = new FormData(form);
         
         try {
-            const response = await fetch(`${this.baseUrl}/create`, {
+            const response = await fetch(this.baseUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -7,16 +7,34 @@ const { requireAdmin } = require('../middlewares/access-control');
 const logger = require('../utils/logger');
 
 // Listar todos os papéis
+router.get('/', requireAdmin, async (req, res) => {
+    try {
+        const roles = await Role.findAll({
+            include: [{
+                model: Resource,
+                as: 'accessibleResources'
+            }]
+        });
+        
+        logger.info(`Listando ${roles.length} papéis`);
+        res.json(roles);
+    } catch (error) {
+        logger.error('Erro ao listar papéis:', error);
+        res.status(500).json({ error: 'Erro ao listar papéis' });
+    }
+});
+
+// Rota compatibilidade - Listar todos os papéis
 router.get('/list', requireAdmin, async (req, res) => {
     try {
         const roles = await Role.findAll({
             include: [{
                 model: Resource,
-                as: 'resources'
+                as: 'accessibleResources'
             }]
         });
         
-        logger.info(`Listando ${roles.length} papéis`);
+        logger.info(`Listando ${roles.length} papéis (rota legacy)`);
         res.json(roles);
     } catch (error) {
         logger.error('Erro ao listar papéis:', error);
@@ -30,7 +48,7 @@ router.get('/:id', requireAdmin, async (req, res) => {
         const role = await Role.findByPk(req.params.id, {
             include: [{
                 model: Resource,
-                as: 'resources'
+                as: 'accessibleResources'
             }]
         });
         
@@ -52,7 +70,7 @@ router.get('/:id/resources', requireAdmin, async (req, res) => {
         const role = await Role.findByPk(req.params.id, {
             include: [{
                 model: Resource,
-                as: 'resources'
+                as: 'accessibleResources'
             }]
         });
         
@@ -64,7 +82,7 @@ router.get('/:id/resources', requireAdmin, async (req, res) => {
         const allResources = await Resource.findAll();
         
         // Filtrar recursos já atribuídos
-        const assignedResources = role.resources;
+        const assignedResources = role.accessibleResources;
         const assignedResourceIds = assignedResources.map(r => r.id);
         
         // Recursos disponíveis (não atribuídos)
@@ -83,7 +101,7 @@ router.get('/:id/resources', requireAdmin, async (req, res) => {
 });
 
 // Criar novo papel
-router.post('/create', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
     try {
         const { name, description } = req.body;
         
@@ -103,6 +121,34 @@ router.post('/create', requireAdmin, async (req, res) => {
         });
         
         logger.info(`Papel criado: ${role.name}`);
+        res.status(201).json(role);
+    } catch (error) {
+        logger.error('Erro ao criar papel:', error);
+        res.status(500).json({ error: 'Erro ao criar papel' });
+    }
+});
+
+// Rota compatibilidade - Criar novo papel
+router.post('/create', requireAdmin, async (req, res) => {
+    try {
+        const { name, description } = req.body;
+        
+        if (!name) {
+            return res.status(400).json({ error: 'Nome do papel é obrigatório' });
+        }
+        
+        // Verificar se já existe papel com este nome
+        const existingRole = await Role.findOne({ where: { name } });
+        if (existingRole) {
+            return res.status(400).json({ error: 'Já existe um papel com este nome' });
+        }
+        
+        const role = await Role.create({
+            name,
+            description
+        });
+        
+        logger.info(`Papel criado (rota legacy): ${role.name}`);
         res.status(201).json(role);
     } catch (error) {
         logger.error('Erro ao criar papel:', error);
@@ -178,7 +224,7 @@ router.post('/:roleId/resources/:resourceId', requireAdmin, async (req, res) => 
         const role = await Role.findByPk(roleId, {
             include: [{
                 model: Resource,
-                as: 'resources'
+                as: 'accessibleResources'
             }]
         });
         
@@ -193,20 +239,20 @@ router.post('/:roleId/resources/:resourceId', requireAdmin, async (req, res) => 
         }
         
         // Verificar se o recurso já está associado ao papel
-        const isAlreadyAssociated = role.resources.some(r => r.id === resourceId);
+        const isAlreadyAssociated = role.accessibleResources.some(r => r.id === resourceId);
         
         if (isAlreadyAssociated) {
             return res.status(400).json({ error: 'Recurso já está associado a este papel' });
         }
         
         // Adicionar recurso ao papel
-        await role.addResource(resource);
+        await role.addAccessibleResource(resource);
         
         // Buscar papel atualizado com recursos
         const updatedRole = await Role.findByPk(roleId, {
             include: [{
                 model: Resource,
-                as: 'resources'
+                as: 'accessibleResources'
             }]
         });
         
@@ -236,13 +282,13 @@ router.delete('/:roleId/resources/:resourceId', requireAdmin, async (req, res) =
         }
         
         // Remover recurso do papel
-        await role.removeResource(resource);
+        await role.removeAccessibleResource(resource);
         
         // Buscar papel atualizado com recursos
         const updatedRole = await Role.findByPk(roleId, {
             include: [{
                 model: Resource,
-                as: 'resources'
+                as: 'accessibleResources'
             }]
         });
         
