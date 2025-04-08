@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { Role, Permission, User, Resource } = require('../models/postgresql/associations');
+const { Role, Permission, User, Resource, UserRole } = require('../models/postgresql/associations');
 const { authenticate } = require('../middlewares/auth');
 const logger = require('../utils/logger');
 const bcrypt = require('bcrypt');
 const { requireAdmin } = require('../middlewares/access-control');
+const { sequelize } = require('../models/postgresql/associations');
 
 // Middleware de autenticação
 router.use(authenticate);
@@ -17,7 +18,7 @@ router.get('/users', requireAdmin, async (req, res) => {
         const users = await User.findAll({
             include: [{
                 model: Role,
-                as: 'roles',
+                as: 'userRoles',
                 through: { attributes: [] }
             }]
         });
@@ -95,14 +96,33 @@ router.post('/users', async (req, res) => {
             });
         }
 
-        // Associar papéis ao usuário
-        await user.setRoles(validRoles);
+        // Associar papéis ao usuário manualmente através da tabela de associação
+        try {
+            for (const role of validRoles) {
+                await sequelize.query(
+                    'INSERT INTO user_roles(user_id, role_id, created_at, updated_at) VALUES(?, ?, NOW(), NOW())',
+                    {
+                        replacements: [user.id, role.id],
+                        type: sequelize.QueryTypes.INSERT
+                    }
+                );
+            }
+            
+            logger.info('Papéis associados manualmente:', {
+                userId: user.id,
+                roles: validRoles.map(r => r.name)
+            });
+        } catch (error) {
+            logger.error('Erro ao associar papéis:', error);
+            await user.destroy();
+            throw error;
+        }
 
         // Buscar usuário com papéis para retornar
         const createdUser = await User.findByPk(user.id, {
             include: [{
                 model: Role,
-                as: 'roles',
+                as: 'userRoles',
                 through: { attributes: [] }
             }],
             attributes: { exclude: ['password'] }
@@ -188,18 +208,39 @@ router.put('/users/:id', requireAdmin, async (req, res) => {
                 return res.status(400).json({ error: 'Nenhum papel válido fornecido' });
             }
 
-            await user.setRoles(validRoles);
-            logger.info('Papéis atualizados:', {
-                userId: id,
-                roles: validRoles.map(r => r.name)
-            });
+            try {
+                // Utilizar método alternativo para atualizar os papéis do usuário
+                // Primeiro remover todas as associações existentes
+                await UserRole.destroy({
+                    where: { user_id: id }
+                });
+                
+                // Depois criar as novas associações
+                for (const role of validRoles) {
+                    await sequelize.query(
+                        'INSERT INTO user_roles(user_id, role_id, created_at, updated_at) VALUES(?, ?, NOW(), NOW())',
+                        {
+                            replacements: [id, role.id],
+                            type: sequelize.QueryTypes.INSERT
+                        }
+                    );
+                }
+                
+                logger.info('Papéis atualizados manualmente:', {
+                    userId: id,
+                    roles: validRoles.map(r => r.name)
+                });
+            } catch (error) {
+                logger.error('Erro ao atualizar papéis manualmente:', error);
+                throw error;
+            }
         }
 
         // Buscar usuário atualizado com papéis
         const updatedUser = await User.findByPk(id, {
             include: [{
                 model: Role,
-                as: 'roles',
+                as: 'userRoles',
                 through: { attributes: [] }
             }],
             attributes: { exclude: ['password'] }
@@ -246,7 +287,7 @@ router.get('/roles', requireAdmin, async (req, res) => {
         const roles = await Role.findAll({
             include: [{
                 model: Resource,
-                as: 'resources',
+                as: 'accessibleResources',
                 through: { attributes: [] }
             }],
             order: [['name', 'ASC']]

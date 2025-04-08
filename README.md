@@ -123,6 +123,31 @@ Cada menu possui os seguintes atributos:
 - **Apenas para Administradores**: Se o menu deve ser visível apenas para admins
 - **Ativo**: Se o menu está ativo e visível
 
+## Migração MongoDB para PostgreSQL
+
+**IMPORTANTE:** Este projeto foi originalmente desenvolvido com MongoDB, mas está em processo de migração para usar apenas PostgreSQL. Atualmente, o MongoDB não é mais necessário para executar a aplicação, pois implementamos um mock para compatibilidade com código legado.
+
+As seguintes ações devem ser tomadas para concluir a migração:
+
+1. Remover as dependências do MongoDB do package.json:
+   ```bash
+   npm uninstall mongoose mongodb
+   ```
+
+2. Remover qualquer configuração de MongoDB do arquivo .env (como MONGODB_URI)
+
+3. Eliminar qualquer código remanescente que faça referência ao MongoDB, como:
+   - Modelos legados na pasta "legacy/"
+   - Qualquer lógica de fallback para MongoDB em rotas existentes
+   - Remover o arquivo db.js da raiz (que atualmente serve como mock para compatibilidade)
+
+4. Executar o script de verificação para garantir que não há mais referências ao MongoDB:
+   ```bash
+   node scripts/remove-mongodb.js
+   ```
+
+5. Atualizar a documentação para refletir que o projeto agora usa apenas PostgreSQL
+
 ## 👥 Contribuição
 
 1. **Faça um Fork do projeto**

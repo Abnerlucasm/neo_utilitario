@@ -5,8 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificar Email - NeoHub</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/styles/styles.css">
     <link rel="stylesheet" href="/styles/dark-theme.css">
+    <style>
+        .notification {
+            margin-bottom: 1rem;
+        }
+        .d-none {
+            display: none;
+        }
+        .code-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .code-input {
+            width: 50px;
+            height: 60px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px solid #dbdbdb;
+            border-radius: 4px;
+            transition: border-color 0.3s;
+        }
+        .code-input:focus {
+            border-color: #485fc7;
+            outline: none;
+        }
+        .code-input.filled {
+            border-color: #48c774;
+        }
+    </style>
 </head>
 <body>
     <section class="hero is-fullheight">
@@ -20,16 +51,23 @@
                                 Digite o código enviado para seu email
                             </p>
                             
+                            <div class="has-text-centered mb-4">
+                                <span class="icon">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <span id="userEmail">carregando...</span>
+                            </div>
+                            
                             <form id="verifyForm">
-                                <div class="field">
-                                    <div class="control">
-                                        <input class="input is-large has-text-centered" 
-                                               type="text" 
-                                               name="code" 
-                                               maxlength="6" 
-                                               placeholder="000000"
-                                               required>
-                                    </div>
+                                <input type="hidden" id="fullCode" name="code">
+                                
+                                <div class="code-container">
+                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off" autofocus>
+                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
                                 </div>
 
                                 <div class="field">
@@ -42,6 +80,15 @@
 
                                 <div class="has-text-centered mt-4">
                                     <a href="#" id="resendCode">Não recebeu o código? Clique aqui</a>
+                                </div>
+                                
+                                <div class="has-text-centered mt-3">
+                                    <a href="/pages/login.html" class="button is-text">
+                                        <span class="icon">
+                                            <i class="fas fa-arrow-left"></i>
+                                        </span>
+                                        <span>Voltar para o login</span>
+                                    </a>
                                 </div>
                             </form>
                         </div>

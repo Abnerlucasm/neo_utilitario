@@ -265,8 +265,14 @@ class AdminManager {
 
 // Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
-    const admin = new AdminManager();
-    admin.init();
+    try {
+        console.log('DOM está pronto. Inicializando LearningAdmin...');
+        // Criar e expor o LearningAdmin globalmente
+        window.learningAdmin = new LearningAdmin();
+        console.log('LearningAdmin inicializado com sucesso');
+    } catch (error) {
+        console.error('Erro ao inicializar LearningAdmin:', error);
+    }
 });
 
 // Adicionar ao menu existente
@@ -305,23 +311,49 @@ class LearningAdmin {
     }
 
     handleRouteChange() {
-        const path = window.location.pathname;
-        const params = new URLSearchParams(window.location.search);
-        const action = params.get('action');
-        const id = params.get('id');
-        
-        // Verificar qual página estamos
-        if (path.endsWith('/admin/learning/modules')) {
-            if (action === 'new') {
-                this.showModuleEditor();
-            } else if (action === 'edit' && id) {
-                this.showModuleEditor(id);
+        try {
+            console.log('Manipulando mudança de rota...');
+            const path = window.location.pathname;
+            const params = new URLSearchParams(window.location.search);
+            const action = params.get('action');
+            const id = params.get('id');
+            
+            console.log('Caminho atual:', path);
+            
+            // Verificar se estamos na página de módulos
+            if (path.includes('/modules/learning/templates/modules.html') || 
+                path.endsWith('/admin/learning/modules')) {
+                console.log('Estamos na página de módulos');
+                
+                if (action === 'new') {
+                    this.showModuleEditor();
+                } else if (action === 'edit' && id) {
+                    this.showModuleEditor(id);
+                } else {
+                    // Verificar se o container existe
+                    if (document.getElementById('modulesContainer')) {
+                        console.log('Container de módulos encontrado, carregando dados...');
+                        this.showModulesList();
+                    } else {
+                        console.error('Container de módulos não encontrado na página');
+                        console.log('Elementos disponíveis:');
+                        const allIds = Array.from(document.querySelectorAll('[id]')).map(el => el.id);
+                        console.log(allIds);
+                    }
+                }
             } else {
+                // Para qualquer outra rota, tentar inicializar a lista de módulos
+                console.log('Não estamos na página de módulos, tentando redirecionar');
                 this.showModulesList();
             }
-        } else {
-            // Para qualquer outra rota, mostrar lista de módulos
-            this.showModulesList();
+        } catch (error) {
+            console.error('Erro ao manipular mudança de rota:', error);
+            // Fallback: tentar mostrar alguma coisa
+            try {
+                this.showModulesList();
+            } catch (fallbackError) {
+                console.error('Falha no fallback:', fallbackError);
+            }
         }
     }
 
@@ -341,7 +373,7 @@ class LearningAdmin {
         
         if (route.startsWith('edit-content:')) {
             const moduleId = route.split(':')[1];
-            window.location.href = `/learning/admin/module/content/${moduleId}`;
+            window.location.href = `/modules/learning/templates/module-content-editor.html?id=${moduleId}`;
             return;
         }
         
@@ -355,19 +387,18 @@ class LearningAdmin {
     async showModulesList() {
         try {
             console.log('Carregando lista de módulos...');
-            const response = await fetch('/modules/learning/templates/modules-list.html');
-            if (!response.ok) {
-                throw new Error(`Erro ${response.status}: ${await response.text()}`);
-            }
-
-            const html = await response.text();
-            this.container.innerHTML = html;
-
-            // Configurar eventos
-            this.setupListEvents();
             
-            // Carregar dados dos módulos
-            this.loadModulesData();
+            // Verificar se já estamos na página correta
+            if (document.getElementById('modulesContainer')) {
+                console.log('Já estamos na página de módulos, carregando dados...');
+                this.setupListEvents();
+                this.loadModulesData();
+                return;
+            }
+            
+            // Se não estamos na página correta, redirecionar
+            console.log('Redirecionando para a página de módulos...');
+            window.location.href = '/modules/learning/templates/modules.html';
         } catch (error) {
             console.error('Erro ao carregar lista de módulos:', error);
             this.showError('Não foi possível carregar a lista de módulos. Por favor, tente novamente.');
@@ -386,9 +417,12 @@ class LearningAdmin {
 
     async loadModulesData() {
         try {
-            const modulesContainer = document.getElementById('modules-container');
+            // Usar o ID exato como está na página HTML
+            const modulesContainer = document.getElementById('modulesContainer');
             if (!modulesContainer) {
-                console.error('Container de módulos não encontrado');
+                console.error('Container de módulos não encontrado. ID esperado: modulesContainer');
+                console.log('IDs disponíveis na página:');
+                document.querySelectorAll('[id]').forEach(el => console.log(`- ${el.id}`));
                 return;
             }
 
@@ -407,7 +441,7 @@ class LearningAdmin {
             this.renderModulesList(modules);
         } catch (error) {
             console.error('Erro ao carregar dados dos módulos:', error);
-            const modulesContainer = document.getElementById('modules-container');
+            const modulesContainer = document.getElementById('modulesContainer');
             if (modulesContainer) {
                 modulesContainer.innerHTML = `
                     <div class="notification is-danger">
@@ -422,17 +456,24 @@ class LearningAdmin {
     }
 
     renderModulesList(modules) {
-        const container = document.getElementById('modules-container');
-        if (!container) return;
+        const container = document.getElementById('modulesContainer');
+        if (!container) {
+            console.error('Container de módulos não encontrado em renderModulesList');
+            console.log('Elementos com IDs na página:');
+            document.querySelectorAll('[id]').forEach(el => {
+                console.log(`- ${el.id}`);
+            });
+            return;
+        }
 
         if (modules.length === 0) {
             container.innerHTML = `
                 <div class="notification is-info is-light">
                     <p>Nenhum módulo encontrado. Crie seu primeiro módulo!</p>
-            </div>
-        `;
+                </div>
+            `;
             return;
-    }
+        }
 
         // Criar cards para cada módulo
         const modulesHTML = modules.map(module => `
@@ -706,9 +747,4 @@ class LearningAdmin {
     showError(message) {
         this.showNotification(message, 'danger', 0);
     }
-}
-
-// Inicializar quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', () => {
-    new LearningAdmin();
-}); 
+} 

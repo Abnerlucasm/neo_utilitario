@@ -60,17 +60,22 @@ const requireAdmin = async (req, res, next) => {
         // Primeiro verificar se o usuário está autenticado
         await requireAuth(req, res, async () => {
             try {
-                // Buscar o usuário completo no banco de dados para ter acesso ao método hasRole
-                const User = require('../models/postgresql/User');
-                const user = await User.findByPk(req.user.id);
+                // Usar o modelo User que já foi importado no topo do arquivo
+                // em vez de importá-lo novamente
+                const user = await User.findByPk(req.user.id, {
+                    include: [{
+                        model: Role,
+                        as: 'userRoles'
+                    }]
+                });
                 
                 if (!user) {
                     logger.warn(`Usuário não encontrado: ${req.user.id}`);
                     return res.status(404).json({ error: 'Usuário não encontrado.' });
                 }
                 
-                // Verificar se o usuário tem o papel de admin usando o método hasRole
-                const isAdmin = await user.hasRole('admin');
+                // Verificar se o usuário tem o papel de admin usando as roles incluídas
+                const isAdmin = user.userRoles && user.userRoles.some(role => role.name === 'admin');
                 
                 if (!isAdmin) {
                     logger.warn(`Acesso de administrador negado para: ${req.user.email}`);
@@ -96,9 +101,13 @@ const requireResource = (resourcePath) => {
             // Primeiro verificar se o usuário está autenticado
             await requireAuth(req, res, async () => {
                 try {
-                    // Buscar o usuário completo no banco de dados para ter acesso ao método hasRole
-                    const User = require('../models/postgresql/User');
-                    const user = await User.findByPk(req.user.id);
+                    // Usar o modelo User que já foi importado no topo do arquivo
+                    const user = await User.findByPk(req.user.id, {
+                        include: [{
+                            model: Role,
+                            as: 'userRoles'
+                        }]
+                    });
                     
                     if (!user) {
                         logger.warn(`Usuário não encontrado: ${req.user.id}`);
@@ -106,7 +115,7 @@ const requireResource = (resourcePath) => {
                     }
                     
                     // Se o usuário for admin, permitir acesso a qualquer recurso
-                    const isAdmin = await user.hasRole('admin');
+                    const isAdmin = user.userRoles && user.userRoles.some(role => role.name === 'admin');
                     
                     if (isAdmin) {
                         return next();
@@ -147,16 +156,22 @@ const checkRole = (roleName) => {
                 return res.status(401).json({ message: 'Usuário não autenticado' });
             }
 
-            // Buscar o usuário completo no banco de dados
-            const User = require('../models/postgresql/User');
-            const user = await User.findByPk(req.user.id);
+            // Usar o modelo User que já foi importado no topo do arquivo
+            const user = await User.findByPk(req.user.id, {
+                include: [{
+                    model: Role,
+                    as: 'userRoles'
+                }]
+            });
 
             if (!user) {
                 return res.status(404).json({ message: 'Usuário não encontrado' });
             }
 
             // Verificar se o usuário tem a role necessária
-            const hasRequiredRole = await user.hasRole(roleName.toLowerCase());
+            const hasRequiredRole = user.userRoles && user.userRoles.some(
+                role => role.name.toLowerCase() === roleName.toLowerCase()
+            );
 
             if (!hasRequiredRole) {
                 return res.status(403).json({ 

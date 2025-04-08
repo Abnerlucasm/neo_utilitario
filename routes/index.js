@@ -1,49 +1,53 @@
-// Consolidar importações de rotas
-const glassfishRouter = require('./glassfish');
-const suggestionsRouter = require('./suggestions');
-const kanbanRouter = require('./kanban');
-const contentRouter = require('./content');
-const componentsRouter = require('./components');
-const progressRouter = require('./progress');
-const learningRouter = require('./learning');
-const path = require('path');
+/**
+ * Arquivo de rotas principal
+ * Registra todas as rotas da aplicação
+ */
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middlewares/auth');
-const checkAccess = require('../middleware/checkAccess');
+const logger = require('../utils/logger');
+const { requireAuth, requireAdmin } = require('../middlewares/access-control');
 
-module.exports = function(app) {
-    // API routes
-    app.use('/api/glassfish', glassfishRouter);
-    app.use('/api/suggestions', suggestionsRouter);
-    app.use('/api/kanban', kanbanRouter);
-    app.use('/api/content', contentRouter);
-    app.use('/api/components', componentsRouter);
-    app.use('/api/progress', progressRouter);
-    app.use('/api/learning', learningRouter);
+// Importar rotas
+const menuRoutes = require('./menus');
+const authRoutes = require('./auth');
+const adminRoutes = require('./admin');
+const learningRoutes = require('./learning');
+const userRoutes = require('./user');
+const rolesRoutes = require('./roles');
+const progressRoutes = require('./progress');
 
-    // Rota para a página de aprendizagem
-    app.get('/learn', (req, res) => {
-        res.sendFile(path.join(__dirname, '../public/learn.html'));
+// Configuração de logging para diagnóstico de rotas
+router.use((req, res, next) => {
+    logger.info(`Requisição recebida: ${req.method} ${req.originalUrl}`);
+    next();
+});
+
+// Registro de rotas
+console.log('Registrando rota /api/menus na routes/index.js');
+// Aplicar middleware de autenticação - mas não aqui pois já está no arquivo de rota
+router.use('/api/menus', menuRoutes);
+router.use('/api/auth', authRoutes);
+router.use('/api/admin', [requireAuth, requireAdmin], adminRoutes);
+router.use('/api/learning', requireAuth, learningRoutes);
+router.use('/api/user', requireAuth, userRoutes);
+router.use('/api/roles', [requireAuth, requireAdmin], rolesRoutes);
+router.use('/api/progress', requireAuth, progressRoutes);
+
+// Rota de diagnóstico
+router.get('/api/status', (req, res) => {
+    res.json({
+        status: 'online',
+        timestamp: new Date().toISOString(),
+        routes: [
+            '/api/menus',
+            '/api/auth',
+            '/api/admin',
+            '/api/learning',
+            '/api/user',
+            '/api/roles',
+            '/api/progress'
+        ]
     });
+});
 
-    // Rota protegida que requer autenticação e acesso específico
-    router.get('/sugestoes', 
-        authenticate, 
-        checkAccess('/sugestoes'),
-        (req, res) => {
-            // Lógica da rota
-        }
-    );
-
-    // Rota de admin que requer autenticação e acesso específico
-    router.get('/admin/users', 
-        authenticate, 
-        checkAccess('/admin/users'),
-        (req, res) => {
-            // Lógica da rota
-        }
-    );
-
-    return router;
-}; 
+module.exports = router; 

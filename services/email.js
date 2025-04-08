@@ -37,6 +37,68 @@ class EmailService {
         }
     }
 
+    async sendVerificationEmail(email, userId) {
+        try {
+            // Buscar o usuário e seu código de verificação
+            const { User } = require('../models/postgresql/associations');
+            const user = await User.findByPk(userId);
+            
+            if (!user || !user.verification_code) {
+                throw new Error('Código de verificação não disponível para o usuário');
+            }
+            
+            const verificationCode = user.verification_code;
+            
+            const subject = 'Verificação de Conta - NeoHub';
+            const content = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>Bem-vindo ao NeoHub!</h2>
+                    <p>Obrigado por se registrar. Para verificar sua conta, use o código abaixo:</p>
+                    
+                    <div style="
+                        background-color: #f5f5f5;
+                        padding: 15px;
+                        text-align: center;
+                        font-size: 24px;
+                        font-weight: bold;
+                        letter-spacing: 5px;
+                        margin: 20px 0;
+                        border-radius: 5px;
+                    ">
+                        ${verificationCode}
+                    </div>
+                    
+                    <p>Ou você pode clicar no link abaixo para verificar automaticamente:</p>
+                    <p>
+                        <a href="${process.env.APP_URL || 'http://localhost:3030'}/api/auth/verify-email?code=${verificationCode}&email=${encodeURIComponent(email)}" style="
+                            background-color: #4CAF50;
+                            color: white;
+                            padding: 10px 20px;
+                            text-decoration: none;
+                            border-radius: 5px;
+                            display: inline-block;
+                        ">
+                            Verificar Email
+                        </a>
+                    </p>
+                    
+                    <p>Este código expira em 24 horas.</p>
+                    <p>Se você não se registrou no NeoHub, por favor ignore este email.</p>
+                    
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">
+                        Este é um email automático, não responda.
+                    </p>
+                </div>
+            `;
+            
+            return this.sendEmail(email, subject, content);
+        } catch (error) {
+            console.error('Erro ao enviar email de verificação:', error);
+            throw error;
+        }
+    }
+
     async sendPasswordReset(email, resetToken) {
         const resetUrl = `${process.env.APP_URL}/reset-password?token=${resetToken}`;
         const subject = 'Redefinição de Senha';

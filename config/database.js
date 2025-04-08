@@ -4,6 +4,7 @@ const { Sequelize } = require('sequelize');
 const logger = require('../utils/logger');
 require('dotenv').config();
 
+// Configuração do PostgreSQL
 const sequelize = new Sequelize(
     process.env.DB_NAME,
     process.env.DB_USER,
@@ -11,7 +12,12 @@ const sequelize = new Sequelize(
     {
         host: process.env.DB_HOST,
         dialect: 'postgres',
-        logging: msg => logger.debug(msg),
+        logging: (msg) => {
+            // Adicionar logs apenas quando necessário
+            if (msg.includes('ERROR') || msg.includes('error') || msg.includes('Executing')) {
+                logger.debug(msg);
+            }
+        },
         define: {
             underscored: true,
             timestamps: true
@@ -21,6 +27,20 @@ const sequelize = new Sequelize(
             min: 0,
             acquire: 30000,
             idle: 10000
+        },
+        // Adicionar opções para diagnóstico
+        benchmark: true, // Para medir o tempo de execução das queries
+        retry: {  // Tentar novamente se ocorrer um erro de conexão
+            max: 3,
+            match: [
+                /SequelizeConnectionError/,
+                /SequelizeConnectionRefusedError/,
+                /SequelizeHostNotFoundError/,
+                /SequelizeHostNotReachableError/,
+                /SequelizeInvalidConnectionError/,
+                /SequelizeConnectionTimedOutError/,
+                /TimeoutError/
+            ]
         }
     }
 );
@@ -29,10 +49,10 @@ const sequelize = new Sequelize(
 async function testConnection() {
     try {
         await sequelize.authenticate();
-        logger.info('Conexão com o banco de dados estabelecida com sucesso.');
+        logger.info('Conexão com o banco de dados PostgreSQL estabelecida com sucesso.');
         return true;
     } catch (error) {
-        logger.error('Erro ao conectar com o banco de dados:', error);
+        logger.error('Erro ao conectar com o banco de dados PostgreSQL:', error);
         return false;
     }
 }
@@ -41,9 +61,9 @@ async function testConnection() {
 async function syncModels(force = false) {
     try {
         await sequelize.sync({ force });
-        console.log('Modelos sincronizados com o banco de dados');
+        logger.info('Modelos sincronizados com o banco de dados PostgreSQL');
     } catch (error) {
-        console.error('Erro ao sincronizar modelos:', error);
+        logger.error('Erro ao sincronizar modelos com PostgreSQL:', error);
         throw error;
     }
 }
@@ -53,9 +73,9 @@ async function initDatabase() {
         await sequelize.authenticate();
         // Força a sincronização do modelo com o banco
         await sequelize.sync({ alter: true });
-        logger.info('Banco de dados sincronizado com sucesso');
+        logger.info('Banco de dados PostgreSQL sincronizado com sucesso');
     } catch (error) {
-        logger.error('Erro ao sincronizar banco de dados:', error);
+        logger.error('Erro ao sincronizar banco de dados PostgreSQL:', error);
         throw error;
     }
 }

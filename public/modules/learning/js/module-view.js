@@ -1,164 +1,449 @@
 class ModuleView {
     constructor() {
-        this.moduleId = window.location.pathname.split('/').pop();
+        // Extrair ID do módulo da URL
+        // Primeiro tentar obter da query string
+        const urlParams = new URLSearchParams(window.location.search);
+        let moduleId = urlParams.get('id');
+        
+        // Se não tiver na query string, tentar extrair do path
+        if (!moduleId) {
+            const pathParts = window.location.pathname.split('/');
+            const potentialId = pathParts[pathParts.length - 1];
+            // Verificar se é um UUID válido
+            if (potentialId && potentialId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                moduleId = potentialId;
+            }
+        }
+        
+        this.moduleId = moduleId;
         this.content = {};
         this.sections = [];
-        this.currentPage = null;
-        this.userProgress = {
-            completedPages: [],
-            totalPages: 0
-        };
+        this.currentPageId = null;
+        this.currentSectionIndex = 0;
+        this.searchInput = document.getElementById('searchInput');
+        this.searchResults = null;
+        this.userProgress = {};
+        this.inPageSearch = null; // Armazenar estado da busca na página atual
+        
+        this.pageHistory = [];
+        this.historyIndex = -1;
+        
+        // Elementos do DOM
+        this.moduleName = document.getElementById('moduleName');
+        this.pageContent = document.getElementById('pageContent');
+        this.searchResultsContainer = document.getElementById('searchResults');
+        this.sectionsContainer = document.getElementById('moduleSections');
     }
 
     async init() {
         try {
+            // Get the module ID from the URL
+            this.moduleId = new URLSearchParams(window.location.search).get('id');
+            if (!this.moduleId) {
+                this.showError('ID do módulo não especificado');
+                return;
+            }
+            
+            // Load the module content
             await this.loadModule();
+            
+            // Check if the user is an admin
+            await this.checkIfUserIsAdmin();
+            
+            // Load user progress
             await this.loadUserProgress();
-            this.setupSearch();
+            
+            // Setup the UI interactions
             this.setupNavigation();
+            this.setupSearch();
+            
+            // Setup completion message observer
+            this.setupCompletionMessageObserver();
+            
+            // Render sections and content
             this.render();
+            
+            // Apply syntax highlighting
+            this.applySyntaxHighlighting();
+            
+            // Mark the module as started
+            if (!this.moduleStarted) {
+                await this.markModuleAsStarted();
+            }
         } catch (error) {
-            console.error('Erro ao inicializar:', error);
-            this.showError('Erro ao carregar módulo');
+            console.error('Error initializing module view:', error);
+            this.showError('Erro ao carregar o módulo');
         }
     }
 
     async loadModule() {
         try {
-            const moduleId = this.moduleId;
-            console.log('Carregando módulo:', moduleId);
+            console.log(`Carregando módulo ${this.moduleId}`);
             
-            const response = await fetch(`/api/learning/modules/${moduleId}`);
-            console.log('Status da resposta:', response.status);
+            if (!this.moduleId) {
+                throw new Error('ID do módulo não encontrado na URL');
+            }
+            
+            // Buscar dados do módulo
+            const response = await fetch(`/api/learning/modules/${this.moduleId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Accept': 'application/json'
+                }
+            });
             
             if (!response.ok) {
-                const error = await response.json();
-                console.error('Erro detalhado:', error);
-                throw new Error('Erro ao carregar módulo');
+                let errorMessage = `Erro ao carregar o módulo: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorData.message || errorMessage;
+                } catch (e) {
+                    // Ignorar erro de parsing
+                }
+                throw new Error(errorMessage);
             }
             
-            const data = await response.json();
-            console.log('Dados completos do módulo:', data);
+            const module = await response.json();
             
-            // Verificar e estruturar o conteúdo adequadamente
-            if (data.content) {
-                console.log('Conteúdo encontrado no módulo');
-                this.content = data.content;
-            } else {
-                console.warn('Módulo não tem conteúdo definido');
-                this.content = {}; // Objeto vazio para evitar erros
+            console.log('Dados do módulo carregados:', {
+                id: module.id,
+                title: module.title,
+                sections: Array.isArray(module.sections) ? module.sections.length : 'não é array',
+                contentKeys: module.content ? Object.keys(module.content).length : 'sem conteúdo'
+            });
+            
+            // Verificar se o módulo tem o formato esperado
+            if (!module || typeof module !== 'object') {
+                throw new Error('Formato de módulo inválido');
             }
             
-            // Verificar e estruturar as seções adequadamente
-            if (Array.isArray(data.sections) && data.sections.length > 0) {
-                console.log('Seções encontradas no módulo:', data.sections.length);
-                
-                // Verificar e corrigir as seções com problemas
-                const fixedSections = data.sections.map(section => {
-                    // Clone a seção para evitar mutar o objeto original
-                    const fixedSection = { ...section };
+            // Extrair dados do módulo com verificações de segurança
+            this.moduleTitle = module.title || 'Módulo sem título';
+            this.sections = Array.isArray(module.sections) ? module.sections : [];
+            this.content = typeof module.content === 'object' ? module.content || {} : {};
+            
+            // Inicializar conteúdo vazio se for null ou undefined
+            if (!this.content) {
+                this.content = {};
+            }
+            
+            // Atualizar o título na página
+            document.title = this.moduleTitle + ' | Módulo de Aprendizagem';
+            if (this.moduleName) {
+                this.moduleName.textContent = this.moduleTitle;
+            }
+            
+            console.log('Seções carregadas:', this.sections);
+            console.log('Conteúdo carregado:', this.content);
+            
+            // Verificar consistência entre seções e conteúdo
+            let totalPages = 0;
+            let validPages = 0;
+            let firstPageId = null;
+            
+            for (const section of this.sections) {
+                if (Array.isArray(section.pages)) {
+                    totalPages += section.pages.length;
                     
-                    // Verificar se a seção tem um array de páginas
-                    if (!Array.isArray(fixedSection.pages)) {
-                        console.warn(`Seção sem array de páginas válido:`, fixedSection);
-                        fixedSection.pages = [];
-                        return fixedSection;
-                    }
-                    
-                    // Filtrar e fixar páginas que são objetos
-                    const fixedPages = fixedSection.pages.filter(pageId => {
-                        if (typeof pageId === 'object') {
-                            console.warn(`Encontrado objeto como ID de página na seção ${fixedSection.title || 'sem título'}:`, pageId);
-                            // Se pageId for um objeto com uma propriedade 'id', usar esse valor
-                            if (pageId && pageId.id && (typeof pageId.id === 'string' || typeof pageId.id === 'number')) {
-                                console.log(`  - Usando a propriedade 'id' do objeto como ID: ${pageId.id}`);
-                                // Substituir o objeto pelo valor da propriedade 'id'
-                                return true;
+                    for (const pageId of section.pages) {
+                        if (typeof pageId === 'string') {
+                            // Se não tivermos o conteúdo para este pageId, inicializar com valor default
+                            if (!this.content[pageId]) {
+                                this.content[pageId] = {
+                                    id: pageId,
+                                    title: 'Página sem título',
+                                    content: 'Conteúdo não disponível',
+                                    description: ''
+                                };
                             }
-                            return false;
+                            
+                            // Armazenar o primeiro pageId válido encontrado
+                            if (!firstPageId) {
+                                firstPageId = pageId;
+                            }
+                            
+                            validPages++;
                         }
-                        return true;
-                    }).map(pageId => {
-                        // Se for um objeto com id, extrair o id
-                        if (typeof pageId === 'object' && pageId && pageId.id) {
-                            return String(pageId.id);
-                        }
-                        // Caso contrário, usar o pageId como está (deve ser string ou número)
-                        return pageId;
-                    });
-                    
-                    fixedSection.pages = fixedPages;
-                    return fixedSection;
-                });
+                    }
+                }
+            }
+            
+            console.log(`Verificação de consistência: ${validPages}/${totalPages} páginas válidas`);
+            
+            // Se encontramos uma página válida, exibi-la
+            if (firstPageId) {
+                // Obter ID da página da URL se disponível
+                const urlParams = new URLSearchParams(window.location.search);
+                const pageFromUrl = urlParams.get('page');
                 
-                this.sections = fixedSections;
+                // Mostrar página específica da URL ou a primeira página
+                const pageToShow = pageFromUrl || firstPageId;
+                console.log(`Exibindo página: ${pageToShow}`);
+                
+                // Esperar um momento para garantir que o DOM está pronto
+                setTimeout(() => {
+                    this.showPage(pageToShow);
+                }, 100);
+            } else if (totalPages > 0) {
+                console.warn('Nenhuma página válida encontrada no módulo. Possível desalinhamento entre seções e conteúdo.');
+                this.showError('Este módulo não possui páginas válidas. Entre em contato com o administrador.');
             } else {
-                console.warn('Módulo não tem seções definidas ou as seções não estão em formato válido');
-                this.sections = []; // Array vazio para evitar erros
+                this.showError('Este módulo está vazio. Entre em contato com o administrador.');
             }
             
-            // Atualizar o título da página
-            const moduleNameElement = document.getElementById('moduleName');
-            if (moduleNameElement) {
-                moduleNameElement.textContent = data.title || 'Módulo sem título';
-            } else {
-                console.error('Elemento moduleName não encontrado no DOM');
-            }
-            
-            // Verificar se há dados suficientes para mostrar o conteúdo
-            if (Object.keys(this.content).length === 0 || this.sections.length === 0) {
-                console.warn('Módulo não tem conteúdo ou seções suficientes para exibição');
-                this.showError('Este módulo ainda não tem conteúdo definido. Por favor, adicione conteúdo no editor.');
-            }
+            return true;
         } catch (error) {
-            console.error('Erro completo ao carregar módulo:', error);
-            this.showError(`Não foi possível carregar o módulo: ${error.message}`);
-            throw error;
+            console.error('Erro ao carregar módulo:', error);
+            this.showError('Erro ao inicializar visualização: ' + error.message);
+            return false;
         }
     }
 
+    /**
+     * Carrega o progresso do usuário para este módulo
+     */
     async loadUserProgress() {
         try {
-            console.log('Carregando progresso para o módulo:', this.moduleId);
-            
-            // Tentar carregar o progresso, mas se falhar, continuar com valores padrão
-            let progressData = {
-                completed_pages: [],
-                total_pages: 0,
-                progress: 0
-            };
-            
-            try {
-                const response = await fetch(`/api/progress/${this.moduleId}`);
-                console.log('Status da resposta de progresso:', response.status);
-                
-                if (response.ok) {
-                    progressData = await response.json();
-                    console.log('Dados de progresso recebidos:', progressData);
-                } else {
-                    console.warn('Não foi possível carregar o progresso do usuário:', response.status);
-                }
-            } catch (error) {
-                console.warn('Erro ao carregar progresso, continuando com valores padrão:', error);
+            // Verificar se há token de autenticação
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                console.warn('Usuário não autenticado, progresso não será carregado');
+                return;
             }
             
-            // Independentemente de sucesso ou erro, processar os dados (usar defaults se necessário)
-            this.userProgress = {
-                completedPages: progressData.completed_pages || [],
-                totalPages: progressData.total_pages || 0,
-                progress: progressData.progress || 0
-            };
+            // Buscar progresso específico para este módulo
+            const response = await fetch(`/api/progress/modules/${this.moduleId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             
-            console.log('Progresso processado:', this.userProgress);
+            if (!response.ok) {
+                throw new Error(`Erro ao carregar progresso: ${response.status}`);
+            }
+            
+            const progress = await response.json();
+            
+            // Processar progresso
+            this.userProgress = progress;
+            this.readPages = Array.isArray(progress.readPages) ? progress.readPages : [];
+            this.moduleStarted = progress.started || this.readPages.length > 0;
+            this.moduleCompleted = progress.completed || false;
+            
+            // Renderizar progresso
+            this.renderProgress();
+            
+            console.log('Progresso do usuário carregado:', progress);
         } catch (error) {
-            console.error('Erro ao processar progresso do usuário:', error);
-            // Usar valores padrão em caso de erro
+            console.warn('Erro ao carregar progresso do usuário:', error);
             this.userProgress = {
-                completedPages: [],
-                totalPages: 0,
-                progress: 0
+                readPages: []
             };
+            this.readPages = [];
         }
+    }
+
+    /**
+     * Renderiza a barra de progresso do módulo
+     */
+    renderProgress() {
+        const progressContainer = document.querySelector('.progress-container');
+        if (!progressContainer) return;
+        
+        // Contar total de páginas no módulo
+        let totalPages = 0;
+        if (Array.isArray(this.sections)) {
+            for (const section of this.sections) {
+                if (section && Array.isArray(section.pages)) {
+                    totalPages += section.pages.length;
+                }
+            }
+        }
+        
+        // Contar páginas lidas
+        const readPagesCount = Array.isArray(this.readPages) ? this.readPages.length : 0;
+        
+        // Calcular percentual
+        const percentage = totalPages > 0 ? Math.round((readPagesCount / totalPages) * 100) : 0;
+        
+        // Renderizar barra de progresso
+        progressContainer.innerHTML = `
+            <div class="columns is-vcentered">
+                <div class="column is-9">
+                    <progress class="progress is-info" value="${percentage}" max="100"></progress>
+                </div>
+                <div class="column is-3 has-text-right">
+                    ${readPagesCount} de ${totalPages} páginas
+                    <br>
+                    <strong>${percentage}% concluído</strong>
+                </div>
+            </div>
+        `;
+        
+        // Atualizar marcadores de páginas lidas no menu lateral
+        this.updateReadPageMarkers();
+    }
+    
+    /**
+     * Atualiza os marcadores de páginas lidas no menu lateral
+     */
+    updateReadPageMarkers() {
+        if (!Array.isArray(this.readPages)) return;
+        
+        // Atualizar ícones de páginas lidas
+        const pageLinks = document.querySelectorAll('.menu-list a[data-page-id]');
+        pageLinks.forEach(link => {
+            const pageId = link.getAttribute('data-page-id');
+            const iconSpan = link.querySelector('.icon');
+            
+            if (this.readPages.includes(pageId)) {
+                // Se a página foi lida, mostrar ícone de check
+                if (!iconSpan) {
+                    const newIcon = document.createElement('span');
+                    newIcon.className = 'icon';
+                    newIcon.innerHTML = '<i class="fas fa-check"></i>';
+                    link.appendChild(newIcon);
+                }
+            } else {
+                // Se a página não foi lida, remover ícone se existir
+                if (iconSpan) {
+                    iconSpan.remove();
+                }
+            }
+        });
+    }
+
+    async markModuleAsStarted() {
+        try {
+            // Enviar progresso inicial para o módulo para marcá-lo como "iniciado"
+            const response = await fetch(`/api/progress/modules/${this.moduleId}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    started: true
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erro ao registrar início do módulo');
+            }
+            
+            console.log('Módulo marcado como iniciado');
+            return true;
+        } catch (error) {
+            console.error('Erro ao marcar módulo como iniciado:', error);
+            return false;
+        }
+    }
+
+    async markPageAsRead(pageId) {
+        if (!pageId) return false;
+        
+        try {
+            const response = await fetch(`/api/progress/modules/${this.moduleId}/pages/${pageId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erro ao registrar progresso');
+            }
+            
+            // Atualizar progresso local
+            const updatedProgress = await response.json();
+            this.userProgress = { ...this.userProgress, ...updatedProgress };
+            
+            // Atualizar barra de progresso
+            this.renderProgress();
+            
+            // Verificar se o módulo foi completado
+            if (updatedProgress.completed) {
+                this.showCompletionMessage();
+            }
+            
+            return true;
+            } catch (error) {
+            console.error('Erro ao marcar página como lida:', error);
+            return false;
+        }
+    }
+
+    showPage(pageId) {
+        // Verificar se o pageId está presente no content
+        if (!this.content[pageId]) {
+            console.error(`Page id ${pageId} not found in content`);
+            this.showEmptyContent('A página não foi encontrada');
+            return;
+        }
+        
+        this.currentPage = pageId;
+        
+        // Obter a página do conteúdo
+        const page = this.content[pageId];
+        
+        // Atualizar o título da página
+        document.title = `${page.title} | ${this.moduleName}`;
+        
+        // Renderizar conteúdo
+        const contentElement = document.getElementById('pageContent');
+        const content = page.content || 'Sem conteúdo';
+        contentElement.innerHTML = this.renderMarkdown(content);
+        
+        // Aplicar syntax highlighting
+        this.applySyntaxHighlighting();
+        
+        // Atualizar navegação
+        this.updateNavigation(pageId);
+        
+        // Atualizar URL
+        this.updateURL(pageId);
+        
+        // Iniciar temporizador de leitura
+        this.startPageReadingTimer(pageId);
+        
+        // Resetar variáveis de busca
+        this.clearInPageSearch();
+        
+        // Esconder resultados de pesquisa
+        document.getElementById('searchResults').style.display = 'none';
+        
+        // Verificar se deve mostrar mensagem de conclusão (para páginas pequenas)
+        if (this.checkScrollPosition) {
+            setTimeout(this.checkScrollPosition, 500);
+        }
+    }
+
+    showCompletionMessage() {
+        // Mostrar mensagem de parabéns quando o módulo for concluído
+        const notification = document.createElement('div');
+        notification.className = 'notification is-success is-light';
+        notification.innerHTML = `
+            <button class="delete"></button>
+            <div class="has-text-centered">
+                <p class="title is-4">Parabéns!</p>
+                <p class="subtitle is-6">Você completou este módulo de aprendizado.</p>
+                <p>Continue explorando outros módulos para ampliar seus conhecimentos.</p>
+                <a href="/learn" class="button is-primary mt-3">
+                    <span class="icon"><i class="fas fa-graduation-cap"></i></span>
+                    <span>Ver todos os módulos</span>
+                </a>
+            </div>
+        `;
+        
+        // Adicionar a notificação após o conteúdo da página
+        this.pageContent.appendChild(notification);
+        
+        // Permitir fechar a notificação
+        notification.querySelector('.delete').addEventListener('click', () => {
+            notification.remove();
+        });
+
+        // Rolar para a notificação
+        notification.scrollIntoView({ behavior: 'smooth' });
     }
 
     setupSearch() {
@@ -173,8 +458,61 @@ class ModuleView {
         searchInput.addEventListener('input', (event) => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
-                this.handleSearch(event.target.value.trim());
+                const query = event.target.value.trim();
+                this.handleSearch(query);
             }, 300);
+        });
+        
+        // Adicionar suporte para teclas de atalho
+        searchInput.addEventListener('keydown', (event) => {
+            // Enter para iniciar busca ou navegar entre resultados
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const query = searchInput.value.trim();
+                
+                if (query) {
+                    // Se já estiver em um modo de busca na página
+                    if (this.inPageSearch) {
+                        // Navegar para o próximo resultado (shift+enter navega para trás)
+                        this.navigateSearch(event.shiftKey ? 'prev' : 'next');
+                    } else {
+                        // Iniciar busca
+                        this.handleSearch(query);
+                    }
+                }
+            }
+            
+            // Escape para cancelar busca
+            if (event.key === 'Escape') {
+                searchInput.value = '';
+                this.clearInPageSearch();
+                searchResults.style.display = 'none';
+                pageContent.style.display = 'block';
+            }
+            
+            // F3 para navegar entre resultados
+            if (event.key === 'F3') {
+                event.preventDefault();
+                if (this.inPageSearch) {
+                    this.navigateSearch(event.shiftKey ? 'prev' : 'next');
+                }
+            }
+        });
+        
+        // Adicionar atalho global Ctrl+F para focar na busca
+        document.addEventListener('keydown', (event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+                // Impedir o comportamento padrão do navegador
+                event.preventDefault();
+                
+                // Focar no input de busca
+                searchInput.focus();
+                
+                // Se já houver texto no input, selecionar tudo
+                if (searchInput.value.trim()) {
+                    searchInput.select();
+                }
+            }
         });
     }
 
@@ -185,10 +523,26 @@ class ModuleView {
         if (!query) {
             searchResults.style.display = 'none';
             pageContent.style.display = 'block';
+            this.clearInPageSearch();
             return;
         }
 
         try {
+            // Se a consulta for muito curta (menos de 3 caracteres), verificar primeiro se há 
+            // ocorrências na página atual antes de buscar em todo o módulo
+            if (query.length < 3 && this.currentPageId) {
+                const inPageResults = this.searchInCurrentPage(query);
+                if (inPageResults.total > 0) {
+                    // Temos resultados na página atual, não precisamos procurar em outras páginas
+                    searchResults.style.display = 'none';
+                    pageContent.style.display = 'block';
+                    return;
+                }
+            }
+
+            // Limpar qualquer destaque anterior
+            this.clearInPageSearch();
+            
             // Buscar localmente primeiro (mais rápido)
             const localResults = this.searchLocalContent(query);
             
@@ -403,6 +757,13 @@ class ModuleView {
     }
 
     setupNavigation() {
+        // Verificar se existe o container para a navegação
+        const contentArea = document.querySelector('.content-area');
+        if (!contentArea) {
+            console.warn('Container .content-area não encontrado para navegação');
+            return;
+        }
+        
         const navContainer = document.createElement('div');
         navContainer.className = 'navigation-buttons mt-4';
         navContainer.innerHTML = `
@@ -416,18 +777,26 @@ class ModuleView {
             </button>
         `;
         
-        document.querySelector('.content-area').appendChild(navContainer);
+        contentArea.appendChild(navContainer);
         
-        document.getElementById('prevPage').addEventListener('click', () => this.navigate('prev'));
-        document.getElementById('nextPage').addEventListener('click', () => this.navigate('next'));
+        const prevBtn = document.getElementById('prevPage');
+        const nextBtn = document.getElementById('nextPage');
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => this.navigate('prev'));
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.navigate('next'));
+        }
     }
 
     navigate(direction) {
         let currentIndex = -1;
         const allPages = this.getAllPages();
         
-        if (this.currentPage) {
-            currentIndex = allPages.indexOf(this.currentPage);
+        if (this.currentPageId) {
+            currentIndex = allPages.indexOf(this.currentPageId);
         }
 
         if (direction === 'prev' && currentIndex > 0) {
@@ -445,193 +814,18 @@ class ModuleView {
 
     updateNavigationButtons() {
         const allPages = this.getAllPages();
-        const currentIndex = allPages.indexOf(this.currentPage);
+        const currentIndex = allPages.indexOf(this.currentPageId);
         
-        document.getElementById('prevPage').disabled = currentIndex <= 0;
-        document.getElementById('nextPage').disabled = currentIndex >= allPages.length - 1;
-    }
-
-    async markPageAsRead(pageId) {
-        console.log(`Marcando página ${pageId} como lida`);
+        const prevBtn = document.getElementById('prevPage');
+        const nextBtn = document.getElementById('nextPage');
         
-        // Garantir que o pageId seja uma string
-        const pageIdStr = String(pageId);
-        
-        if (!this.userProgress.completedPages.includes(pageIdStr)) {
-            this.userProgress.completedPages.push(pageIdStr);
-            
-            try {
-                // Adaptar para o formato esperado pelo servidor (camelCase para snake_case)
-                const totalPages = this.getAllPages().length;
-                
-                console.log('Enviando progresso atualizado:', {
-                    completed_pages: this.userProgress.completedPages,
-                    total_pages: totalPages
-                });
-                
-                await fetch(`/api/progress/${this.moduleId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        completed_pages: this.userProgress.completedPages,
-                        total_pages: totalPages
-                    })
-                });
-                
-                console.log('Progresso salvo com sucesso');
-            } catch (error) {
-                console.error('Erro ao atualizar progresso:', error);
-            }
-        }
-    }
-
-    renderProgress() {
-        const totalPages = this.getAllPages().length;
-        const completedPages = this.userProgress.completedPages.length;
-        const progressPercentage = Math.round((completedPages / totalPages) * 100);
-
-        const progressContainer = document.createElement('div');
-        progressContainer.className = 'progress-container mt-4';
-        progressContainer.innerHTML = `
-            <progress class="progress is-primary" value="${completedPages}" max="${totalPages}"></progress>
-            <p class="has-text-centered">${progressPercentage}% concluído (${completedPages}/${totalPages} páginas)</p>
-        `;
-
-        document.querySelector('.content-area').appendChild(progressContainer);
-    }
-
-    showPage(pageId) {
-        console.log('Tentando mostrar página:', pageId);
-        
-        // Verificar se o pageId é válido
-        if (!pageId) {
-            console.error('ID de página inválido:', pageId);
-            this.showError('ID de página inválido ou ausente');
-            return;
+        if (prevBtn) {
+            prevBtn.disabled = currentIndex <= 0;
         }
         
-        // Converter para string para garantir consistência
-        const pageIdStr = String(pageId);
-        
-        // Verificar se o pageId é um objeto
-        if (typeof pageId === 'object') {
-            console.error('Recebido um objeto como ID de página:', pageId);
-            this.showError(`Formato de ID inválido. Recebido um objeto quando deveria ser uma string.`);
-            return;
+        if (nextBtn) {
+            nextBtn.disabled = currentIndex >= allPages.length - 1;
         }
-        
-        this.currentPage = pageIdStr;
-        const page = this.content[pageIdStr];
-        
-        if (!page) {
-            console.error(`Página ${pageIdStr} não encontrada no conteúdo`);
-            console.log('Conteúdo disponível:', Object.keys(this.content));
-            
-            // Encontrar a seção à qual esta página pertence
-            let pageSection = null;
-            for (const section of this.sections) {
-                if (section.pages && section.pages.includes(pageIdStr)) {
-                    pageSection = section;
-                    break;
-                }
-            }
-            
-            const contentArea = document.querySelector('.content-area');
-            if (contentArea) {
-                // Verificar se o usuário é administrador
-                const isAdmin = this.checkIfUserIsAdmin();
-                
-                // Construir a mensagem de erro
-                let buttonsHTML = `
-                    <div class="buttons is-centered mt-4">
-                        <button class="button is-primary create-page-btn">
-                            <span class="icon"><i class="fas fa-plus"></i></span>
-                            <span>Criar Página</span>
-                        </button>
-                `;
-                
-                // Adicionar botão de corrigir estrutura apenas para administradores
-                if (isAdmin) {
-                    buttonsHTML += `
-                        <button class="button is-warning fix-structure-btn">
-                            <span class="icon"><i class="fas fa-wrench"></i></span>
-                            <span>Corrigir Estrutura</span>
-                        </button>
-                    `;
-                }
-                
-                // Adicionar botão de abrir editor (apenas para administradores)
-                if (isAdmin) {
-                    buttonsHTML += `
-                        <a href="/admin/learning/module/content/${this.moduleId}" class="button is-info">
-                            <span class="icon"><i class="fas fa-edit"></i></span>
-                            <span>Abrir Editor</span>
-                        </a>
-                    `;
-                }
-                
-                buttonsHTML += `</div>`;
-                
-                contentArea.innerHTML = `
-                    <div class="page-not-found">
-                        <h3 class="title is-4">Página não encontrada</h3>
-                        <p>A página solicitada (${pageIdStr}) não foi encontrada neste módulo.</p>
-                        ${pageSection ? `<p>Esta página pertence à seção "${pageSection.title}" mas não tem conteúdo definido.</p>` : ''}
-                        
-                        ${buttonsHTML}
-                    </div>
-                `;
-                
-                // Adicionar listeners aos botões
-                const createPageBtn = contentArea.querySelector('.create-page-btn');
-                if (createPageBtn) {
-                    createPageBtn.addEventListener('click', () => this.createPageContent(pageIdStr, pageSection));
-                }
-                
-                const fixStructureBtn = contentArea.querySelector('.fix-structure-btn');
-                if (fixStructureBtn && isAdmin) {
-                    fixStructureBtn.addEventListener('click', () => {
-                        if (typeof ModuleFixer !== 'undefined') {
-                            const fixer = new ModuleFixer();
-                            fixer.fix();
-                        } else {
-                            console.error('ModuleFixer não está definido');
-                            this.showError('Ferramenta de correção não disponível');
-                        }
-                    });
-                }
-            }
-            return;
-        }
-
-        console.log('Conteúdo da página encontrado:', page);
-        
-        const contentArea = document.querySelector('.content-area');
-        if (!contentArea) {
-            console.error('Elemento .content-area não encontrado');
-            return;
-        }
-        
-        contentArea.innerHTML = `
-            <div class="search-container mb-4"></div>
-            <h1 class="title">${page.title || 'Sem título'}</h1>
-            <div class="content markdown-content">
-                ${page.content ? marked.parse(page.content) : '<p>Esta página não tem conteúdo.</p>'}
-            </div>
-            <div class="navigation-buttons mt-4"></div>
-            <div class="progress-container mt-4"></div>
-        `;
-
-        // Restaurar elementos
-        this.setupSearch();
-        this.setupNavigation();
-        this.updateNavigationButtons();
-        this.renderProgress();
-        
-        // Marcar página como lida
-        this.markPageAsRead(pageIdStr);
     }
 
     async createPageContent(pageId, section) {
@@ -775,15 +969,15 @@ class ModuleView {
             return `
                 <li>
                     <p class="menu-label">${sectionTitle}</p>
-                    <ul class="menu-list">
+                <ul class="menu-list">
                         ${pages.map(pageId => {
                             // Converter para string para garantir consistência
                             const pageIdStr = String(pageId);
                             // Verificar se a página existe no content
                             const pageExists = this.content[pageIdStr] !== undefined;
                             const pageTitle = pageExists ? (this.content[pageIdStr].title || 'Sem título') : 'Página não encontrada';
-                            const isActive = this.currentPage === pageIdStr;
-                            const isCompleted = this.userProgress.completedPages?.includes(pageIdStr);
+                            const isActive = this.currentPageId === pageIdStr;
+                            const isCompleted = this.userProgress.completed_pages?.includes(pageIdStr);
                             
                             return `
                                 <li>
@@ -792,17 +986,17 @@ class ModuleView {
                                        href="#${pageIdStr}">
                                         ${pageTitle}
                                         ${isCompleted ? 
-                                            '<span class="icon"><i class="fas fa-check"></i></span>' : 
-                                            ''}
+                                    '<span class="icon"><i class="fas fa-check"></i></span>' : 
+                                    ''}
                                         ${!pageExists ? 
                                             '<span class="icon"><i class="fas fa-exclamation-triangle"></i></span>' : 
                                             ''}
-                                    </a>
-                                </li>
+                            </a>
+                        </li>
                             `;
                         }).join('')}
-                    </ul>
-                </li>
+                </ul>
+            </li>
             `;
         }).filter(Boolean).join('');
 
@@ -1010,6 +1204,561 @@ class ModuleView {
         } catch (error) {
             console.error('Erro ao verificar permissões de administrador:', error);
             return false;
+        }
+    }
+
+    // Método para renderizar conteúdo markdown
+    renderMarkdown(content) {
+        if (!content) return '<div class="notification is-warning">Esta página não possui conteúdo.</div>';
+        
+        try {
+            // Configurar o marked para melhor segurança e funcionalidade
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: true,
+                sanitize: false // A sanitização é tratada via DOMPurify
+            });
+            
+            // Renderizar markdown para HTML
+            const htmlContent = marked.parse(content);
+            
+            // Verificar se DOMPurify está disponível, se não, implementar uma sanitização básica
+            let sanitizedHtml = htmlContent;
+            if (typeof DOMPurify !== 'undefined') {
+                // Sanitizar o HTML usando DOMPurify
+                sanitizedHtml = DOMPurify.sanitize(htmlContent, {
+                    ADD_ATTR: ['target'],
+                    ADD_TAGS: ['iframe']
+                });
+            } else {
+                console.warn('DOMPurify não está disponível. Usando sanitização básica.');
+                // Implementação básica de sanitização (limitada)
+                sanitizedHtml = htmlContent
+                    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                    .replace(/javascript:/gi, 'blocked:');
+            }
+            
+            return `
+                <div class="content">
+                    ${sanitizedHtml}
+                </div>
+            `;
+        } catch (error) {
+            console.error('Erro ao renderizar markdown:', error);
+            return `<div class="notification is-danger">
+                Erro ao renderizar o conteúdo: ${error.message}
+            </div>`;
+        }
+    }
+    
+    // Método para atualizar a navegação lateral e botões
+    updateNavigation(pageId) {
+        try {
+            // Limpar seleção atual
+            document.querySelectorAll('#moduleSections a').forEach(item => {
+                item.classList.remove('is-active');
+            });
+            
+            // Marcar o item atual como ativo
+            const currentItem = document.querySelector(`#moduleSections a[data-page-id="${pageId}"]`);
+            if (currentItem) {
+                currentItem.classList.add('is-active');
+                
+                // Expandir a seção pai, se necessário
+                const parentSection = currentItem.closest('.section-content');
+                if (parentSection) {
+                    const sectionHeader = parentSection.previousElementSibling;
+                    if (sectionHeader && !sectionHeader.classList.contains('is-active')) {
+                        sectionHeader.classList.add('is-active');
+                        parentSection.style.display = 'block';
+                    }
+                }
+                
+                // Scroll para o item visível, se necessário
+                currentItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            
+            // Atualizar botões de navegação
+            this.updateNavigationButtons(pageId);
+        } catch (error) {
+            console.error('Erro ao atualizar navegação:', error);
+        }
+    }
+    
+    // Método para atualizar botões de navegação anterior/próximo
+    updateNavigationButtons(pageId) {
+        // Encontrar índices da página atual
+        let sectionIndex = -1;
+        let pageIndex = -1;
+        let flatPages = [];
+        
+        // Criar uma lista plana de todas as páginas para navegação
+        this.sections.forEach((section, sIdx) => {
+            if (Array.isArray(section.pages)) {
+                section.pages.forEach((pid, pIdx) => {
+                    if (this.content[pid]) {
+                        flatPages.push({
+                            pageId: pid,
+                            sectionIndex: sIdx,
+                            pageIndex: pIdx
+                        });
+                        
+                        if (pid === pageId) {
+                            sectionIndex = sIdx;
+                            pageIndex = pIdx;
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Encontrar a posição atual na lista plana
+        const currentFlatIndex = flatPages.findIndex(p => p.pageId === pageId);
+        
+        // Configurar botão Anterior
+        const prevButton = document.getElementById('prevPageBtn');
+        if (prevButton) {
+            if (currentFlatIndex > 0) {
+                const prevPage = flatPages[currentFlatIndex - 1];
+                prevButton.dataset.pageId = prevPage.pageId;
+                prevButton.classList.remove('is-disabled');
+                prevButton.removeAttribute('disabled');
+            } else {
+                prevButton.dataset.pageId = '';
+                prevButton.classList.add('is-disabled');
+                prevButton.setAttribute('disabled', 'disabled');
+            }
+        }
+        
+        // Configurar botão Próximo
+        const nextButton = document.getElementById('nextPageBtn');
+        if (nextButton) {
+            if (currentFlatIndex >= 0 && currentFlatIndex < flatPages.length - 1) {
+                const nextPage = flatPages[currentFlatIndex + 1];
+                nextButton.dataset.pageId = nextPage.pageId;
+                nextButton.classList.remove('is-disabled');
+                nextButton.removeAttribute('disabled');
+            } else {
+                nextButton.dataset.pageId = '';
+                nextButton.classList.add('is-disabled');
+                nextButton.setAttribute('disabled', 'disabled');
+            }
+        }
+    }
+    
+    // Método para aplicar syntax highlighting no conteúdo
+    applySyntaxHighlighting() {
+        try {
+            document.querySelectorAll('pre code').forEach(block => {
+                hljs.highlightElement(block);
+            });
+        } catch (error) {
+            console.error('Erro ao aplicar syntax highlighting:', error);
+        }
+    }
+    
+    // Método para atualizar a URL com o ID da página atual
+    updateURL(pageId) {
+        if (!pageId) return;
+        
+        try {
+            // Atualizar os parâmetros da URL sem recarregar a página
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', pageId);
+            window.history.pushState({pageId}, '', url.toString());
+        } catch (error) {
+            console.error('Erro ao atualizar URL:', error);
+        }
+    }
+    
+    // Método para iniciar contagem para marcar página como lida
+    startPageReadingTimer(pageId) {
+        // Limpar timeout anterior, se existir
+        if (this.readTimeout) {
+            clearTimeout(this.readTimeout);
+        }
+        
+        // Definir novo timeout para marcar como lida após 5 segundos
+        this.readTimeout = setTimeout(() => {
+            this.markPageAsRead(pageId);
+        }, 5000);
+    }
+
+    /**
+     * Busca dentro da página atual e destaca as ocorrências
+     * @param {string} query - Termo de busca
+     * @returns {Object} Resultado com total de ocorrências e índice atual
+     */
+    searchInCurrentPage(query) {
+        if (!query || !this.currentPageId) return { total: 0, current: 0 };
+        
+        const pageContent = document.getElementById('pageContent');
+        if (!pageContent) return { total: 0, current: 0 };
+        
+        // Limpar pesquisas anteriores
+        this.clearInPageSearch();
+        
+        // Converter o conteúdo em texto simples para busca
+        const contentHtml = pageContent.innerHTML;
+        const contentText = pageContent.textContent;
+        
+        if (!contentText || contentText.trim() === '') {
+            return { total: 0, current: 0 };
+        }
+        
+        // Buscar todas as ocorrências
+        const searchTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+        if (searchTerms.length === 0) {
+            return { total: 0, current: 0 };
+        }
+        
+        // Criar controles de navegação se não existirem
+        this.createSearchNavigation();
+        
+        // Destacar ocorrências
+        let newHtml = contentHtml;
+        const occurrences = [];
+        
+        searchTerms.forEach(term => {
+            const regex = new RegExp(`(${this.escapeRegExp(term)})`, 'gi');
+            
+            // Encontrar todas as posições dos matches no texto original
+            let match;
+            while ((match = regex.exec(contentText)) !== null) {
+                occurrences.push({
+                    term: match[0],
+                    index: match.index,
+                    length: match[0].length
+                });
+            }
+            
+            // Substituir no HTML com destaque
+            newHtml = newHtml.replace(regex, '<mark class="search-highlight">$1</mark>');
+        });
+        
+        // Ordenar ocorrências por posição no texto
+        occurrences.sort((a, b) => a.index - b.index);
+        
+        // Se houver ocorrências, atualizar a UI
+        if (occurrences.length > 0) {
+            pageContent.innerHTML = newHtml;
+            
+            // Armazenar estado da busca
+            this.inPageSearch = {
+                occurrences: occurrences,
+                currentIndex: 0,
+                total: occurrences.length,
+                query: query
+            };
+            
+            // Atualizar contador e ativar controles
+            this.updateSearchCounter();
+            this.activateSearchNavigation(true);
+            
+            // Destacar a primeira ocorrência como ativa
+            this.highlightCurrentMatch();
+            
+            return { total: occurrences.length, current: 1 };
+        } else {
+            // Nenhuma ocorrência encontrada na página atual
+            this.updateSearchCounter(0, 0);
+            this.activateSearchNavigation(false);
+            return { total: 0, current: 0 };
+        }
+    }
+    
+    /**
+     * Limpa pesquisas anteriores na página
+     */
+    clearInPageSearch() {
+        // Resetar estado da busca
+        this.inPageSearch = null;
+        
+        // Remover destaque de pesquisa anterior se existir
+        const pageContent = document.getElementById('pageContent');
+        if (pageContent) {
+            // Substituir todas as tags mark com seu conteúdo
+            const highlighted = pageContent.querySelectorAll('mark.search-highlight');
+            highlighted.forEach(mark => {
+                const parent = mark.parentNode;
+                if (parent) {
+                    while (mark.firstChild) {
+                        parent.insertBefore(mark.firstChild, mark);
+                    }
+                    parent.removeChild(mark);
+                }
+            });
+            
+            // Remover classe de destaque ativo
+            const active = pageContent.querySelector('mark.search-highlight-active');
+            if (active) {
+                active.classList.remove('search-highlight-active');
+            }
+        }
+        
+        // Esconder controles de navegação
+        this.activateSearchNavigation(false);
+    }
+    
+    /**
+     * Cria controles de navegação para pesquisa na página
+     */
+    createSearchNavigation() {
+        // Verificar se já existe
+        let navContainer = document.querySelector('.in-page-search-nav');
+        
+        if (!navContainer) {
+            navContainer = document.createElement('div');
+            navContainer.className = 'in-page-search-nav';
+            navContainer.style.cssText = 'position:absolute; right:15px; top:15px; z-index:100; background:#fff; border-radius:4px; box-shadow:0 2px 5px rgba(0,0,0,0.2); padding:5px;';
+            navContainer.innerHTML = `
+                <div class="field has-addons">
+                    <p class="control">
+                        <button class="button is-small nav-prev" title="Anterior">
+                            <span class="icon is-small">
+                                <i class="fas fa-chevron-up"></i>
+                            </span>
+                        </button>
+                    </p>
+                    <p class="control">
+                        <button class="button is-small nav-next" title="Próximo">
+                            <span class="icon is-small">
+                                <i class="fas fa-chevron-down"></i>
+                            </span>
+                        </button>
+                    </p>
+                    <p class="control">
+                        <span class="button is-static is-small search-counter">0 de 0</span>
+                    </p>
+                    <p class="control">
+                        <button class="button is-small nav-close" title="Fechar">
+                            <span class="icon is-small">
+                                <i class="fas fa-times"></i>
+                            </span>
+                        </button>
+                    </p>
+                </div>
+            `;
+            
+            // Adicionar à área de pesquisa
+            const searchContainer = document.querySelector('.search-container');
+            if (searchContainer) {
+                searchContainer.style.position = 'relative';
+                searchContainer.appendChild(navContainer);
+                
+                // Adicionar event listeners
+                navContainer.querySelector('.nav-prev').addEventListener('click', () => this.navigateSearch('prev'));
+                navContainer.querySelector('.nav-next').addEventListener('click', () => this.navigateSearch('next'));
+                navContainer.querySelector('.nav-close').addEventListener('click', () => {
+                    this.clearInPageSearch();
+                    document.getElementById('searchInput').value = '';
+                });
+            }
+        }
+        
+        return navContainer;
+    }
+    
+    /**
+     * Ativa ou desativa controles de navegação
+     */
+    activateSearchNavigation(active) {
+        const navContainer = document.querySelector('.in-page-search-nav');
+        if (navContainer) {
+            navContainer.style.display = active ? 'block' : 'none';
+        }
+    }
+    
+    /**
+     * Atualiza contador de resultados
+     */
+    updateSearchCounter(current = null, total = null) {
+        const counter = document.querySelector('.search-counter');
+        if (counter) {
+            if (current === null && this.inPageSearch) {
+                current = this.inPageSearch.currentIndex + 1;
+                total = this.inPageSearch.total;
+            }
+            
+            counter.textContent = `${current || 0} de ${total || 0}`;
+        }
+    }
+    
+    /**
+     * Navega entre resultados da pesquisa
+     */
+    navigateSearch(direction) {
+        if (!this.inPageSearch) return;
+        
+        const { occurrences, currentIndex, total } = this.inPageSearch;
+        
+        // Calcular próximo índice
+        let nextIndex;
+        if (direction === 'prev') {
+            nextIndex = (currentIndex - 1 + total) % total;
+        } else {
+            nextIndex = (currentIndex + 1) % total;
+        }
+        
+        // Atualizar índice atual
+        this.inPageSearch.currentIndex = nextIndex;
+        
+        // Destacar novo resultado ativo
+        this.highlightCurrentMatch();
+        
+        // Atualizar contador
+        this.updateSearchCounter();
+    }
+    
+    /**
+     * Destaca o resultado atual de busca
+     */
+    highlightCurrentMatch() {
+        if (!this.inPageSearch) return;
+        
+        const { currentIndex } = this.inPageSearch;
+        
+        // Remover destaque anterior
+        const prevActive = document.querySelector('mark.search-highlight-active');
+        if (prevActive) {
+            prevActive.classList.remove('search-highlight-active');
+        }
+        
+        // Adicionar destaque ativo ao resultado atual
+        const allMatches = document.querySelectorAll('mark.search-highlight');
+        if (allMatches.length > currentIndex) {
+            const currentMatch = allMatches[currentIndex];
+            currentMatch.classList.add('search-highlight-active');
+            
+            // Scroll para o elemento atual
+            currentMatch.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }
+    
+    /**
+     * Escapa caracteres especiais para uso em regex
+     */
+    escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Monitora o scroll e exibe a mensagem de conclusão quando o usuário chega ao final do conteúdo
+     */
+    setupCompletionMessageObserver() {
+        // Verificar se o elemento de conteúdo existe
+        const contentElement = document.getElementById('pageContent');
+        if (!contentElement) return;
+        
+        // Criar o elemento de mensagem de conclusão
+        const completionMessage = document.createElement('div');
+        completionMessage.id = 'completionMessage';
+        completionMessage.className = 'notification is-success completion-message';
+        completionMessage.style.display = 'none';
+        completionMessage.innerHTML = `
+            <div class="content has-text-centered">
+                <h3 class="title is-4">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-trophy"></i>
+                        </span>
+                        <span>Parabéns!</span>
+                    </span>
+                </h3>
+                <p>Você completou este módulo de aprendizado.</p>
+                <p>Continue explorando outros módulos para ampliar seus conhecimentos.</p>
+                <div class="buttons is-centered mt-4">
+                    <a href="/learn" class="button is-info">
+                        <span class="icon">
+                            <i class="fas fa-book"></i>
+                        </span>
+                        <span>Ver Outros Módulos</span>
+                    </a>
+                </div>
+            </div>
+        `;
+        
+        // Adicionar o elemento ao conteúdo
+        contentElement.parentNode.appendChild(completionMessage);
+        
+        // Variável para controlar se a mensagem já foi mostrada
+        let completionMessageShown = false;
+        
+        // Função para verificar se chegou ao final do conteúdo
+        const checkScrollPosition = () => {
+            if (completionMessageShown) return;
+            
+            const contentBox = contentElement.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            
+            // Se chegou ao final do conteúdo (conteúdo inteiro visível ou scrollado até o final)
+            if (contentBox.bottom <= windowHeight || 
+                (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
+                
+                // Verificar se o usuário já leu pelo menos uma página
+                if (this.userProgress && this.userProgress.readPages && this.userProgress.readPages.length > 0) {
+                    this.showCompletionMessage();
+                    completionMessageShown = true;
+                    
+                    // Remover o listener depois de mostrar a mensagem
+                    window.removeEventListener('scroll', checkScrollPosition);
+                }
+            }
+        };
+        
+        // Adicionar listener de scroll
+        window.addEventListener('scroll', checkScrollPosition);
+        
+        // Também verificar quando mudar de página
+        this.completionMessage = completionMessage;
+        this.checkScrollPosition = checkScrollPosition;
+        
+        // Verificar imediatamente (caso o conteúdo seja pequeno)
+        setTimeout(checkScrollPosition, 1000);
+    }
+
+    /**
+     * Exibe a mensagem de conclusão do módulo
+     */
+    showCompletionMessage() {
+        if (!this.completionMessage) return;
+        
+        // Mostrar a mensagem com animação
+        this.completionMessage.style.display = 'block';
+        this.completionMessage.style.animation = 'fadeInUp 0.5s ease-out';
+        
+        // Atualizar o progresso se necessário
+        if (this.moduleId && !this.moduleCompleted) {
+            this.markModuleAsCompleted();
+        }
+    }
+
+    /**
+     * Marca o módulo como concluído no servidor
+     */
+    async markModuleAsCompleted() {
+        try {
+            // Atualizar o progresso no servidor
+            const response = await fetch(`/api/learning/progress/${this.moduleId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                // Atualizar o estado local
+                this.moduleCompleted = true;
+                
+                // Atualizar a interface se necessário
+                this.renderProgress();
+            }
+        } catch (error) {
+            console.error('Erro ao marcar módulo como concluído:', error);
         }
     }
 }

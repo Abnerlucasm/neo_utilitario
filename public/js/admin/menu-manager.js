@@ -65,6 +65,7 @@ class MenuManager {
     
     async loadMenus() {
         try {
+            console.log('Tentando carregar menus...');
             const response = await fetch('/api/menus', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -72,13 +73,15 @@ class MenuManager {
             });
             
             if (!response.ok) {
-                throw new Error('Erro ao carregar menus');
+                const errorText = await response.text();
+                console.error(`Erro ao carregar menus: ${response.status} - ${errorText}`);
+                throw new Error(`Erro ${response.status}: ${errorText}`);
             }
             
             const menus = await response.json();
             this.menus = this.flattenMenus(menus);
             
-            console.log('Menus carregados:', this.menus);
+            console.log('Menus carregados com sucesso:', this.menus);
             
             // Renderizar árvore de menus
             this.renderMenuTree();
@@ -87,7 +90,7 @@ class MenuManager {
             this.populateParentSelect();
         } catch (error) {
             console.error('Erro ao carregar menus:', error);
-            this.showToast('Erro ao carregar menus', 'danger');
+            this.showToast(`Erro ao carregar menus: ${error.message}`, 'danger');
             
             // Mostrar mensagem de erro na árvore de menus
             const menuTree = document.getElementById('menuTree');
@@ -95,6 +98,8 @@ class MenuManager {
                 menuTree.innerHTML = `
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-triangle"></i> Erro ao carregar menus: ${error.message}
+                        <br>
+                        <small>Verifique o console para mais detalhes ou entre em contato com o suporte.</small>
                     </div>
                 `;
             }
@@ -396,32 +401,89 @@ class MenuManager {
             const icon = document.getElementById('menuIcon').value;
             const order = document.getElementById('menuOrder').value;
             const parentId = document.getElementById('menuParent').value || null;
-            const resourcePath = document.getElementById('menuResourcePath').value || path;
+            const resourcePath = document.getElementById('menuResourcePath').value || null;
             const isAdminOnly = document.getElementById('menuIsAdminOnly').checked;
             const isActive = document.getElementById('menuIsActive').checked;
             
-            // Validar campos obrigatórios
-            if (!title || !path) {
-                this.showToast('Título e caminho são obrigatórios', 'warning');
+            // Validação de dados mais rigorosa
+            const validationErrors = [];
+            
+            if (!title || title.trim() === '') {
+                validationErrors.push('O título do menu é obrigatório');
+            }
+            
+            if (!path || path.trim() === '') {
+                validationErrors.push('O caminho (path) do menu é obrigatório');
+            }
+            
+            if (parentId === menuId) {
+                validationErrors.push('Um menu não pode ser pai de si mesmo');
+            }
+            
+            // Se houver erros de validação, mostrar e interromper o envio
+            if (validationErrors.length > 0) {
+                const errorMessage = validationErrors.join('<br>');
+                this.showToast(errorMessage, 'warning');
+                
+                // Adicionar informações ao diagnóstico se existir
+                const diagArea = document.getElementById('saveMenuDiagnostic');
+                if (diagArea) {
+                    diagArea.innerHTML = `
+                        <div class="alert alert-warning">
+                            <strong>Erros de validação:</strong>
+                            <ul>${validationErrors.map(err => `<li>${err}</li>`).join('')}</ul>
+                        </div>
+                    `;
+                }
+                
                 return;
             }
             
-            // Preparar dados
+            // Preparar dados com tipos de dados corretos
             const menuData = {
-                title,
-                path,
-                icon,
-                order: parseInt(order, 10),
-                parentId,
-                resourcePath,
-                isAdminOnly,
-                isActive
+                title: String(title).trim(),
+                path: String(path).trim(),
+                icon: icon ? String(icon).trim() : 'fas fa-link',
+                order: parseInt(order, 10) || 0,
+                parentId: parentId === '' || parentId === 'null' ? null : parentId,
+                resourcePath: resourcePath ? String(resourcePath).trim() : null,
+                isAdminOnly: Boolean(isAdminOnly),
+                isActive: Boolean(isActive)
             };
+            
+            console.log('Enviando dados para salvar menu:', menuData);
             
             // Determinar método e URL
             const method = menuId ? 'PUT' : 'POST';
             const url = menuId ? `/api/menus/${menuId}` : '/api/menus';
             
+            // Exibir debugging detalhado
+            console.log(`Método HTTP: ${method}`);
+            console.log(`URL da requisição: ${url}`);
+            console.log(`Token de autenticação presente: ${!!localStorage.getItem('auth_token')}`);
+            console.log(`Payload JSON: ${JSON.stringify(menuData, null, 2)}`);
+            
+            // Mostrar indicador de carregamento
+            const saveBtn = document.querySelector('#menuModal .btn-primary');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
+            }
+            
+            // Adicionar informações de diagnóstico na página
+            const diagArea = document.createElement('div');
+            diagArea.id = 'saveMenuDiagnostic';
+            diagArea.className = 'alert alert-info mt-3';
+            diagArea.innerHTML = '<strong>Diagnóstico da requisição:</strong><pre>Enviando requisição...</pre>';
+            document.getElementById('menuForm').appendChild(diagArea);
+            
+            // Acompanhar início da requisição
+            const startTime = Date.now();
+            
+            let responseData;
+            let responseText;
+            
+            try {
             // Enviar requisição
             const response = await fetch(url, {
                 method,
@@ -431,10 +493,82 @@ class MenuManager {
                 },
                 body: JSON.stringify(menuData)
             });
+                
+                // Calcular tempo de resposta
+                const responseTime = Date.now() - startTime;
+                console.log(`Tempo de resposta: ${responseTime}ms`);
+                
+                // Mostrar informações da resposta
+                document.getElementById('saveMenuDiagnostic').innerHTML = `
+                    <strong>Diagnóstico da requisição:</strong>
+                    <div>Status: ${response.status} ${response.statusText}</div>
+                    <div>Tempo: ${responseTime}ms</div>
+                    <div>Headers:</div>
+                    <pre>${JSON.stringify(Object.fromEntries([...response.headers]), null, 2)}</pre>
+                `;
+                
+                // Processar resposta
+                responseText = await response.text();
+                
+                try {
+                    // Tentar converter para JSON
+                    responseData = JSON.parse(responseText);
+                    console.log('Resposta do servidor (JSON):', responseData);
+                    
+                    // Adicionar ao diagnóstico
+                    document.getElementById('saveMenuDiagnostic').innerHTML += `
+                        <div>Resposta:</div>
+                        <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                    `;
             
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || error.message || 'Erro ao salvar menu');
+                        console.error('Erro na resposta:', response.status, responseData);
+                        
+                        // Verificar códigos de erro específicos
+                        let errorMsg = responseData.error || responseData.details || responseData.message || `Erro ao salvar menu (${response.status})`;
+                        
+                        // Mensagens mais amigáveis para códigos específicos
+                        if (response.status === 400) {
+                            if (errorMsg.includes('pai de si mesmo')) {
+                                errorMsg = 'Um menu não pode ser pai de si mesmo. Por favor, selecione outro menu pai ou nenhum.';
+                            } else if (errorMsg.includes('pai não encontrado')) {
+                                errorMsg = 'O menu pai selecionado não existe mais. Por favor, selecione outro menu pai.';
+                            } else if (errorMsg.includes('título') || errorMsg.includes('caminho')) {
+                                errorMsg = 'O título e o caminho do menu são obrigatórios e não podem estar vazios.';
+                            }
+                        } else if (response.status === 403) {
+                            errorMsg = 'Você não tem permissão para executar esta operação.';
+                        } else if (response.status === 404) {
+                            errorMsg = 'Menu não encontrado. Ele pode ter sido excluído por outro usuário.';
+                        } else if (response.status === 500) {
+                            errorMsg = 'Erro interno do servidor. Por favor, tente novamente mais tarde.';
+                            
+                            if (responseData.details) {
+                                console.error('Detalhes do erro 500:', responseData.details);
+                                
+                                // Mostrar detalhes técnicos do erro para administradores, mas com mensagem amigável para o usuário
+                                errorMsg += ' (Detalhes técnicos foram registrados para análise).';
+                                
+                                // Adicionar informações de depuração na área de diagnóstico
+                                document.getElementById('saveMenuDiagnostic').innerHTML += `
+                                    <div class="error-details" style="margin-top: 10px; padding: 10px; border: 1px solid #ffcccc; background-color: #fff5f5;">
+                                        <strong>Detalhes técnicos do erro (apenas para administradores):</strong><br>
+                                        ${responseData.details}
+                                    </div>
+                                `;
+                            }
+                        }
+                        
+                        throw new Error(errorMsg);
+                    }
+                } catch (jsonError) {
+                    // Resposta não é JSON válido
+                    console.error('Resposta não é JSON válido:', responseText);
+                    document.getElementById('saveMenuDiagnostic').innerHTML += `
+                        <div>Resposta (não é JSON válido):</div>
+                        <pre>${responseText}</pre>
+                    `;
+                    throw new Error('Resposta inválida do servidor');
             }
             
             // Fechar modal
@@ -446,9 +580,43 @@ class MenuManager {
             
             // Mostrar mensagem de sucesso
             this.showToast(`Menu ${menuId ? 'atualizado' : 'criado'} com sucesso`, 'success');
+            } catch (fetchError) {
+                console.error('Erro na requisição fetch:', fetchError);
+                
+                if (document.getElementById('saveMenuDiagnostic')) {
+                    document.getElementById('saveMenuDiagnostic').innerHTML += `
+                        <div class="text-danger">Erro na requisição: ${fetchError.message}</div>
+                    `;
+                }
+                
+                throw fetchError; // Relançar para o tratamento geral
+            }
         } catch (error) {
             console.error('Erro ao salvar menu:', error);
-            this.showToast(error.message || 'Erro ao salvar menu', 'danger');
+            this.showToast(`Erro ao salvar menu: ${error.message}`, 'danger', 8000);
+        } finally {
+            // Restaurar botão de salvar
+            const saveBtn = document.querySelector('#menuModal .btn-primary');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar';
+            }
+            
+            // Manter a área de diagnóstico para análise
+            setTimeout(() => {
+                const diagArea = document.getElementById('saveMenuDiagnostic');
+                if (diagArea) {
+                    diagArea.classList.remove('alert-info');
+                    diagArea.classList.add('alert-secondary');
+                    diagArea.innerHTML += `<div class="mt-2"><small>Este diagnóstico será removido em 30 segundos</small></div>`;
+                    
+                    setTimeout(() => {
+                        if (diagArea && diagArea.parentNode) {
+                            diagArea.parentNode.removeChild(diagArea);
+                        }
+                    }, 30000);
+                }
+            }, 1000);
         }
     }
     
@@ -466,6 +634,17 @@ class MenuManager {
                 }
             }
             
+            // Mostrar indicador de carregamento
+            const menuItem = document.querySelector(`.menu-item[data-id="${menuId}"]`);
+            if (menuItem) {
+                menuItem.classList.add('deleting');
+                const actions = menuItem.querySelector('.menu-actions');
+                if (actions) {
+                    actions.innerHTML = '<div class="spinner-border spinner-border-sm text-danger" role="status"><span class="visually-hidden">Excluindo...</span></div>';
+                }
+            }
+            
+            console.log(`Enviando requisição para excluir menu: ${menuId}`);
             // Enviar requisição
             const response = await fetch(`/api/menus/${menuId}`, {
                 method: 'DELETE',
@@ -474,9 +653,11 @@ class MenuManager {
                 }
             });
             
+            // Verificar resposta
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || error.message || 'Erro ao excluir menu');
+                const errorData = await response.json();
+                console.error('Erro ao excluir menu:', errorData);
+                throw new Error(errorData.error || errorData.message || 'Erro ao excluir menu');
             }
             
             // Recarregar menus
@@ -494,7 +675,35 @@ class MenuManager {
             this.showToast('Menu excluído com sucesso', 'success');
         } catch (error) {
             console.error('Erro ao excluir menu:', error);
-            this.showToast(error.message || 'Erro ao excluir menu', 'danger');
+            
+            // Exibir mensagem de erro
+            this.showToast(error.message || 'Erro ao excluir menu', 'danger', 10000);
+            
+            // Restaurar estado do botão
+            const menuItem = document.querySelector(`.menu-item[data-id="${menuId}"]`);
+            if (menuItem) {
+                menuItem.classList.remove('deleting');
+                const actions = menuItem.querySelector('.menu-actions');
+                if (actions) {
+                    actions.innerHTML = `
+                        <button class="btn btn-sm btn-outline-primary btn-action edit-menu" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger btn-action delete-menu" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                    
+                    // Readicionar event listeners
+                    actions.querySelector('.edit-menu').addEventListener('click', () => {
+                        this.openMenuModal(menuId);
+                    });
+                    
+                    actions.querySelector('.delete-menu').addEventListener('click', () => {
+                        this.deleteMenu(menuId);
+                    });
+                }
+            }
         }
     }
     

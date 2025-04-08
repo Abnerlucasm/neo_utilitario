@@ -46,8 +46,41 @@ const upload = multer({
 // Listar módulos
 router.get('/modules', async (req, res) => {
     try {
+        logger.info('Buscando todos os módulos de aprendizado');
         const modules = await LearningModule.findAll();
-        res.json(modules || []);
+        
+        // Garantir que todos os módulos possuam dados válidos
+        const validatedModules = modules.map(module => {
+            // Garantir que sections é um array
+            if (!Array.isArray(module.sections)) {
+                module.sections = [];
+            }
+            
+            // Garantir que content é um objeto
+            if (typeof module.content !== 'object' || module.content === null) {
+                module.content = {};
+            }
+            
+            // Garantir que keywords é um array
+            if (!Array.isArray(module.keywords)) {
+                module.keywords = [];
+            }
+            
+            // Garantir que imageUrl tem um valor padrão se for null
+            if (!module.imageUrl) {
+                module.imageUrl = '/assets/default-module.jpg';
+            }
+            
+            // Garantir que route tem um valor
+            if (!module.route) {
+                module.route = `/learn/${module.id}`;
+            }
+            
+            return module;
+        });
+        
+        logger.info(`${validatedModules.length} módulos encontrados e validados`);
+        res.json(validatedModules || []);
     } catch (error) {
         logger.error('Erro ao listar módulos:', error);
         res.status(500).json({ 
@@ -60,18 +93,82 @@ router.get('/modules', async (req, res) => {
 // Obter módulo específico
 router.get('/modules/:id', async (req, res) => {
     try {
-        const module = await LearningModule.findByPk(req.params.id);
+        const moduleId = req.params.id;
+        logger.info(`Buscando módulo com ID: ${moduleId}`);
+        
+        const module = await LearningModule.findByPk(moduleId);
         if (!module) {
+            logger.warn(`Módulo não encontrado: ${moduleId}`);
             return res.status(404).json({ 
                 error: 'Módulo não encontrado',
-                details: `Módulo com ID '${req.params.id}' não existe`
+                details: `Módulo com ID '${moduleId}' não existe`
             });
         }
-        res.json(module);
+
+        // Garantir que as seções e conteúdo estejam em formato válido
+        try {
+            // Garantir que sections é um array
+            if (!Array.isArray(module.sections)) {
+                module.sections = [];
+                await module.save();
+            }
+            
+            // Garantir que content é um objeto
+            if (typeof module.content !== 'object' || module.content === null) {
+                module.content = {};
+                await module.save();
+            }
+            
+            logger.info(`Módulo encontrado: ${module.title}, ID: ${module.id}`);
+            res.json(module);
+        } catch (parseError) {
+            logger.error(`Erro ao processar dados do módulo ${moduleId}:`, parseError);
+            res.status(500).json({
+                error: 'Erro ao processar dados do módulo',
+                details: parseError.message
+            });
+        }
     } catch (error) {
-        logger.error('Erro ao buscar módulo:', error);
+        logger.error(`Erro ao buscar módulo ${req.params.id}:`, error);
         res.status(500).json({ 
             error: 'Erro ao buscar módulo',
+            details: error.message 
+        });
+    }
+});
+
+// Obter conteúdo completo de um módulo
+router.get('/modules/:id/content', async (req, res) => {
+    try {
+        const moduleId = req.params.id;
+        logger.info(`Buscando conteúdo do módulo com ID: ${moduleId}`);
+        
+        const module = await LearningModule.findByPk(moduleId);
+        if (!module) {
+            logger.warn(`Módulo não encontrado: ${moduleId}`);
+            return res.status(404).json({ 
+                error: 'Módulo não encontrado',
+                details: `Módulo com ID '${moduleId}' não existe`
+            });
+        }
+
+        // Preparar objeto de resposta com dados do módulo e seu conteúdo
+        const moduleContent = {
+            id: module.id,
+            title: module.title,
+            description: module.description,
+            sections: Array.isArray(module.sections) ? module.sections : [],
+            status: module.status,
+            imageUrl: module.imageUrl,
+            keywords: Array.isArray(module.keywords) ? module.keywords : []
+        };
+        
+        logger.info(`Conteúdo do módulo ${moduleId} recuperado com sucesso`);
+        res.json(moduleContent);
+    } catch (error) {
+        logger.error(`Erro ao buscar conteúdo do módulo ${req.params.id}:`, error);
+        res.status(500).json({ 
+            error: 'Erro ao buscar conteúdo do módulo',
             details: error.message 
         });
     }
@@ -139,8 +236,12 @@ router.post('/modules', requireAdmin, upload.single('image'), async (req, res) =
 // Atualizar módulo (apenas admin)
 router.put('/modules/:id', requireAdmin, upload.single('image'), async (req, res) => {
     try {
+        logger.info(`Atualizando módulo com ID: ${req.params.id}`);
+        logger.debug(`Dados recebidos: ${JSON.stringify(req.body, null, 2)}`);
+        
         const module = await LearningModule.findByPk(req.params.id);
         if (!module) {
+            logger.warn(`Módulo não encontrado: ${req.params.id}`);
             return res.status(404).json({ 
                 error: 'Módulo não encontrado',
                 details: `Módulo com ID '${req.params.id}' não existe`
@@ -148,34 +249,58 @@ router.put('/modules/:id', requireAdmin, upload.single('image'), async (req, res
         }
 
         // Preparar dados para atualização
-        const updateData = {
-            title: req.body.title || module.title,
-            description: req.body.description || module.description,
-            status: req.body.status || module.status
-        };
+        const updateData = {};
         
-        // Atualizar conteúdo e seções se fornecidos
-        if (req.body.content) {
-            try {
-                // Se enviado como string JSON, converter para objeto
-                updateData.content = typeof req.body.content === 'string' 
-                    ? JSON.parse(req.body.content) 
-                    : req.body.content;
-            } catch (e) {
-                logger.warn('Erro ao processar conteúdo:', e);
-                // Manter o conteúdo existente se houver erro
-            }
-        }
+        // Atualizar campos básicos apenas se fornecidos
+        if (req.body.title) updateData.title = req.body.title;
+        if (req.body.description) updateData.description = req.body.description;
+        if (req.body.status) updateData.status = req.body.status;
         
+        // Processar seções se fornecidas
         if (req.body.sections) {
             try {
                 // Se enviado como string JSON, converter para objeto
                 updateData.sections = typeof req.body.sections === 'string' 
                     ? JSON.parse(req.body.sections) 
                     : req.body.sections;
+                
+                logger.info(`Atualizando ${updateData.sections.length} seções para o módulo ${req.params.id}`);
+                
+                // Garantir que as seções estejam em formato de array
+                if (!Array.isArray(updateData.sections)) {
+                    updateData.sections = [];
+                    logger.warn('Seções convertidas para array vazio pois não estavam no formato correto');
+                }
             } catch (e) {
                 logger.warn('Erro ao processar seções:', e);
-                // Manter as seções existentes se houver erro
+                return res.status(400).json({
+                    error: 'Erro ao processar dados',
+                    details: 'Formato inválido para as seções'
+                });
+            }
+        }
+        
+        // Processar conteúdo se fornecido
+        if (req.body.content) {
+            try {
+                // Se enviado como string JSON, converter para objeto
+                updateData.content = typeof req.body.content === 'string' 
+                    ? JSON.parse(req.body.content) 
+                    : req.body.content;
+                
+                logger.info(`Atualizando conteúdo para o módulo ${req.params.id}`);
+                
+                // Garantir que o conteúdo seja um objeto
+                if (typeof updateData.content !== 'object' || updateData.content === null) {
+                    updateData.content = {};
+                    logger.warn('Conteúdo convertido para objeto vazio pois não estava no formato correto');
+                }
+            } catch (e) {
+                logger.warn('Erro ao processar conteúdo:', e);
+                return res.status(400).json({
+                    error: 'Erro ao processar dados',
+                    details: 'Formato inválido para o conteúdo'
+                });
             }
         }
         
@@ -186,16 +311,21 @@ router.put('/modules/:id', requireAdmin, upload.single('image'), async (req, res
                 const oldImagePath = path.join(__dirname, '../public', module.imageUrl);
                 if (fs.existsSync(oldImagePath)) {
                     fs.unlinkSync(oldImagePath);
+                    logger.info(`Imagem antiga excluída: ${oldImagePath}`);
                 }
             }
             
             updateData.imageUrl = `/uploads/modules/${req.file.filename}`;
+            logger.info(`Nova imagem definida: ${updateData.imageUrl}`);
         }
 
         // Atualizar o módulo
         await module.update(updateData);
+        logger.info(`Módulo ${req.params.id} atualizado com sucesso`);
         
-        res.json(await module.reload());
+        // Retornar o módulo atualizado
+        const updatedModule = await module.reload();
+        res.json(updatedModule);
     } catch (error) {
         logger.error('Erro ao atualizar módulo:', error);
         res.status(500).json({ 
@@ -306,35 +436,59 @@ router.get('/search', async (req, res) => {
         for (const module of modules) {
             const searchTerms = query.toLowerCase().split(' ');
             
+            // Verificar se o módulo tem seções e conteúdo
+            if (!Array.isArray(module.sections) || !module.content || typeof module.content !== 'object') {
+                continue;
+            }
+            
             // Buscar em títulos, conteúdo e keywords
             for (const section of module.sections) {
+                if (!section || !Array.isArray(section.pages)) continue;
+                
                 for (const pageId of section.pages) {
+                    if (typeof pageId !== 'string') continue;
+                    
                     const page = module.content[pageId];
                     if (!page) continue;
 
+                    const pageContent = page.content || '';
+                    const pageTitle = page.title || '';
+                    
                     const searchableText = `
-                        ${module.title} 
-                        ${page.title} 
-                        ${page.content}
+                        ${module.title || ''} 
+                        ${pageTitle} 
+                        ${pageContent}
+                        ${module.description || ''}
                         ${module.keywords?.join(' ') || ''}
                     `.toLowerCase();
 
                     // Verificar se algum termo de busca está presente
                     const matches = searchTerms.filter(term => 
-                        searchableText.includes(term)
+                        searchableText.includes(term) && term.length > 2 // Ignorar termos muito curtos
                     );
 
                     if (matches.length > 0) {
+                        // Usar o termo que aparece no conteúdo para extrair trecho
+                        let termForExcerpt = matches[0];
+                        
+                        // Dar preferência a termos encontrados no conteúdo da página
+                        for (const term of matches) {
+                            if (pageContent.toLowerCase().includes(term)) {
+                                termForExcerpt = term;
+                                break;
+                            }
+                        }
+                        
                         results.push({
                             moduleId: module.id,
-                            moduleTitle: module.title,
-                            sectionTitle: section.title,
+                            moduleTitle: module.title || 'Sem título',
+                            sectionTitle: section.title || 'Sem título',
                             pageId: pageId,
-                            pageTitle: page.title,
-                            excerpt: this.getExcerpt(page.content, matches[0]),
+                            pageTitle: pageTitle || 'Sem título',
+                            excerpt: getExcerpt(pageContent, termForExcerpt),
                             matches: matches,
                             keywords: module.keywords || [],
-                            url: `${module.route}#${pageId}`
+                            url: `${module.route || `/learn/${module.id}`}#${pageId}`
                         });
                     }
                 }
@@ -462,7 +616,9 @@ router.get('/admin/module/edit/:id', requireAdmin, (req, res) => {
 });
 
 router.get('/admin/module/content/:id', requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/modules/learning/templates/module-content-editor.html'));
+    const moduleId = req.params.id;
+    // Redirecionar para o editor com o ID como parâmetro na URL
+    res.redirect(`/modules/learning/templates/module-content-editor.html?id=${moduleId}`);
 });
 
 // Função auxiliar para extrair trecho relevante do conteúdo
@@ -492,5 +648,57 @@ function getExcerpt(content, term, length = 200) {
         return '';
     }
 }
+
+// Obter todos os dados do módulo pelo ID (formato simplificado para o editor)
+router.get('/modules/:id/full', requireAdmin, async (req, res) => {
+    try {
+        const moduleId = req.params.id;
+        logger.info(`Buscando dados completos do módulo: ${moduleId}`);
+        
+        // Buscar módulo pelo ID
+        const module = await LearningModule.findByPk(moduleId);
+        
+        if (!module) {
+            logger.warn(`Módulo não encontrado: ${moduleId}`);
+            return res.status(404).json({ 
+                error: 'Módulo não encontrado',
+                details: `Módulo com ID '${moduleId}' não existe`
+            });
+        }
+        
+        // Garantir que sections seja um array
+        if (!Array.isArray(module.sections)) {
+            module.sections = [];
+            logger.warn(`Módulo ${moduleId} não possui seções ou seções em formato inválido`);
+        }
+        
+        // Garantir que content seja um objeto
+        if (typeof module.content !== 'object' || module.content === null) {
+            module.content = {};
+            logger.warn(`Módulo ${moduleId} não possui conteúdo ou conteúdo em formato inválido`);
+        }
+        
+        // Preencher dados do módulo
+        const moduleData = {
+            id: module.id,
+            title: module.title,
+            description: module.description || '',
+            imageUrl: module.imageUrl || '',
+            sections: module.sections,
+            content: module.content,
+            status: module.status || 'draft',
+            keywords: Array.isArray(module.keywords) ? module.keywords : []
+        };
+        
+        logger.info(`Dados do módulo ${moduleId} enviados com sucesso`);
+        res.json(moduleData);
+    } catch (error) {
+        logger.error('Erro ao buscar dados do módulo:', error);
+        res.status(500).json({ 
+            error: 'Erro ao buscar dados do módulo',
+            details: error.message 
+        });
+    }
+});
 
 module.exports = router; 

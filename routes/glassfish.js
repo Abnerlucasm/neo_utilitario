@@ -739,7 +739,7 @@ router.put('/:id/domain-config', async (req, res) => {
 
         logger.debug('Arquivo domain.xml atualizado com sucesso');
 
-        // 1. Atualizar no MongoDB
+        // Atualizar configurações no banco de dados PostgreSQL
         service.domainConfig = {
             serverName,
             user,
@@ -747,7 +747,7 @@ router.put('/:id/domain-config', async (req, res) => {
             databaseName
         };
 
-        // 3. Salvar as alterações no MongoDB
+        // Salvar as alterações no PostgreSQL
         await service.save();
 
         logger.info('Configurações do domínio atualizadas com sucesso');

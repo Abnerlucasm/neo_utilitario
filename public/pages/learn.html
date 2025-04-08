@@ -9,48 +9,303 @@
     <link rel="stylesheet" href="/styles/dark-theme.css">
     <link rel="stylesheet" href="/modules/learning/css/learning-hub.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .module-card {
+            margin-bottom: 2rem;
+        }
+        
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .search-result-card {
+            margin-bottom: 1.5rem;
+        }
+        
+        .status-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+        }
+        
+        .module-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-container {
+            margin-top: 0.5rem;
+        }
+        
+        .achievement-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 0.5rem;
+            background-color: rgba(var(--color-info-rgb), 0.1);
+        }
+        
+        .achievement-item.is-success { background-color: rgba(var(--color-success-rgb), 0.1); }
+        .achievement-item.is-warning { background-color: rgba(var(--color-warning-rgb), 0.1); }
+        .achievement-item.is-danger { background-color: rgba(var(--color-danger-rgb), 0.1); }
+        .achievement-item.is-link { background-color: rgba(var(--color-link-rgb), 0.1); }
+        
+        .achievement-icon {
+            margin-right: 1rem;
+        }
+        
+        .locked-achievement {
+            opacity: 0.6;
+            margin-bottom: 0.5rem;
+        }
+        
+        .filter-container .tag.keyword-filter {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-container .tag.keyword-filter:hover {
+            background-color: #f0f0f0;
+        }
+        
+        mark {
+            background-color: rgba(var(--color-warning-rgb), 0.3);
+            padding: 0.1em 0.2em;
+            border-radius: 0.2em;
+        }
+        
+        /* Novos estilos adicionados */
+        .card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-footer {
+            margin-top: auto;
+        }
+        
+        .card-image {
+            position: relative;
+        }
+        
+        .card-content {
+            flex-grow: 1;
+        }
+        
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        
+        /* Estilos para Favoritos */
+        .favorite-button {
+            transition: all 0.3s;
+        }
+        
+        .favorite-button.is-warning {
+            animation: pulse 1s;
+        }
+        
+        .favorite-button:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Estilos para Módulos Completados */
+        .has-background-success-light {
+            border-left: 4px solid var(--color-success);
+        }
+        
+        /* Marca de destaque para busca */
+        mark {
+            background-color: #ffe08a;
+            color: #000;
+            border-radius: 3px;
+            padding: 0 3px;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Estilo para toast de conquistas */
+        .achievement-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            min-width: 300px;
+            max-width: 400px;
+            z-index: 1000;
+            animation: slideIn 0.5s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .achievement-toast-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .achievement-toast.fadeOut {
+            animation: fadeOut 0.5s ease forwards;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
 </head>
 <body>
     <neo-navbar></neo-navbar>
 
-    <div class="container mt-6">
+    <section class="section">
+        <div class="container">
         <div id="learningContent">
+                <!-- Cabeçalho -->
             <div class="columns">
                 <div class="column is-12">
-                    <h1 class="title">Central de Aprendizado</h1>
+                        <h1 class="title">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </span>
+                                <span>Central de Aprendizado</span>
+                            </span>
+                        </h1>
                     <p class="subtitle">Biblioteca de conhecimento e documentação de processos</p>
                 </div>
             </div>
 
-            <!-- Container para módulos -->
-            <div id="learning-modules" class="columns is-multiline">
-                <!-- Módulos serão carregados aqui -->
+                <!-- Layout de duas colunas: filtros + conteúdo -->
+                <div class="columns">
+                    <!-- Coluna de filtros e busca -->
+                    <div class="column is-3">
+                        <div class="card">
+                            <div class="card-content">
+                                <!-- Pesquisa -->
+                                <div class="search-container mb-4">
+                                    <p class="has-text-weight-medium mb-2">Buscar conteúdo</p>
+                                    <div class="field">
+                                        <div class="control has-icons-left">
+                                            <input type="text" class="input" id="moduleSearch" placeholder="Digite sua busca...">
+                                            <span class="icon is-left">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Filtros -->
+                                <div class="filter-container">
+                                    <!-- Filtros serão gerados aqui pelo JS -->
+                                </div>
+                            </div>
+                        </div>
             </div>
 
-            <!-- Container para progresso -->
-            <div class="columns mt-6">
-                <div class="column is-6">
-                    <div class="box">
-                        <h2 class="title is-4">Seu Progresso</h2>
-                        <div id="user-progress">
-                            <!-- Progresso será carregado aqui -->
+                    <!-- Coluna principal de conteúdo -->
+                    <div class="column is-9">
+                        <!-- Container para módulos -->
+                        <div class="columns is-multiline" id="learning-modules">
+                            <div class="column is-12">
+                                <div class="notification is-info">
+                                    <span class="icon"><i class="fas fa-spinner fa-spin"></i></span>
+                                    <span>Carregando módulos de aprendizado...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progresso e conquistas -->
+                <div class="columns mt-5">
+                    <div class="column is-6">
+                        <div class="card">
+                            <header class="card-header">
+                                <p class="card-header-title">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </span>
+                                        <span>Seu Progresso</span>
+                                    </span>
+                                </p>
+                            </header>
+                            <div class="card-content">
+                                <div id="user-progress">
+                                    <div class="notification is-light">
+                                        <span class="icon"><i class="fas fa-spinner fa-spin"></i></span>
+                                        <span>Carregando seu progresso...</span>
+                                    </div>
+                                </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="column is-6">
-                    <div class="box">
-                        <h2 class="title is-4">Conquistas</h2>
+                        <div class="card">
+                            <header class="card-header">
+                                <p class="card-header-title">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-award"></i>
+                                        </span>
+                                        <span>Conquistas</span>
+                                    </span>
+                                </p>
+                            </header>
+                            <div class="card-content">
                         <div id="achievements">
-                            <!-- Conquistas serão carregadas aqui -->
+                                    <div class="notification is-light">
+                                        <span class="icon"><i class="fas fa-spinner fa-spin"></i></span>
+                                        <span>Carregando conquistas...</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <neo-footer></neo-footer>
 
     <!-- Scripts -->
-    <script src="/js/auth.js"></script>warn: Página não encontrada: {"isXHR":false,"method":"GET","path":"/learn/282587b7-81ee-4848-8f88-10d928604ade","timestamp":"2025-03-26T17:24:41.910Z"}
+    <script src="/components/navbar/navbar.js" type="module"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        // Garantir que o token de autenticação esteja disponível
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar se o usuário está autenticado
+            if (!localStorage.getItem('auth_token')) {
+                console.warn('Usuário não autenticado. Redirecionando para login...');
+                window.location.href = '/pages/login.html';
+            }
+        });
+    </script>
+    <script src="/js/learn.js"></script>
+</body>
+</html>

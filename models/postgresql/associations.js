@@ -151,6 +151,9 @@ function initAssociations() {
     Menu.associate({ Menu });
 }
 
+// Aplicar as associações imediatamente
+initAssociations();
+
 // Exportar modelos e função de inicialização
 module.exports = {
     sequelize,

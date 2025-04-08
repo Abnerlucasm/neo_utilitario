@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinição de Emergência - NeoHub</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .notification {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title has-text-centered">Redefinição de Senha de Emergência</h1>
+        <div class="notification is-warning">
+            <strong>Atenção:</strong> Esta página é apenas para uso administrativo. Use apenas em caso de emergência.
+        </div>
+        
+        <div class="box">
+            <form id="resetForm">
+                <div class="field">
+                    <label class="label">Email</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="email" id="email" placeholder="Email do usuário" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <label class="label">Nova Senha</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="password" id="newPassword" placeholder="Nova senha" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <div class="control">
+                        <button type="submit" class="button is-danger is-fullwidth" id="resetBtn">
+                            Redefinir Senha
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div id="notification" style="display: none;" class="notification">
+            <button class="delete"></button>
+            <div id="notificationContent"></div>
+        </div>
+        
+        <div class="buttons is-centered mt-5">
+            <a href="/pages/login.html" class="button is-link">Voltar para Login</a>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const resetForm = document.getElementById('resetForm');
+            const notification = document.getElementById('notification');
+            const notificationContent = document.getElementById('notificationContent');
+            const resetBtn = document.getElementById('resetBtn');
+            
+            // Fechar notificação
+            document.querySelector('.delete').addEventListener('click', () => {
+                notification.style.display = 'none';
+            });
+            
+            resetForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value;
+                const newPassword = document.getElementById('newPassword').value;
+                
+                resetBtn.classList.add('is-loading');
+                
+                try {
+                    const response = await fetch('/api/auth/reset-password-emergency', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, newPassword })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    notification.style.display = 'block';
+                    
+                    if (response.ok) {
+                        notification.className = 'notification is-success';
+                        notificationContent.textContent = data.message || 'Senha redefinida com sucesso!';
+                        resetForm.reset();
+                    } else {
+                        notification.className = 'notification is-danger';
+                        notificationContent.textContent = data.error || 'Erro ao redefinir senha';
+                    }
+                } catch (error) {
+                    notification.style.display = 'block';
+                    notification.className = 'notification is-danger';
+                    notificationContent.textContent = 'Erro de conexão: ' + error.message;
+                } finally {
+                    resetBtn.classList.remove('is-loading');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -153,18 +153,37 @@ class NeoNavbar extends HTMLElement {
 
     async loadMenus() {
         try {
-            // Verificar se o usuário é admin
+            // Verificar se o usuário está autenticado
             const token = localStorage.getItem('auth_token');
-            if (token) {
+            if (!token) {
+                console.warn('Usuário não autenticado, renderizando menus padrão');
+                this.renderDefaultMenus();
+                return;
+            }
+            
+            // Verificar se o usuário é admin
+            try {
                 const tokenData = JSON.parse(atob(token.split('.')[1]));
                 this.state.isAdmin = tokenData.roles && tokenData.roles.includes('admin');
+                console.log('Usuário é admin:', this.state.isAdmin);
+                
+                // Atualizar informações do usuário
+                this.updateUserInfo(tokenData);
+            } catch (error) {
+                console.error('Erro ao decodificar token:', error);
             }
 
             // Carregar recursos do usuário
-            this.state.userResources = await loadUserResources();
+            try {
+                this.state.userResources = await loadUserResources();
+                console.log('Recursos do usuário carregados:', this.state.userResources);
+            } catch (error) {
+                console.error('Erro ao carregar recursos do usuário:', error);
+                this.state.userResources = [];
+            }
             
-            // Renderizar menus padrão
-            this.renderDefaultMenus();
+            // Renderizar menus
+            await this.renderDefaultMenus();
             
             // Configurar eventos dos submenus após renderização
             this.setupSubmenuEvents();
@@ -173,6 +192,113 @@ class NeoNavbar extends HTMLElement {
             // Em caso de erro, renderizar pelo menos os menus padrão
             this.renderDefaultMenus();
         }
+    }
+
+    // Função para transformar o formato dos menus do backend para o frontend
+    transformMenus(menus) {
+        if (!Array.isArray(menus)) {
+            console.error('transformMenus: entrada não é um array', menus);
+            return [];
+        }
+        
+        return menus.map(menu => {
+            // Criar objeto básico do menu
+            const transformedMenu = {
+                id: menu.id,
+                titulo: menu.title,
+                url: menu.path,
+                icon: menu.icon,
+                isAdminOnly: menu.isAdminOnly,
+                isActive: menu.isActive,
+                resourcePath: menu.resourcePath || menu.path
+            };
+            
+            // Processar filhos recursivamente se existirem
+            if (menu.children && Array.isArray(menu.children) && menu.children.length > 0) {
+                transformedMenu.submenu = this.transformMenus(menu.children);
+            }
+            
+            return transformedMenu;
+        });
+    }
+
+    // Carregar menus estáticos como fallback
+    loadStaticMenus() {
+        console.log('Carregando menus estáticos como fallback');
+        
+        // Menus estáticos para usuários comuns
+        const staticMenus = [
+            {
+                id: '1',
+                titulo: 'Início',
+                url: '/',
+                icon: 'fas fa-home'
+            },
+            {
+                id: '2',
+                titulo: 'Central de Aprendizado',
+                url: '/pages/learning/learn.html',
+                icon: 'fas fa-graduation-cap'
+            },
+            {
+                id: '3',
+                titulo: 'Utilitários',
+                url: '#',
+                icon: 'fas fa-tools',
+                submenu: [
+                    {
+                        id: '3-1',
+                        titulo: 'Gerenciador Glassfish',
+                        url: '/pages/glassfish.html',
+                        icon: 'fas fa-server'
+                    },
+                    {
+                        id: '3-2',
+                        titulo: 'NeoTrack',
+                        url: '/pages/neotrack.html',
+                        icon: 'fas fa-chart-line'
+                    }
+                ]
+            },
+            {
+                id: '4',
+                titulo: 'Configurações',
+                url: '/pages/user-settings.html',
+                icon: 'fas fa-user-cog'
+            }
+        ];
+        
+        // Adicionar menus de admin se o usuário for admin
+        if (this.state.isAdmin) {
+            staticMenus.push({
+                id: '5',
+                titulo: 'Administração',
+                url: '#',
+                icon: 'fas fa-shield-alt',
+                submenu: [
+                    {
+                        id: '5-1',
+                        titulo: 'Usuários',
+                        url: '/pages/admin/user-management.html',
+                        icon: 'fas fa-users'
+                    },
+                    {
+                        id: '5-2',
+                        titulo: 'Papéis',
+                        url: '/pages/admin/roles.html',
+                        icon: 'fas fa-user-tag'
+                    },
+                    {
+                        id: '5-3',
+                        titulo: 'Menus',
+                        url: '/pages/admin/menus.html',
+                        icon: 'fas fa-bars'
+                    }
+                ]
+            });
+        }
+        
+        return staticMenus;
     }
 
     async renderDefaultMenus() {
@@ -188,25 +314,69 @@ class NeoNavbar extends HTMLElement {
                 throw new Error('Token não encontrado');
             }
             
-            const response = await fetch('/api/menus', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            // Fazer requisição aos menus
+            let response;
+            try {
+                console.log('Buscando menus da API...');
+                response = await fetch('/api/menus', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+    
+                if (!response.ok) {
+                    let errorMessage = `Erro ao carregar menus: ${response.status}`;
+                    try {
+                        const errorText = await response.text();
+                        console.error(`Erro ${response.status} ao carregar menus: ${errorText}`);
+                        
+                        // Tentar parsear como JSON
+                        try {
+                            const errorData = JSON.parse(errorText);
+                            errorMessage = errorData.error || errorData.message || errorMessage;
+                        } catch {
+                            // Se não for JSON, usar texto bruto
+                            errorMessage = `${errorMessage} - ${errorText}`;
+                        }
+                    } catch (parseError) {
+                        console.error('Erro ao processar resposta de erro:', parseError);
+                    }
+                    
+                    throw new Error(errorMessage);
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error('Erro ao carregar menus');
+            } catch (error) {
+                console.error('Erro na requisição de menus:', error);
+                throw error;
             }
 
-            const menus = await response.json();
+            // Processar a resposta em JSON
+            let menus;
+            try {
+                menus = await response.json();
+                console.log('Menus carregados da API:', menus);
+                
+                // Verificar formato da resposta
+                if (!Array.isArray(menus)) {
+                    console.error('Formato de resposta inválido, esperava um array:', menus);
+                    throw new Error('Formato de resposta inválido');
+                }
+                
+                // Transformar para o formato esperado pelo frontend
+                menus = this.transformMenus(menus);
+                console.log('Menus transformados:', menus);
+            } catch (error) {
+                console.error('Erro ao processar JSON dos menus:', error);
+                throw error;
+            }
 
             // Renderizar menus dinamicamente
             let menuHtml = '';
             
-            // Função recursiva para renderizar submenus
+            // Função recursiva para renderizar menus e submenus
             const renderMenu = (menuItem) => {
                 let html = '';
                 
+                // Verificar se o menu tem submenu
                 if (menuItem.submenu && menuItem.submenu.length > 0) {
                     // Menu com submenu
                     html += `
@@ -222,10 +392,12 @@ class NeoNavbar extends HTMLElement {
                         </li>
                     `;
                 } else {
-                    // Menu sem submenu
+                    // Menu sem submenu - verificar se é um link externo ou interno
+                    const isExternal = menuItem.url.startsWith('http');
+                    
                     html += `
                         <li>
-                            <a href="${menuItem.url}">
+                            <a href="${menuItem.url}" ${isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''}>
                                 <i class="${menuItem.icon || 'fas fa-circle'}"></i>
                                 ${menuItem.titulo}
                             </a>
@@ -238,6 +410,19 @@ class NeoNavbar extends HTMLElement {
 
             // Renderizar cada menu principal
             menus.forEach(menu => {
+                // Verificar se o usuário tem acesso ao menu
+                const hasAccess = this.checkAccess(menu.resourcePath || menu.url);
+                if (!hasAccess && !this.state.isAdmin) {
+                    // Pular menus aos quais o usuário não tem acesso
+                    return;
+                }
+                
+                // Verificar se o menu é apenas para admin
+                if (menu.isAdminOnly && !this.state.isAdmin) {
+                    // Pular menus exclusivos para admin
+                    return;
+                }
+                
                 menuHtml += renderMenu(menu);
             });
 
@@ -251,24 +436,6 @@ class NeoNavbar extends HTMLElement {
                 </li>
             `;
 
-            // Adicionar menu de admin se usuário for admin
-            if (this.state.isAdmin) {
-                menuHtml += `
-                    <li class="submenu-parent">
-                        <a href="#" class="has-submenu">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Administração</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </a>
-                        <ul class="submenu">
-                            <li><a href="/pages/admin/user-management.html"><i class="fas fa-users"></i>Usuários</a></li>
-                            <li><a href="/pages/admin/roles.html"><i class="fas fa-user-tag"></i>Papéis</a></li>
-                            <li><a href="/pages/admin/menus.html"><i class="fas fa-bars"></i>Menus</a></li>
-                        </ul>
-                    </li>
-                `;
-            }
-
             menuList.innerHTML = menuHtml;
 
             this.setupSubmenuEvents();
@@ -277,13 +444,55 @@ class NeoNavbar extends HTMLElement {
         } catch (error) {
             console.error('Erro ao carregar menus do banco:', error);
             
-            // Menus estáticos em caso de falha
-            menuList.innerHTML = `
-                <li><a href="/"><i class="fas fa-home"></i>Início</a></li>
-                <li><a href="/learn"><i class="fas fa-graduation-cap"></i>Central de Aprendizado</a></li>
-                <li><a href="/pages/user-settings.html"><i class="fas fa-user-cog"></i>Configurações</a></li>
-                <li><a href="/pages/login.html"><i class="fas fa-sign-out-alt"></i>Sair</a></li>
-            `;
+            // Usar menus estáticos em caso de falha
+            const staticMenus = this.loadStaticMenus();
+            
+            // Renderizar menus estáticos
+            let menuHtml = '';
+            
+            const renderStaticMenu = (menuItem) => {
+                // Usar a mesma lógica de renderMenu
+                let html = '';
+                
+                if (menuItem.submenu && menuItem.submenu.length > 0) {
+                    html += `
+                        <li class="submenu-parent">
+                            <a href="#" class="has-submenu">
+                                <i class="${menuItem.icon || 'fas fa-circle'}"></i>
+                                <span>${menuItem.titulo}</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </a>
+                            <ul class="submenu">
+                                ${menuItem.submenu.map(subitem => renderStaticMenu(subitem)).join('')}
+                            </ul>
+                        </li>
+                    `;
+                } else {
+                    const isExternal = menuItem.url.startsWith('http');
+                    
+                    html += `
+                        <li>
+                            <a href="${menuItem.url}" ${isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''}>
+                                <i class="${menuItem.icon || 'fas fa-circle'}"></i>
+                                ${menuItem.titulo}
+                            </a>
+                        </li>
+                    `;
+                }
+                
+                return html;
+            };
+            
+            // Renderizar cada menu estático
+            staticMenus.forEach(menu => {
+                menuHtml += renderStaticMenu(menu);
+            });
+            
+            menuList.innerHTML = menuHtml;
+            
+            // Configurar eventos dos submenus
+            this.setupSubmenuEvents();
+            this.updateIcons();
         }
     }
 
@@ -331,16 +540,27 @@ class NeoNavbar extends HTMLElement {
             return true;
         }
         
+        // Se não houver recursos carregados, permitir acesso
+        if (!this.state.userResources || this.state.userResources.length === 0) {
+            console.log(`Sem recursos carregados - permitindo acesso a ${resourcePath}`);
+            return true;
+        }
+        
         // Verificar se o usuário tem acesso ao recurso
         const hasAccess = this.state.userResources.some(resource => {
             // Normalizar caminhos para comparação
             const normalizedResource = resource.startsWith('/pages/') ? resource : `/pages${resource}`;
             const normalizedPath = resourcePath.startsWith('/pages/') ? resourcePath : `/pages${resourcePath}`;
             
-            return normalizedResource === normalizedPath;
+            const matches = normalizedResource === normalizedPath;
+            if (matches) {
+                console.log(`Recurso ${normalizedResource} corresponde ao caminho ${normalizedPath}`);
+            }
+            
+            return matches;
         });
         
-        console.log(`Verificando acesso a ${resourcePath}: ${hasAccess}`);
+        console.log(`Verificando acesso a ${resourcePath}: ${hasAccess ? 'Permitido' : 'Negado'}`);
         return hasAccess;
     }
     
@@ -772,13 +992,17 @@ customElements.define('neo-navbar', NeoNavbar);
 async function loadUserResources() {
     try {
         const token = localStorage.getItem('auth_token');
-        if (!token) return [];
+        if (!token) {
+            console.log('Sem token de autenticação para carregar recursos');
+            return [];
+        }
         
         // Verificar se o usuário é admin
         let isAdmin = false;
         try {
             const tokenData = JSON.parse(atob(token.split('.')[1]));
             isAdmin = tokenData.roles && tokenData.roles.includes('admin');
+            console.log('Verificando recursos para usuário, isAdmin:', isAdmin);
         } catch (error) {
             console.error('Erro ao decodificar token:', error);
         }
@@ -787,7 +1011,32 @@ async function loadUserResources() {
         if (isAdmin) {
             console.log('Usuário é admin - retornando todos os recursos');
             
-            // Buscar todos os recursos disponíveis
+            try {
+                // Buscar todos os recursos disponíveis
+                const response = await fetch('/api/auth/user-resources', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error('Erro ao carregar recursos:', response.status);
+                    return ['/']; // Recurso base como fallback
+                }
+                
+                const resources = await response.json();
+                const paths = resources.map(r => r.path);
+                console.log('Recursos carregados para admin:', paths);
+                return paths;
+            } catch (error) {
+                console.error('Erro na requisição de recursos para admin:', error);
+                return ['/']; // Recurso base como fallback
+            }
+        }
+        
+        // Para usuários não-admin, buscar recursos específicos
+        try {
+            console.log('Buscando recursos específicos para usuário não-admin');
             const response = await fetch('/api/auth/user-resources', {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -795,29 +1044,21 @@ async function loadUserResources() {
             });
             
             if (!response.ok) {
-                throw new Error('Erro ao carregar recursos');
+                console.error('Erro ao carregar recursos do usuário:', response.status);
+                return ['/']; // Recurso base como fallback
             }
             
-            const resources = await response.json();
-            return resources.map(r => r.path);
+            const data = await response.json();
+            const paths = data.map(resource => resource.path);
+            console.log('Recursos específicos carregados:', paths);
+            return paths;
+        } catch (error) {
+            console.error('Erro na requisição de recursos para usuário:', error);
+            return ['/']; // Recurso base como fallback
         }
-        
-        // Para usuários não-admin, buscar recursos específicos
-        const response = await fetch('/api/auth/user-resources', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Erro ao carregar recursos do usuário');
-        }
-        
-        const data = await response.json();
-        return data.map(resource => resource.path);
     } catch (error) {
-        console.error('Erro ao carregar recursos do usuário:', error);
-        return [];
+        console.error('Erro geral ao carregar recursos do usuário:', error);
+        return ['/'];
     }
 }
 

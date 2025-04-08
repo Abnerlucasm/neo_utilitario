@@ -305,6 +305,95 @@ class AuthController {
         }
     }
 
+    async requestPasswordReset(req, res) {
+        try {
+            const { email } = req.body;
+            
+            if (!email) {
+                return res.status(400).json({ error: 'Email é obrigatório' });
+            }
+            
+            // Verificar se o usuário existe
+            const user = await User.findOne({ where: { email } });
+            
+            if (!user) {
+                // Por segurança, não informamos que o email não existe
+                return res.status(200).json({ 
+                    message: 'Se o email estiver cadastrado, um código de recuperação será enviado.' 
+                });
+            }
+            
+            // Gerar código de recuperação de 6 dígitos
+            const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // Gerar token com validade de 15 minutos
+            const resetToken = jwt.sign(
+                { userId: user.id, code: resetCode },
+                process.env.JWT_SECRET,
+                { expiresIn: '15m' }
+            );
+            
+            // Salvar o token no usuário
+            await user.update({ reset_token: resetToken });
+            
+            // Enviar email com o código
+            await emailService.sendPasswordResetCode(email, resetCode);
+            
+            return res.status(200).json({ 
+                message: 'Se o email estiver cadastrado, um código de recuperação será enviado.' 
+            });
+            
+        } catch (error) {
+            logger.error('Erro ao solicitar recuperação de senha:', error);
+            return res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+    
+    async resetPassword(req, res) {
+        try {
+            const { email, code, newPassword } = req.body;
+            
+            if (!email || !code || !newPassword) {
+                return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+            }
+            
+            // Buscar usuário pelo email
+            const user = await User.findOne({ where: { email } });
+            
+            if (!user || !user.reset_token) {
+                return res.status(400).json({ error: 'Código inválido ou expirado' });
+            }
+            
+            try {
+                // Verificar o token e o código
+                const decoded = jwt.verify(user.reset_token, process.env.JWT_SECRET);
+                
+                if (decoded.code !== code) {
+                    return res.status(400).json({ error: 'Código inválido' });
+                }
+                
+                // Atualizar a senha e limpar o token
+                user.password = newPassword; // O hash será feito pelo hook do modelo
+                user.reset_token = null;
+                await user.save();
+                
+                logger.info(`Senha redefinida com sucesso para o usuário: ${email}`);
+                
+                return res.status(200).json({ 
+                    success: true, 
+                    message: 'Senha redefinida com sucesso' 
+                });
+                
+            } catch (error) {
+                return res.status(400).json({ error: 'Código inválido ou expirado' });
+            }
+            
+        } catch (error) {
+            logger.error('Erro ao redefinir senha:', error);
+            return res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+
     // ... outros métodos do controlador
 }
 

@@ -1,7 +1,7 @@
 'use strict';
 
 const { Model, DataTypes } = require('sequelize');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../../utils/logger');
 
@@ -36,22 +36,31 @@ module.exports = (sequelize) => {
                     return false;
                 }
                 
-                return await bcrypt.compare(password, this.password);
+                // Comparar a senha com bcrypt
+                const result = await bcrypt.compare(password, this.password);
+                logger.debug(`Resultado da validação de senha para ${this.email}: ${result}`);
+                return result;
             } catch (error) {
                 logger.error('Erro ao validar senha:', error);
-                return false;
+                throw error;
             }
         }
 
         // Métodos para verificar roles
         async hasRole(roleName) {
             try {
-                const userWithRoles = await User.findByPk(this.id, {
+                const { Role } = require('../postgresql/associations');
+                const userWithRoles = await this.sequelize.models.User.findByPk(this.id, {
                     include: [{
-                        model: require('./associations').Role,
+                        model: Role,
                         as: 'userRoles'
                     }]
                 });
+                
+                if (!userWithRoles || !userWithRoles.userRoles) {
+                    return false;
+                }
+                
                 return userWithRoles.userRoles.some(role => role.name === roleName);
             } catch (error) {
                 console.error('Erro ao verificar role:', error);
@@ -61,12 +70,18 @@ module.exports = (sequelize) => {
 
         async hasUserRole(role) {
             try {
-                const userWithRoles = await User.findByPk(this.id, {
+                const { Role } = require('../postgresql/associations');
+                const userWithRoles = await this.sequelize.models.User.findByPk(this.id, {
                     include: [{
-                        model: require('./associations').Role,
+                        model: Role,
                         as: 'userRoles'
                     }]
                 });
+                
+                if (!userWithRoles || !userWithRoles.userRoles) {
+                    return false;
+                }
+                
                 return userWithRoles.userRoles.some(r => r.id === role.id);
             } catch (error) {
                 console.error('Erro ao verificar user role:', error);
@@ -76,12 +91,18 @@ module.exports = (sequelize) => {
 
         async getRoles() {
             try {
-                const userWithRoles = await User.findByPk(this.id, {
+                const { Role } = require('../postgresql/associations');
+                const userWithRoles = await this.sequelize.models.User.findByPk(this.id, {
                     include: [{
-                        model: require('./associations').Role,
+                        model: Role,
                         as: 'userRoles'
                     }]
                 });
+                
+                if (!userWithRoles || !userWithRoles.userRoles) {
+                    return [];
+                }
+                
                 return userWithRoles.userRoles;
             } catch (error) {
                 console.error('Erro ao obter roles:', error);

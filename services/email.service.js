@@ -96,6 +96,41 @@ class EmailService {
             return false;
         }
     }
+
+    async sendPasswordResetCode(email, code) {
+        const mailOptions = {
+            from: {
+                name: process.env.EMAIL_FROM_NAME || 'NeoHub',
+                address: process.env.EMAIL_FROM
+            },
+            to: email,
+            subject: 'Código de Recuperação de Senha - NeoHub',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h1 style="color: #333; text-align: center;">Recuperação de Senha</h1>
+                    <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px;">
+                        <p style="font-size: 16px;">Seu código de recuperação de senha é:</p>
+                        <p style="font-size: 24px; font-weight: bold; text-align: center; color: #485fc7;">
+                            ${code}
+                        </p>
+                        <p style="color: #666; font-size: 14px;">
+                            Este código expira em 15 minutos.<br>
+                            Se você não solicitou a recuperação de senha, ignore este email ou entre em contato com o suporte.
+                        </p>
+                    </div>
+                </div>
+            `
+        };
+
+        try {
+            const info = await this.transporter.sendMail(mailOptions);
+            logger.info('Email de recuperação de senha enviado:', info.messageId);
+            return true;
+        } catch (error) {
+            logger.error('Erro ao enviar email de recuperação de senha:', error);
+            return false;
+        }
+    }
 }
 
 module.exports = new EmailService(); 

@@ -117,18 +117,31 @@ class UserManager {
     }
 
     renderRoles() {
-        const container = document.getElementById('rolesCheckboxes');
-        if (!container) return;
-
-        container.innerHTML = this.roles.map(role => `
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="${role.id}" id="role_${role.id}">
-                <label class="form-check-label" for="role_${role.id}">
-                    ${role.name}
-                    ${role.description ? `<small class="text-muted d-block">${role.description}</small>` : ''}
-                </label>
-            </div>
-        `).join('');
+        const rolesContainer = document.getElementById('rolesList');
+        rolesContainer.innerHTML = '';
+        
+        this.roles.forEach(role => {
+            const roleCard = document.createElement('div');
+            roleCard.className = `col-md-6 mb-3`;
+            roleCard.innerHTML = `
+                <div class="card role-card border">
+                    <div class="card-body">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="${role.id}" id="role_${role.id}" name="roles">
+                            <label class="form-check-label w-100" for="role_${role.id}">
+                                ${role.name}
+                                <small class="text-muted d-block mt-1">${role.description || 'Papel do sistema'}</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+            rolesContainer.appendChild(roleCard);
+        });
+    }
+    
+    getRoleDescription(roleName) {
+        return 'Papel do sistema';
     }
 
     updateStats() {
@@ -182,7 +195,7 @@ class UserManager {
     async saveUser() {
         try {
             const form = document.getElementById('userForm');
-            const roleCheckboxes = document.querySelectorAll('#rolesCheckboxes input[type="checkbox"]:checked');
+            const roleCheckboxes = document.querySelectorAll('#rolesList input[type="checkbox"]:checked');
             
             if (roleCheckboxes.length === 0) {
                 this.showToast('Selecione pelo menos um papel para o usuário', 'warning');
@@ -247,9 +260,7 @@ class UserManager {
             
             // Mostrar mensagem apropriada
             if (!this.currentUserId) {
-                this.showToast(`Usuário criado com sucesso! Senha definida: ${password}`, 'success', 10000);
-            } else if (password) {
-                this.showToast(`Usuário atualizado com sucesso! Nova senha definida: ${password}`, 'success', 10000);
+                this.showToast(`Usuário criado com sucesso!`, 'success');
             } else {
                 this.showToast('Usuário atualizado com sucesso', 'success');
             }
@@ -302,4 +313,32 @@ class UserManager {
 // Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     window.userManager = new UserManager();
-}); 
+});
+
+/**
+ * Obtém os papéis do usuário
+ * @param {Object} user - Objeto do usuário
+ * @returns {Array} - Array com os nomes dos papéis
+ */
+function getUserRoles(user) {
+    const roles = [];
+    
+    if (user.is_admin) {
+        roles.push('Admin');
+    }
+    
+    // Adicionar lógica para outros papéis conforme necessário
+    // Exemplo: verificar propriedades específicas ou usar roles do usuário se disponível
+    if (user.roles) {
+        user.roles.forEach(role => {
+            roles.push(role.name);
+        });
+    } else {
+        // Fallback para papéis padrão
+        if (!user.is_admin) {
+            roles.push('Usuário');
+        }
+    }
+    
+    return roles;
+} 

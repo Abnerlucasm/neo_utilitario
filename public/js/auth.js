@@ -157,11 +157,14 @@ class AuthManager {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
+            console.log(`Tentando login com email: ${email} e senha fornecida de tamanho ${password ? password.length : 0}`);
+            
             if (!email || !password) {
                 this.showError('Email e senha são obrigatórios');
                 return;
             }
             
+            console.log('Enviando requisição para /api/auth/login...');
             const response = await fetch(`${this.apiUrl}/login`, {
                 method: 'POST',
                 headers: {
@@ -170,19 +173,46 @@ class AuthManager {
                 body: JSON.stringify({ email, password })
             });
             
-            const data = await response.json();
+            console.log(`Resposta recebida: status ${response.status}`);
             
-            if (!response.ok) {
-                throw new Error(data.error || 'Erro no login');
+            let data;
+            try {
+                data = await response.json();
+                console.log('Dados recebidos:', data);
+            } catch (parseError) {
+                console.error('Erro ao processar resposta JSON:', parseError);
+                throw new Error('Erro ao processar resposta do servidor');
             }
             
+            if (!response.ok) {
+                console.error('Resposta de erro:', data);
+                
+                // Verificar se o erro é de email não verificado
+                if (response.status === 403 && data.need_verification && data.email) {
+                    // Armazenar o email para a página de verificação
+                    localStorage.setItem('verificationEmail', data.email);
+                    
+                    this.showError('Email não verificado. Redirecionando para a página de verificação...');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/pages/verify-email.html';
+                    }, 2000);
+                    
+                    return;
+                }
+                
+                throw new Error(data.error || data.message || 'Erro no login');
+            }
+            
+            console.log('Login bem-sucedido, salvando token...');
             localStorage.setItem('auth_token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
             
+            console.log('Redirecionando para home...');
             window.location.href = '/';
             
         } catch (error) {
-            console.error('Erro no login:', error);
+            console.error('Erro completo no login:', error);
             this.showError(error.message || 'Falha na autenticação. Verifique suas credenciais.');
         }
     }
@@ -219,29 +249,85 @@ class AuthManager {
                 return;
             }
             
-            const response = await fetch(`${this.apiUrl}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, email, password, name })
-            });
+            // Mostrar indicador de carregamento
+            this.showSuccess('Processando registro, aguarde...');
             
-            const data = await response.json();
+            // Armazenar os dados do usuário antes de enviar, para caso seja necessário tentar o login
+            const userData = { username, email, password, name };
             
-            if (!response.ok) {
-                throw new Error(data.error || 'Erro no registro');
+            let response;
+            try {
+                response = await fetch(`${this.apiUrl}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+            } catch (fetchError) {
+                console.error('Erro na requisição fetch:', fetchError);
+                // Tentando registro, mas houve erro de rede
+                this.showError('Erro de conexão com o servidor. Redirecionando para o login...');
+                // Redirecionar para login após pequeno atraso
+                setTimeout(() => {
+                    window.location.href = '/pages/login.html';
+                }, 3000);
+                return;
             }
             
-            this.showSuccess('Registro realizado com sucesso! Redirecionando para o login...');
+            let data;
+            try {
+                data = await response.json();
+                console.log('Resposta do servidor:', data);
+            } catch (e) {
+                console.error('Erro ao processar resposta JSON:', e);
+                data = { error: 'Erro ao processar resposta do servidor' };
+            }
+            
+            if (!response.ok) {
+                // Erros 400 são validações e não devem redirecionar
+                if (response.status === 400) {
+                    const errorMsg = data.error || data.details || 'Erro de validação no registro';
+                    throw new Error(errorMsg);
+                }
+                
+                // Erros 500 podem significar que o usuário foi criado mas houve algum erro posterior
+                if (response.status === 500) {
+                    this.showError(`${data.error || 'Erro interno do servidor'}. Redirecionando para login...`);
+                    
+                    // Redirecionar para login após pequeno atraso
+                    setTimeout(() => {
+                        window.location.href = '/pages/login.html';
+                    }, 3000);
+                    return;
+                }
+                
+                const errorMsg = data.error || data.details || 'Erro no registro';
+                throw new Error(errorMsg);
+            }
+            
+            // Armazenar o email para ser usado na página de verificação
+            localStorage.setItem('verificationEmail', email);
+            
+            this.showSuccess('Registro realizado com sucesso! Redirecionando para verificação de email...');
             
             setTimeout(() => {
-                window.location.href = '/pages/login.html';
+                window.location.href = '/pages/verify-email.html';
             }, 2000);
             
         } catch (error) {
             console.error('Erro no registro:', error);
             this.showError(error.message || 'Falha no registro. Tente novamente.');
+            
+            // Mesmo com erro, redirecionar para login após 5 segundos se o erro não for de validação
+            if (!error.message.includes('já existe') && 
+                !error.message.includes('obrigatórios') && 
+                !error.message.includes('não coincidem')) {
+                setTimeout(() => {
+                    console.log('Redirecionando para login após erro não relacionado à validação');
+                    window.location.href = '/pages/login.html';
+                }, 5000);
+            }
         }
     }
     
@@ -282,6 +368,27 @@ window.AuthManager = AuthManager;
 document.addEventListener('DOMContentLoaded', () => {
     new AuthManager();
     AuthManager.setupAuthCheck();
+    
+    // Verificar parâmetros na URL para mensagens após verificação de email
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Verificar se a verificação de email foi bem-sucedida
+    if (urlParams.get('verified') === 'true') {
+        const authManager = new AuthManager();
+        authManager.showSuccess('Email verificado com sucesso! Você já pode fazer login.');
+        
+        // Limpar parâmetros da URL sem recarregar a página
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    // Verificar se houve erro na verificação
+    if (urlParams.get('error') === 'verification_failed') {
+        const authManager = new AuthManager();
+        authManager.showError('Houve um problema na verificação do email. Tente novamente.');
+        
+        // Limpar parâmetros da URL sem recarregar a página
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 });
 
 // Interceptor para requisições fetch

@@ -63,15 +63,26 @@
                     <!-- Área de edição -->
                     <div class="column is-9 content-area">
                         <div class="editor-toolbar">
-                            <div class="buttons">
-                                <button class="button is-success" id="saveBtn">
-                                    <span class="icon"><i class="fas fa-save"></i></span>
-                                    <span>Salvar</span>
-                                </button>
-                                <button class="button is-info" id="previewBtn">
-                                    <span class="icon"><i class="fas fa-eye"></i></span>
-                                    <span>Preview</span>
-                                </button>
+                            <div class="level">
+                                <div class="level-left">
+                                    <h3 class="title is-5" id="currentPageTitle">Selecione uma página</h3>
+                                </div>
+                                <div class="level-right">
+                                    <div class="buttons">
+                                        <button class="button is-info" id="importHtmlBtn" title="Importar HTML">
+                                            <span class="icon"><i class="fas fa-file-import"></i></span>
+                                            <span>Importar HTML</span>
+                                        </button>
+                                        <button class="button is-success" id="saveBtn">
+                                            <span class="icon"><i class="fas fa-save"></i></span>
+                                            <span>Salvar</span>
+                                        </button>
+                                        <button class="button is-info" id="previewBtn">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                            <span>Preview</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -129,8 +140,71 @@
         </div>
     </div>
 
+    <!-- Modal para importação de HTML -->
+    <div class="modal" id="importHtmlModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Importar Conteúdo HTML</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Cole o HTML abaixo ou selecione um arquivo</label>
+                    <div class="control">
+                        <textarea class="textarea" id="htmlContent" placeholder="Cole o código HTML aqui..." rows="10"></textarea>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="file has-name is-fullwidth">
+                        <label class="file-label">
+                            <input class="file-input" type="file" id="htmlFile" accept=".html,.htm">
+                            <span class="file-cta">
+                                <span class="file-icon">
+                                    <i class="fas fa-upload"></i>
+                                </span>
+                                <span class="file-label">
+                                    Selecionar arquivo
+                                </span>
+                            </span>
+                            <span class="file-name" id="fileName">
+                                Nenhum arquivo selecionado
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Opções de Importação</label>
+                    <div class="control">
+                        <label class="checkbox">
+                            <input type="checkbox" id="convertToMarkdown" checked>
+                            Converter para Markdown
+                        </label>
+                    </div>
+                    <div class="control mt-2">
+                        <label class="checkbox">
+                            <input type="checkbox" id="preserveStyles" checked>
+                            Preservar estilos CSS
+                        </label>
+                    </div>
+                    <div class="control mt-2">
+                        <label class="checkbox">
+                            <input type="checkbox" id="replaceContent" checked>
+                            Substituir conteúdo atual
+                        </label>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" id="confirmImportBtn">Importar</button>
+                <button class="button" id="cancelImportBtn">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="/components/navbar/navbar.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
