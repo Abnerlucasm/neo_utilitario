@@ -1,38 +1,33 @@
 class ModuleView {
     constructor() {
-        // Extrair ID do módulo da URL
-        // Primeiro tentar obter da query string
-        const urlParams = new URLSearchParams(window.location.search);
-        let moduleId = urlParams.get('id');
+        // Obter ID do módulo da URL
+        this.moduleId = window.location.pathname.split('/').pop();
         
-        // Se não tiver na query string, tentar extrair do path
-        if (!moduleId) {
-            const pathParts = window.location.pathname.split('/');
-            const potentialId = pathParts[pathParts.length - 1];
-            // Verificar se é um UUID válido
-            if (potentialId && potentialId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-                moduleId = potentialId;
-            }
+        // Inicializar biblioteca de componentes
+        console.log('Inicializando biblioteca de componentes...');
+        if (typeof ComponentsLibrary === 'undefined') {
+            console.error('ComponentsLibrary não está disponível');
+        } else {
+            this.componentsLibrary = new ComponentsLibrary();
         }
         
-        this.moduleId = moduleId;
-        this.content = {};
-        this.sections = [];
-        this.currentPageId = null;
-        this.currentSectionIndex = 0;
-        this.searchInput = document.getElementById('searchInput');
-        this.searchResults = null;
-        this.userProgress = {};
-        this.inPageSearch = null; // Armazenar estado da busca na página atual
-        
-        this.pageHistory = [];
-        this.historyIndex = -1;
-        
         // Elementos do DOM
-        this.moduleName = document.getElementById('moduleName');
-        this.pageContent = document.getElementById('pageContent');
-        this.searchResultsContainer = document.getElementById('searchResults');
-        this.sectionsContainer = document.getElementById('moduleSections');
+        this.elements = {
+            moduleName: document.getElementById('moduleName'),
+            moduleSections: document.getElementById('moduleSections'),
+            pageContent: document.getElementById('pageContent'),
+            searchInput: document.getElementById('searchInput'),
+            searchResults: document.getElementById('searchResults')
+        };
+        
+        // Estado do módulo
+        this.module = null;
+        this.currentPage = null;
+        this.userProgress = null;
+        this.isAdmin = false;
+        
+        // Inicializar
+        this.init();
     }
 
     async init() {
@@ -129,8 +124,8 @@ class ModuleView {
             
             // Atualizar o título na página
             document.title = this.moduleTitle + ' | Módulo de Aprendizagem';
-            if (this.moduleName) {
-                this.moduleName.textContent = this.moduleTitle;
+            if (this.elements.moduleName) {
+                this.elements.moduleName.textContent = this.moduleTitle;
             }
             
             console.log('Seções carregadas:', this.sections);
@@ -1207,47 +1202,87 @@ class ModuleView {
         }
     }
 
-    // Método para renderizar conteúdo markdown
+    /**
+     * Renderiza o conteúdo markdown em HTML
+     */
     renderMarkdown(content) {
-        if (!content) return '<div class="notification is-warning">Esta página não possui conteúdo.</div>';
-        
         try {
-            // Configurar o marked para melhor segurança e funcionalidade
-            marked.setOptions({
-                breaks: true,
-                gfm: true,
-                headerIds: true,
-                sanitize: false // A sanitização é tratada via DOMPurify
-            });
-            
-            // Renderizar markdown para HTML
-            const htmlContent = marked.parse(content);
-            
-            // Verificar se DOMPurify está disponível, se não, implementar uma sanitização básica
-            let sanitizedHtml = htmlContent;
-            if (typeof DOMPurify !== 'undefined') {
-                // Sanitizar o HTML usando DOMPurify
-                sanitizedHtml = DOMPurify.sanitize(htmlContent, {
-                    ADD_ATTR: ['target'],
-                    ADD_TAGS: ['iframe']
-                });
-            } else {
-                console.warn('DOMPurify não está disponível. Usando sanitização básica.');
-                // Implementação básica de sanitização (limitada)
-                sanitizedHtml = htmlContent
-                    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                    .replace(/javascript:/gi, 'blocked:');
+            // Usar a biblioteca de componentes global
+            const componentsLibrary = window.componentsLibrary;
+            if (!componentsLibrary) {
+                console.error('Biblioteca de componentes não encontrada');
+                return marked.parse(content);
             }
+
+            // Primeiro converter markdown para HTML
+            let html = marked.parse(content);
             
-            return `
-                <div class="content">
-                    ${sanitizedHtml}
-                </div>
-            `;
+            // Criar um container temporário para processar o HTML
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html;
+            
+            // Processar todos os componentes encontrados
+            const processComponents = () => {
+                // Encontrar todos os elementos que podem ser componentes
+                const elements = tempContainer.querySelectorAll('[data-component]');
+                elements.forEach(element => {
+                    const componentId = element.dataset.component;
+                    if (componentId && componentsLibrary.components[componentId]) {
+                        // Renderizar o componente
+                        const renderedComponent = componentsLibrary.renderComponent(componentId);
+                        
+                        // Criar um wrapper para o componente
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = renderedComponent;
+                        
+                        // Substituir o elemento pelo componente renderizado
+                        element.replaceWith(wrapper.firstElementChild);
+                        
+                        // Verificar se o componente tem estilos
+                        const component = componentsLibrary.components[componentId];
+                        if (component.styles && !document.getElementById(`style-${componentId}`)) {
+                            const style = document.createElement('style');
+                            style.id = `style-${componentId}`;
+                            style.textContent = component.styles;
+                            document.head.appendChild(style);
+                        }
+                        
+                        // Verificar se o componente tem scripts
+                        if (component.scripts && !document.getElementById(`script-${componentId}`)) {
+                            const script = document.createElement('script');
+                            script.id = `script-${componentId}`;
+                            script.textContent = component.scripts;
+                            document.body.appendChild(script);
+                        }
+                    }
+                });
+            };
+
+            // Processar componentes
+            processComponents();
+            
+            // Sanitizar o HTML resultante
+            const cleanHtml = DOMPurify.sanitize(tempContainer.innerHTML, {
+                ADD_TAGS: ['button', 'div', 'span', 'i', 'style', 'script'],
+                ADD_ATTR: ['class', 'style', 'id', 'onclick', 'data-component', 'type'],
+                ALLOW_SCRIPTS: true,
+                ALLOW_DATA_ATTR: true,
+                WHOLE_DOCUMENT: true
+            });
+
+            // Aplicar highlight.js aos blocos de código
+            setTimeout(() => {
+                const codeBlocks = document.querySelectorAll('pre code');
+                codeBlocks.forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }, 0);
+
+            return cleanHtml;
         } catch (error) {
             console.error('Erro ao renderizar markdown:', error);
             return `<div class="notification is-danger">
-                Erro ao renderizar o conteúdo: ${error.message}
+                Erro ao renderizar conteúdo: ${error.message}
             </div>`;
         }
     }

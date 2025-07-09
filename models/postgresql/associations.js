@@ -18,6 +18,7 @@ const defineMenu = require('./Menu');
 const defineRolePermission = require('./RolePermission');
 const defineUserRole = require('./UserRole');
 const defineRoleResource = require('./RoleResource');
+const defineComponent = require('./Component');
 
 // Inicializar modelos
 const User = defineUser(sequelize);
@@ -34,6 +35,7 @@ const Menu = defineMenu(sequelize);
 const RolePermission = defineRolePermission(sequelize);
 const UserRole = defineUserRole(sequelize);
 const RoleResource = defineRoleResource(sequelize);
+const Component = defineComponent(sequelize);
 
 // Definir as associações
 function initAssociations() {
@@ -118,7 +120,18 @@ function initAssociations() {
         through: 'role_resources',
         foreignKey: 'resource_id',
         otherKey: 'role_id',
-        as: 'accessRoles'
+        as: 'roles'
+    });
+
+    // Associações auto-referenciais do Resource (parent-child)
+    Resource.belongsTo(Resource, { 
+        foreignKey: 'parent_id', 
+        as: 'parent' 
+    });
+    
+    Resource.hasMany(Resource, { 
+        foreignKey: 'parent_id', 
+        as: 'children' 
     });
 
     // User - Session
@@ -149,6 +162,17 @@ function initAssociations() {
 
     // Associações do Menu
     Menu.associate({ Menu });
+
+    // Component - User
+    Component.belongsTo(User, {
+        foreignKey: 'created_by',
+        as: 'creator'
+    });
+
+    User.hasMany(Component, {
+        foreignKey: 'created_by',
+        as: 'components'
+    });
 }
 
 // Aplicar as associações imediatamente
@@ -171,5 +195,6 @@ module.exports = {
     RolePermission,
     UserRole,
     RoleResource,
+    Component,
     initAssociations
 }; 

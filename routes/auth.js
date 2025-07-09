@@ -369,43 +369,41 @@ router.post('/resend-verification', async (req, res) => {
 });
 
 // Verificar autenticação
-router.get('/check', auth, async (req, res) => {
+router.get('/check', requireAuth, async (req, res) => {
     try {
-        const user = await User.findByPk(req.user.id, {
-            include: [{
-                model: Role,
-                as: 'userRoles',
-                include: [{
-                    model: Resource,
-                    as: 'accessibleResources'
-                }]
-            }]
+        // Se chegou aqui, é porque passou pelo middleware requireAuth
+        logger.info('Check de autenticação', { 
+            userId: req.user.id, 
+            username: req.user.username 
         });
-
-        if (!user) {
-            return res.json({ isAuthenticated: false });
-        }
-
-        // Verificar se é admin ou tem recursos específicos
-        const isAdmin = user.email === 'abner.freitas@neosistemas.com.br' || 
-                       user.userRoles.some(role => role.name === 'admin');
-
-        // Obter lista de recursos do usuário
-        const resources = user.userRoles.reduce((acc, role) => {
-            return [...acc, ...role.accessibleResources.map(resource => resource.path)];
-        }, []);
-
+        
+        // Incluir papéis se existirem
+        const userRoles = req.user.userRoles 
+            ? req.user.userRoles.map(role => role.name) 
+            : [];
+        
+        // Preparar objeto de resposta sem a senha
+        const userData = {
+            id: req.user.id,
+            username: req.user.username,
+            email: req.user.email,
+            name: req.user.name,
+            roles: userRoles,
+            is_active: req.user.is_active,
+            email_verified: req.user.email_verified,
+            last_login: req.user.last_login
+        };
+        
         res.json({
             isAuthenticated: true,
-            user: {
-                ...user.toJSON(),
-                isAdmin,
-                resources
-            }
+            user: userData
         });
     } catch (error) {
-        logger.error('Erro ao verificar autenticação:', error);
-        res.status(500).json({ error: 'Erro ao verificar autenticação' });
+        logger.error('Erro na verificação de autenticação:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor',
+            message: error.message
+        });
     }
 });
 
@@ -489,7 +487,8 @@ router.get('/user-resources', async (req, res) => {
                     as: 'userRoles',
                     include: [{
                         model: Resource,
-                        as: 'accessibleResources'
+                        as: 'accessibleResources',
+                        attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'created_at', 'updated_at']
                     }]
                 }]
             });
@@ -507,7 +506,9 @@ router.get('/user-resources', async (req, res) => {
             
             if (isAdmin) {
                 // Se for admin, retornar todos os recursos
-                const allResources = await Resource.findAll();
+                const allResources = await Resource.findAll({
+                    attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'created_at', 'updated_at']
+                });
                 return res.json(allResources);
             }
             

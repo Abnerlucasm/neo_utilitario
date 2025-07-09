@@ -4,15 +4,11 @@
  */
 class ModuleContentEditor {
     constructor() {
-        this.moduleId = null;
-        this.module = null;
-        this.sections = [];
-        this.currentPage = null;
-        this.editor = null;
-        this.isEditing = false;
-        this.draggingElement = null;
-        this.currentSectionIndex = null;
-        this.currentPageIndex = null;
+        this.moduleId = window.location.pathname.split('/').pop();
+        
+        // Inicializar biblioteca de componentes
+        console.log('Inicializando biblioteca de componentes...');
+        this.componentsLibrary = new ComponentsLibrary();
         
         // Elementos do DOM
         this.elements = {
@@ -45,8 +41,30 @@ class ModuleContentEditor {
             fileName: document.getElementById('fileName'),
             confirmImportBtn: document.getElementById('confirmImportBtn'),
             cancelImportBtn: document.getElementById('cancelImportBtn'),
-            preserveStyles: document.getElementById('preserveStyles')
+            preserveStyles: document.getElementById('preserveStyles'),
+            isNeoBiblioteca: document.getElementById('isNeoBiblioteca'),
+
+            // Elementos do modal de componentes
+            componentsBtn: document.getElementById('componentsBtn'),
+            componentsModal: document.getElementById('componentsModal'),
+            componentConfigModal: document.getElementById('componentConfigModal'),
+            insertComponentBtn: document.getElementById('insertComponentBtn'),
+            detailsId: document.getElementById('detailsId'),
+            detailsContent: document.getElementById('detailsContent'),
+            navPath: document.getElementById('navPath'),
+            navText: document.getElementById('navText'),
+            tableHeaders: document.getElementById('tableHeaders'),
+            tableData: document.getElementById('tableData')
         };
+
+        // Verificar elementos críticos
+        console.log('Verificando elementos do DOM...');
+        if (!this.elements.componentsBtn) {
+            console.error('Botão de componentes não encontrado');
+        }
+        if (!this.elements.componentsModal) {
+            console.error('Modal de componentes não encontrado');
+        }
         
         // Armazenar a instância no elemento do editor para acesso global
         const editorContainer = document.querySelector('.editor-container');
@@ -104,6 +122,8 @@ class ModuleContentEditor {
      * Configura os listeners de eventos para os elementos da UI
      */
     setupEventListeners() {
+        console.log('Configurando event listeners...');
+        
         // Botões de ação
         this.elements.backBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -129,6 +149,18 @@ class ModuleContentEditor {
                 this.openImportHtmlModal();
             });
         }
+
+        // Botão de Componentes
+        console.log('Configurando botão de componentes...');
+        if (this.elements.componentsBtn) {
+            console.log('Adicionando evento de clique ao botão de componentes');
+            this.elements.componentsBtn.addEventListener('click', () => {
+                console.log('Botão de componentes clicado');
+                this.openComponentsModal();
+            });
+        } else {
+            console.error('Botão de componentes não encontrado');
+        }
         
         // Event listeners para modais
         this.setupModalListeners();
@@ -141,6 +173,9 @@ class ModuleContentEditor {
                 return e.returnValue;
             }
         });
+
+        // Eventos dos modais de componentes
+        this.setupComponentsModalListeners();
     }
     
     /**
@@ -201,6 +236,55 @@ class ModuleContentEditor {
     }
     
     /**
+     * Configura os listeners dos modais de componentes
+     */
+    setupComponentsModalListeners() {
+        console.log('Configurando listeners dos modais de componentes...');
+        
+        const componentsModal = document.getElementById('componentsModal');
+        const configModal = document.getElementById('componentConfigModal');
+        
+        if (!componentsModal || !configModal) {
+            console.error('Modais de componentes não encontrados:', {
+                componentsModal: !!componentsModal,
+                configModal: !!configModal
+            });
+            return;
+        }
+        
+        // Fechar modal de componentes
+        const closeComponentsModal = () => {
+            componentsModal.classList.remove('is-active');
+        };
+        
+        componentsModal.querySelectorAll('.delete, .modal-background').forEach(el => {
+            el.addEventListener('click', closeComponentsModal);
+        });
+        
+        // Fechar modal de configuração
+        const closeConfigModal = () => {
+            configModal.classList.remove('is-active');
+            this.selectedComponent = null;
+        };
+        
+        configModal.querySelectorAll('.delete, .modal-background, #cancelComponentBtn').forEach(el => {
+            el.addEventListener('click', closeConfigModal);
+        });
+        
+        // Inserir componente
+        const insertBtn = document.getElementById('insertComponentBtn');
+        if (insertBtn) {
+            insertBtn.addEventListener('click', () => {
+                this.insertSelectedComponent();
+                closeConfigModal();
+            });
+        }
+        
+        // Adicionar classe ao modal para estilos específicos
+        componentsModal.classList.add('components-modal');
+    }
+    
+    /**
      * Inicializa o editor Markdown (EasyMDE)
      */
     initMarkdownEditor() {
@@ -222,75 +306,85 @@ class ModuleContentEditor {
                 return;
             }
             
-            // Limpar o conteúdo da área do editor
-            editorArea.innerHTML = '';
+            // Criar o textarea para o editor
+            editorArea.innerHTML = '<textarea id="editor"></textarea>';
             
-            // Criar um elemento textarea para o editor
-            const textarea = document.createElement('textarea');
-            textarea.id = 'markdown-editor-textarea';
-            editorArea.appendChild(textarea);
-            
-            // Definir o conteúdo inicial do textarea se houver uma página selecionada
-            if (this.currentPage && this.content && this.content[this.currentPage]) {
-                textarea.value = this.content[this.currentPage].content || '';
-            }
-            
-            // Inicializar o editor após o textarea estar no DOM
-            setTimeout(() => {
-                try {
-                    // Inicializar EasyMDE no textarea
-                    this.editor = new EasyMDE({
-                        element: textarea,
-                        autoDownloadFontAwesome: false,
-                        spellChecker: false,
-                        autosave: {
-                            enabled: true,
-                            uniqueId: `module-${this.moduleId}-editor`,
-                            delay: 1000
-                        },
-                        lineWrapping: true,
-                        status: ['lines', 'words', 'cursor'],
-                        toolbar: [
-                            'bold', 'italic', 'heading', '|',
-                            'quote', 'unordered-list', 'ordered-list', '|',
-                            'link', 'image', 'table', 'code', '|',
-                            'preview', 'side-by-side', 'fullscreen', '|',
-                            'guide'
-                        ],
-                        promptURLs: true,
-                        placeholder: 'Escreva seu conteúdo aqui...'
-                    });
-                    
-                    // Verificar se o editor foi inicializado corretamente
-                    if (!this.editor) {
-                        throw new Error('Falha ao inicializar o editor Markdown');
-                    }
-                    
-                    // Adicionar classe para estilização correta
-                    const container = document.querySelector('.EasyMDEContainer');
-                    if (container) {
-                        container.classList.add('content-editor');
-                    }
-                    
-                    // Atualizar quando o conteúdo mudar
-                    this.editor.codemirror.on('change', () => {
-                        this.contentChanged = true;
-                        if (this.updateSaveButton) {
-                            this.updateSaveButton();
-                        }
-                    });
-                    
-                    console.log('Editor Markdown inicializado com sucesso');
-                } catch (innerError) {
-                    console.error('Erro ao inicializar editor Markdown:', innerError);
-                    this.showNotification('Erro ao inicializar editor: ' + innerError.message, 'is-danger');
-                    this.showFallbackEditor();
+            // Configurar o preview personalizado
+            const customPreviewRender = (plainText, preview) => {
+                // Não renderizar se o preview estiver escondido
+                if (preview.style.display === 'none') {
+                    return;
                 }
-            }, 0);
+                
+                try {
+                    // Converter markdown para HTML
+                    let html = marked.parse(plainText);
+                    
+                    // Criar container temporário
+                    const tempContainer = document.createElement('div');
+                    tempContainer.innerHTML = html;
+                    
+                    // Processar componentes no preview
+                    const processComponents = () => {
+                        const elements = tempContainer.querySelectorAll('[data-component]');
+                        elements.forEach(element => {
+                            const componentId = element.dataset.component;
+                            if (componentId && this.componentsLibrary.components[componentId]) {
+                                const renderedComponent = this.componentsLibrary.renderComponent(componentId);
+                                element.outerHTML = renderedComponent;
+                            }
+                        });
+                    };
+                    
+                    // Processar componentes
+                    processComponents();
+                    
+                    // Sanitizar e retornar HTML
+                    preview.innerHTML = DOMPurify.sanitize(tempContainer.innerHTML, {
+                        ADD_TAGS: ['button', 'div', 'span', 'i'],
+                        ADD_ATTR: ['class', 'style', 'id', 'onclick', 'data-component'],
+                        ALLOW_SCRIPTS: true,
+                        ALLOW_DATA_ATTR: true
+                    });
+                    
+                    // Aplicar syntax highlighting
+                    preview.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                } catch (error) {
+                    console.error('Erro ao renderizar preview:', error);
+                    preview.innerHTML = 'Erro ao renderizar preview';
+                }
+                
+                return true;
+            };
+            
+            // Inicializar EasyMDE com as configurações
+            this.editor = new EasyMDE({
+                element: document.getElementById('editor'),
+                autofocus: true,
+                spellChecker: false,
+                status: false,
+                previewRender: customPreviewRender,
+                toolbar: [
+                    'bold', 'italic', 'heading', '|',
+                    'quote', 'unordered-list', 'ordered-list', '|',
+                    'link', 'image', 'code', '|',
+                    'preview', 'side-by-side', 'fullscreen'
+                ],
+                renderingConfig: {
+                    singleLineBreaks: false,
+                    codeSyntaxHighlighting: true,
+                },
+                previewClass: ['editor-preview', 'markdown-content']
+            });
+            
+            // Configurar visualização lado a lado por padrão
+            this.editor.toggleSideBySide();
             
         } catch (error) {
-            console.error('Erro ao preparar inicialização do editor:', error);
-            this.showNotification('Erro ao preparar editor: ' + error.message, 'is-danger');
+            console.error('Erro ao inicializar editor:', error);
+            this.showNotification('Erro ao inicializar editor', 'is-danger');
             this.showFallbackEditor();
         }
     }
@@ -1933,6 +2027,7 @@ Esta é uma página de exemplo criada automaticamente. Você pode editar este co
         const modal = document.getElementById('importHtmlModal');
         const htmlFile = document.getElementById('htmlFile');
         const fileName = document.getElementById('fileName');
+        const htmlContent = document.getElementById('htmlContent');
         const confirmImportBtn = document.getElementById('confirmImportBtn');
         const cancelImportBtn = document.getElementById('cancelImportBtn');
         const closeButton = modal.querySelector('.delete');
@@ -1946,15 +2041,31 @@ Esta é uma página de exemplo criada automaticamente. Você pode editar este co
                     // Ler o arquivo e atualizar o textarea
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        const htmlContent = document.getElementById('htmlContent');
                         if (htmlContent) {
                             htmlContent.value = e.target.result;
+                            // Detectar se é conteúdo da Biblioteca Neo
+                            this.updateNeoBibliotecaCheckbox(e.target.result);
                         }
                     };
                     reader.readAsText(htmlFile.files[0]);
                 } else {
                     fileName.textContent = 'Nenhum arquivo selecionado';
                 }
+            });
+        }
+
+        // Listener para detectar conteúdo colado
+        if (htmlContent) {
+            htmlContent.addEventListener('paste', () => {
+                // Usar setTimeout para garantir que o conteúdo já foi colado
+                setTimeout(() => {
+                    this.updateNeoBibliotecaCheckbox(htmlContent.value);
+                }, 0);
+            });
+            
+            // Também detectar quando o usuário digita/modifica o conteúdo
+            htmlContent.addEventListener('input', () => {
+                this.updateNeoBibliotecaCheckbox(htmlContent.value);
             });
         }
 
@@ -1992,13 +2103,70 @@ Esta é uma página de exemplo criada automaticamente. Você pode editar este co
     }
 
     /**
+     * Converte HTML para Markdown usando Turndown
+     * @param {string} html HTML para converter
+     * @returns {string} Markdown convertido
+     */
+    convertHtmlToMarkdown(html) {
+        try {
+            // Configurar o Turndown com opções específicas para a Biblioteca Neo
+            const turndownService = new TurndownService({
+                headingStyle: 'atx',
+                hr: '---',
+                bulletListMarker: '-',
+                codeBlockStyle: 'fenced',
+                emDelimiter: '_',
+                strongDelimiter: '**',
+                linkStyle: 'inlined'
+            });
+
+            // Regra para preservar quebras de linha
+            turndownService.addRule('lineBreaks', {
+                filter: ['br'],
+                replacement: () => '\n'
+            });
+
+            // Regra para tratar os popups da Biblioteca Neo
+            turndownService.addRule('popups', {
+                filter: (node) => {
+                    return node.classList && node.classList.contains('popupCss');
+                },
+                replacement: (content, node) => {
+                    const title = node.querySelector('b')?.textContent || node.id;
+                    return `\n\n## ${title}\n\n${content}\n\n`;
+                }
+            });
+
+            // Regra para preservar títulos com navegação
+            turndownService.addRule('titleLinks', {
+                filter: (node) => {
+                    return node.hasAttribute('title') && node.getAttribute('title').includes('->');
+                },
+                replacement: (content, node) => {
+                    const title = node.getAttribute('title');
+                    return `${content} (${title})`;
+                }
+            });
+
+            // Remover elementos indesejados
+            turndownService.remove(['script', 'style', 'button#btnfecharcsspopup']);
+
+            // Converter HTML para Markdown
+            return turndownService.turndown(html);
+
+        } catch (error) {
+            console.error('Erro ao converter HTML para Markdown:', error);
+            throw new Error('Falha ao converter HTML para Markdown: ' + error.message);
+        }
+    }
+
+    /**
      * Importa o HTML e o insere no editor
      */
     importHtml() {
         const htmlContent = document.getElementById('htmlContent');
         const convertToMarkdown = document.getElementById('convertToMarkdown');
         const replaceContent = document.getElementById('replaceContent');
-        const preserveStyles = document.getElementById('preserveStyles');
         
         if (!htmlContent || !this.currentPage || !this.editor) {
             this.showNotification('Erro ao importar HTML: editor não inicializado', 'is-danger');
@@ -2013,24 +2181,22 @@ Esta é uma página de exemplo criada automaticamente. Você pode editar este co
                 return;
             }
             
-            // Verificar se é para converter ou manter como HTML
+            // Processar o conteúdo
             let content = '';
-            const shouldPreserveStyles = preserveStyles && preserveStyles.checked;
             
             if (convertToMarkdown && convertToMarkdown.checked) {
-                // Converter para Markdown
+                // Usar Turndown para converter HTML para Markdown
                 content = this.convertHtmlToMarkdown(html);
+                this.showNotification('Conteúdo convertido para Markdown', 'is-info');
             } else {
-                // Processar o HTML, preservando estilos se necessário
-                content = this.processHtmlContent(html, shouldPreserveStyles);
+                // Manter como HTML
+                content = html;
             }
             
             // Atualizar o editor
             if (replaceContent && replaceContent.checked) {
-                // Substituir todo o conteúdo
                 this.editor.value(content);
             } else {
-                // Inserir na posição atual do cursor
                 const currentContent = this.editor.value();
                 const cursorPosition = this.editor.codemirror.getCursor();
                 const before = currentContent.substring(0, this.editor.codemirror.indexFromPos(cursorPosition));
@@ -2060,7 +2226,7 @@ Esta é uma página de exemplo criada automaticamente. Você pode editar este co
             this.showNotification('Erro ao importar HTML: ' + error.message, 'is-danger');
         }
     }
-    
+
     /**
      * Extrai os estilos CSS do HTML e retorna separadamente
      * @param {string} html - HTML de origem
@@ -2096,284 +2262,629 @@ Esta é uma página de exemplo criada automaticamente. Você pode editar este co
     }
 
     /**
-     * Converte HTML para Markdown usando o DOM
-     * @param {string} html - Conteúdo HTML
-     * @returns {string} - Conteúdo convertido para Markdown
+     * Processa o conteúdo HTML antes de importar
+     * @param {string} html - HTML para processar
+     * @param {boolean} preserveStyles - Se deve preservar estilos
+     * @returns {string} HTML processado
      */
-    convertHtmlToMarkdown(html) {
-        if (!html || typeof html !== 'string') return '';
-        
+    processHtmlContent(html, preserveStyles = true) {
         try {
-            // Sanitizar o HTML usando DOMPurify
-            const sanitizedHtml = DOMPurify.sanitize(html);
+            // Criar um DOM temporário
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
             
-            // Criar um elemento temporário para analisar o HTML
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = sanitizedHtml;
-            
-            // Verificar se o conteúdo tem elementos complexos que são difíceis de converter para Markdown
-            const hasComplexElements = tempDiv.querySelector('table, form, iframe, canvas, svg');
-            
-            // Remover estilos inline que possam causar problemas
-            tempDiv.querySelectorAll('[style]').forEach(element => {
-                element.removeAttribute('style');
-            });
-            
-            // Limpar elementos vazios que podem causar quebras de linha desnecessárias
-            tempDiv.querySelectorAll('p, div, span').forEach(element => {
-                if (element.innerHTML.trim() === '') {
-                    element.remove();
-                }
-            });
-            
-            if (hasComplexElements) {
-                // Para elementos complexos, manter como HTML
-                return sanitizedHtml;
-            }
-            
-            // Função para processar cada nó do DOM
-            function processNode(node, level = 0) {
-                if (!node) return '';
+            // Função para processar um elemento
+            const processElement = (element) => {
+                // Remover scripts
+                element.querySelectorAll('script').forEach(script => script.remove());
                 
-                // Processar elementos específicos
-                switch (node.nodeType) {
-                    case Node.TEXT_NODE:
-                        // Preservar espaços em branco significativos, mas remover espaços excessivos
-                        const text = node.textContent
-                            .replace(/\s+/g, ' ') // Substituir múltiplos espaços por um único
-                            .replace(/^\s+|\s+$/g, ''); // Remover espaços no início e fim
-                        return text;
+                // Remover botões de fechar popup
+                element.querySelectorAll('#btnfecharcsspopup').forEach(btn => btn.remove());
+                
+                // Processar divs de popup
+                element.querySelectorAll('.popupCss').forEach(popup => {
+                    // Converter para seção
+                    popup.classList.remove('popupCss');
+                    popup.classList.add('content-section');
+                    
+                    // Adicionar título se não existir
+                    const title = popup.querySelector('b');
+                    if (title) {
+                        const h2 = document.createElement('h2');
+                        h2.textContent = title.textContent;
+                        popup.insertBefore(h2, popup.firstChild);
+                        title.remove();
+                    } else if (popup.id) {
+                        const h2 = document.createElement('h2');
+                        h2.textContent = popup.id.replace(/_/g, ' ').toUpperCase();
+                        popup.insertBefore(h2, popup.firstChild);
+                    }
+                });
+                
+                // Processar links
+                element.querySelectorAll('a').forEach(link => {
+                    // Adicionar target="_blank" para links externos
+                    if (link.href && link.href.startsWith('http')) {
+                        link.setAttribute('target', '_blank');
+                        link.setAttribute('rel', 'noopener');
+                    }
+                    
+                    // Preservar títulos de links que são caminhos de navegação
+                    if (link.title && link.title.includes('->')) {
+                        const path = link.title;
+                        link.insertAdjacentText('afterend', ` (${path})`);
+                    }
+                });
+                
+                // Processar imagens
+                element.querySelectorAll('img').forEach(img => {
+                    // Converter caminhos relativos
+                    if (img.src.startsWith('./')) {
+                        img.src = img.src.replace('./', '');
+                    }
+                    
+                    // Adicionar classes para responsividade
+                    img.classList.add('img-fluid');
+                    
+                    // Criar figure com caption se houver título
+                    if (img.title) {
+                        const figure = document.createElement('figure');
+                        const figcaption = document.createElement('figcaption');
+                        figcaption.textContent = img.title;
                         
-                    case Node.ELEMENT_NODE:
-                        // Processar elementos específicos
-                        switch (node.nodeName.toLowerCase()) {
-                            case 'h1':
-                                return `# ${processChildren(node).trim()}\n\n`;
-                            case 'h2':
-                                return `## ${processChildren(node).trim()}\n\n`;
-                            case 'h3':
-                                return `### ${processChildren(node).trim()}\n\n`;
-                            case 'h4':
-                                return `#### ${processChildren(node).trim()}\n\n`;
-                            case 'h5':
-                                return `##### ${processChildren(node).trim()}\n\n`;
-                            case 'h6':
-                                return `###### ${processChildren(node).trim()}\n\n`;
-                            case 'p':
-                                const pContent = processChildren(node).trim();
-                                return pContent ? `${pContent}\n\n` : '';
-                            case 'br':
-                                return '\n';
-                            case 'hr':
-                                return '---\n\n';
-                            case 'b':
-                            case 'strong':
-                                return `**${processChildren(node).trim()}**`;
-                            case 'i':
-                            case 'em':
-                                return `*${processChildren(node).trim()}*`;
-                            case 'a':
-                                return `[${processChildren(node).trim()}](${node.getAttribute('href') || '#'})`;
-                            case 'img':
-                                return `![${node.getAttribute('alt') || ''}](${node.getAttribute('src') || '#'})`;
-                            case 'blockquote':
-                                const bqContent = processChildren(node).trim();
-                                return bqContent ? `> ${bqContent.split('\n').join('\n> ')}\n\n` : '';
-                            case 'pre':
-                                // Se for um bloco pré-formatado que contém código
-                                if (node.querySelector('code')) {
-                                    const code = node.querySelector('code');
-                                    // Verificar se o conteúdo parece realmente código
-                                    const codeContent = code.textContent.trim();
-                                    // Se parece mais texto do que código, tratar como texto normal
-                                    if (!codeContent.includes('{') && !codeContent.includes('function') && 
-                                        !codeContent.includes('=') && !codeContent.includes(';') && 
-                                        codeContent.split('\n').length <= 2) {
-                                        return `${codeContent}\n\n`;
-                                    }
-                                    const language = code.className.match(/language-(\w+)/) ? 
-                                        code.className.match(/language-(\w+)/)[1] : '';
-                                    return `\`\`\`${language}\n${code.textContent}\n\`\`\`\n\n`;
-                                } else {
-                                    // Verificar se o conteúdo parece texto normal
-                                    const preContent = node.textContent.trim();
-                                    if (!preContent.includes('{') && !preContent.includes('function') && 
-                                        !preContent.includes('=') && !preContent.includes(';') && 
-                                        preContent.split('\n').length <= 3) {
-                                        // Tratar como texto normal se parecer mais texto que código
-                                        return `${preContent}\n\n`;
-                                    }
-                                    return `\`\`\`\n${node.textContent}\n\`\`\`\n\n`;
-                                }
-                            case 'code':
-                                // Se não estiver dentro de um <pre>
-                                if (node.parentNode.nodeName.toLowerCase() !== 'pre') {
-                                    const codeContent = node.textContent.trim();
-                                    // Se parece mais texto do que código, tratar como texto normal com ênfase
-                                    if (codeContent.length < 40 && 
-                                        !codeContent.includes('{') && 
-                                        !codeContent.includes('function') && 
-                                        !codeContent.includes('=') && 
-                                        !codeContent.includes(';')) {
-                                        return `**${codeContent}**`;
-                                    }
-                                    return `\`${codeContent}\``;
-                                }
-                                // Se estiver dentro de um <pre>, será tratado pelo caso 'pre'
-                                return node.textContent;
-                            case 'ul':
-                                let ulResult = '\n';
-                                Array.from(node.children).forEach(li => {
-                                    if (li.nodeName.toLowerCase() === 'li') {
-                                        const liContent = processChildren(li).trim();
-                                        if (liContent) {
-                                            ulResult += `- ${liContent}\n`;
-                                        }
-                                    }
-                                });
-                                return ulResult + '\n';
-                            case 'ol':
-                                let olResult = '\n';
-                                Array.from(node.children).forEach((li, index) => {
-                                    if (li.nodeName.toLowerCase() === 'li') {
-                                        const liContent = processChildren(li).trim();
-                                        if (liContent) {
-                                            olResult += `${index + 1}. ${liContent}\n`;
-                                        }
-                                    }
-                                });
-                                return olResult + '\n';
-                            case 'li':
-                                // Tratado pelos casos 'ul' e 'ol'
-                                return processChildren(node);
-                            case 'div':
-                                // Tratar divs com estilo especial
-                                if (node.className.includes('callout') || 
-                                    node.className.includes('note') || 
-                                    node.className.includes('alert') ||
-                                    node.className.includes('warning') ||
-                                    node.className.includes('info')) {
-                                    return `> **Nota:** ${processChildren(node).trim()}\n\n`;
-                                }
-                                // Processar divs normais como parágrafos
-                                const divContent = processChildren(node).trim();
-                                return divContent ? `${divContent}\n\n` : '';
-                            case 'span':
-                                // Tratar spans como texto normal
-                                return processChildren(node);
-                            case 'table':
-                                // Manter tabelas como HTML
-                                return `\n${node.outerHTML}\n\n`;
-                            default:
-                                // Para outros elementos, processar seus filhos
-                                return processChildren(node);
+                        img.parentNode.insertBefore(figure, img);
+                        figure.appendChild(img);
+                        figure.appendChild(figcaption);
+                    }
+                });
+                
+                // Processar elementos de código
+                element.querySelectorAll('code, pre').forEach(code => {
+                    // Adicionar classe para highlight.js
+                    if (!code.className) {
+                        code.className = 'language-plaintext';
+                    }
+                });
+                
+                // Processar tabelas
+                element.querySelectorAll('table').forEach(table => {
+                    // Adicionar classes do Bulma
+                    table.classList.add('table', 'is-bordered', 'is-striped');
+                    
+                    // Garantir que tem thead se houver th
+                    const firstRow = table.querySelector('tr');
+                    if (firstRow && firstRow.querySelector('th')) {
+                        if (!table.querySelector('thead')) {
+                            const thead = document.createElement('thead');
+                            thead.appendChild(firstRow.cloneNode(true));
+                            table.insertBefore(thead, table.firstChild);
+                            firstRow.remove();
                         }
-                        
-                    default:
-                        return '';
-                }
-            }
-            
-            // Função para processar os nós filhos
-            function processChildren(node) {
-                let result = '';
-                if (node.childNodes && node.childNodes.length > 0) {
-                    Array.from(node.childNodes).forEach(child => {
-                        result += processNode(child);
+                    }
+                });
+                
+                // Processar listas
+                element.querySelectorAll('ul, ol').forEach(list => {
+                    // Adicionar classes do Bulma
+                    if (list.tagName === 'UL') {
+                        list.classList.add('is-list');
+                    } else {
+                        list.classList.add('is-list-ordered');
+                    }
+                });
+                
+                // Limpar atributos desnecessários
+                element.querySelectorAll('*').forEach(el => {
+                    // Manter apenas atributos essenciais e classes adicionadas
+                    const keepAttributes = ['src', 'href', 'title', 'alt', 'class', 'id'];
+                    Array.from(el.attributes).forEach(attr => {
+                        if (!keepAttributes.includes(attr.name) && !preserveStyles) {
+                            el.removeAttribute(attr.name);
+                        }
                     });
-                }
-                return result;
+                });
+            };
+            
+            // Processar o documento
+            processElement(doc.body);
+            
+            // Extrair apenas o conteúdo relevante
+            let content = '';
+            
+            // Se houver popups, extrair cada um como uma seção
+            const sections = doc.querySelectorAll('.content-section');
+            if (sections.length > 0) {
+                sections.forEach(section => {
+                    content += section.outerHTML + '\n\n';
+                });
+            } else {
+                // Caso contrário, pegar todo o conteúdo do body
+                content = doc.body.innerHTML;
             }
             
-            // Processar o conteúdo
-            let markdown = '';
-            Array.from(tempDiv.childNodes).forEach(node => {
-                markdown += processNode(node);
-            });
+            // Limpar HTML
+            content = content
+                .replace(/>\s+</g, '><')  // Remover espaços entre tags
+                .replace(/\s+/g, ' ')     // Normalizar espaços
+                .replace(/<!--[\s\S]*?-->/g, '')  // Remover comentários
+                .trim();
             
-            // Limpar formatação excessiva
-            markdown = markdown
-                .replace(/\n{3,}/g, '\n\n') // Substituir mais de 2 quebras de linha por apenas 2
-                .replace(/^\s+|\s+$/g, ''); // Remover espaços em branco no início e fim
+            return content;
             
-            return markdown;
         } catch (error) {
-            console.error('Erro ao converter HTML para Markdown:', error);
-            return html;
+            console.error('Erro ao processar HTML:', error);
+            throw new Error('Falha ao processar HTML: ' + error.message);
         }
     }
 
     /**
-     * Processa o conteúdo HTML para garantir que os estilos CSS sejam preservados e aplicados corretamente
-     * @param {string} html - Conteúdo HTML original
-     * @param {boolean} preserveStyles - Se deve preservar estilos CSS
-     * @returns {string} - HTML processado
+     * Processa HTML no formato da Biblioteca Neo
+     * @param {string} html HTML da Biblioteca Neo
+     * @returns {string} HTML processado
      */
-    processHtmlContent(html, preserveStyles = true) {
-        if (!html) return '';
+    processNeoBibliotecaHtml(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
         
-        try {
-            // Sanitizar o HTML para segurança
-            const sanitizedHtml = DOMPurify.sanitize(html, {
-                ADD_TAGS: ['iframe', 'style'],
-                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'class', 'style'],
-                FORBID_TAGS: ['script'],
-                FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
-            });
+        // Extrair todos os popups
+        const popups = doc.querySelectorAll('.popupCss');
+        let content = '';
+        
+        popups.forEach(popup => {
+            const title = popup.querySelector('b')?.textContent || popup.id;
+            const button = popup.querySelector('#btnfecharcsspopup');
+            if (button) button.remove();
             
-            if (!preserveStyles) {
-                return sanitizedHtml;
+            content += `<section class="content-section">
+                <h2>${title}</h2>
+                ${popup.innerHTML}
+            </section>\n\n`;
+        });
+        
+        return content || doc.body.innerHTML;
+    }
+
+    /**
+     * Detecta se o conteúdo é da Biblioteca Neo
+     * @param {string} html Conteúdo HTML
+     * @returns {boolean} true se for da Biblioteca Neo
+     */
+    detectNeoBiblioteca(html) {
+        if (!html) return false;
+        
+        const indicators = [
+            'class="popupCss"',
+            'id="btnfecharcsspopup"',
+            'Biblioteca Neo',
+            'neosistemas.com.br'
+        ];
+        
+        return indicators.some(indicator => html.includes(indicator));
+    }
+
+    /**
+     * Atualiza o checkbox isNeoBiblioteca baseado no conteúdo
+     * @param {string} html Conteúdo HTML
+     */
+    updateNeoBibliotecaCheckbox(html) {
+        const checkbox = document.getElementById('isNeoBiblioteca');
+        if (checkbox) {
+            const isNeo = this.detectNeoBiblioteca(html);
+            checkbox.checked = isNeo;
+            
+            if (isNeo) {
+                this.showNotification('Conteúdo da Biblioteca Neo detectado automaticamente', 'is-info');
             }
-            
-            // Processar o conteúdo para garantir que os estilos sejam preservados
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(sanitizedHtml, 'text/html');
-            
-            // Coletar todos os estilos
-            let styleContent = '';
-            
-            // 1. Extrair estilos das tags <style>
-            const styleElements = doc.querySelectorAll('style');
-            styleElements.forEach(styleEl => {
-                styleContent += styleEl.textContent + '\n';
-                // Não remover os elementos style, apenas coletar seu conteúdo
-            });
-            
-            // 2. Extrair estilos de folhas de estilo externas referenciadas
-            const linkElements = doc.querySelectorAll('link[rel="stylesheet"]');
-            const linkUrls = Array.from(linkElements).map(link => link.getAttribute('href')).filter(Boolean);
-            
-            // 3. Preservar classes e estilos inline nos elementos
-            const elementsWithStyles = doc.querySelectorAll('[style], [class]');
-            elementsWithStyles.forEach(el => {
-                // Garantir que os atributos style e class são preservados
-                if (el.hasAttribute('style')) {
-                    el.setAttribute('data-original-style', el.getAttribute('style'));
-                }
-                if (el.hasAttribute('class')) {
-                    el.setAttribute('data-original-class', el.getAttribute('class'));
-                }
-            });
-            
-            // Construir o HTML final com estilos preservados
-            let resultHtml = doc.body.innerHTML;
-            
-            // Se houver estilos coletados, incluí-los no resultado
-            if (styleContent.trim()) {
-                resultHtml = `<style>\n${styleContent}\n</style>\n${resultHtml}`;
-            }
-            
-            // Se houver links para folhas de estilo externas, adicionar como comentários
-            if (linkUrls.length > 0) {
-                const styleLinks = linkUrls.map(url => `<!-- Folha de estilo externa: ${url} -->`).join('\n');
-                resultHtml = `${styleLinks}\n${resultHtml}`;
-            }
-            
-            return resultHtml;
-        } catch (error) {
-            console.error('Erro ao processar conteúdo HTML:', error);
-            return html; // Em caso de erro, retornar o HTML original
         }
+    }
+
+    /**
+     * Abre o modal de seleção de componentes
+     */
+    async openComponentsModal() {
+        console.log('Abrindo modal de componentes...');
+        
+        if (!this.componentsLibrary) {
+            console.error('Biblioteca de componentes não inicializada');
+            this.showNotification('Erro: Biblioteca de componentes não inicializada', 'is-danger');
+            return;
+        }
+
+        const modal = document.getElementById('componentsModal');
+        const tabsContainer = document.getElementById('componentTabs');
+        const listContainer = document.getElementById('componentsList');
+        
+        if (!modal || !tabsContainer || !listContainer) {
+            console.error('Elementos do modal não encontrados:', {
+                modal: !!modal,
+                tabs: !!tabsContainer,
+                list: !!listContainer
+            });
+            this.showNotification('Erro: Elementos do modal não encontrados', 'is-danger');
+            return;
+        }
+
+        try {
+            // Carregar componentes se ainda não foram carregados
+            if (!this.componentsLibrary.components || Object.keys(this.componentsLibrary.components).length === 0) {
+                console.log('Carregando componentes...');
+                await this.componentsLibrary.loadComponents();
+            }
+            
+            // Limpar conteúdo anterior
+            tabsContainer.innerHTML = '';
+            listContainer.innerHTML = '';
+            
+            // Buscar categorias e componentes
+            const categories = this.componentsLibrary.getComponentsList();
+            console.log('Categorias carregadas:', categories);
+            
+            // Criar tabs para cada categoria
+            tabsContainer.innerHTML = `
+                <ul>
+                    ${Object.keys(categories).map((category, index) => `
+                        <li class="${index === 0 ? 'is-active' : ''}">
+                            <a data-category="${category}">
+                                <span class="icon"><i class="fas fa-folder"></i></span>
+                                <span>${category}</span>
+                            </a>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+            
+            // Adicionar eventos nas tabs
+            tabsContainer.querySelectorAll('li').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Atualizar tab ativa
+                    tabsContainer.querySelectorAll('li').forEach(t => t.classList.remove('is-active'));
+                    tab.classList.add('is-active');
+                    
+                    // Mostrar componentes da categoria
+                    const category = tab.querySelector('a').dataset.category;
+                    this.showComponentsCategory(category, categories[category]);
+                });
+            });
+            
+            // Mostrar primeira categoria
+            const firstCategory = Object.keys(categories)[0];
+            if (firstCategory) {
+                console.log('Mostrando primeira categoria:', firstCategory);
+                this.showComponentsCategory(firstCategory, categories[firstCategory]);
+            } else {
+                console.log('Nenhuma categoria encontrada');
+                listContainer.innerHTML = `
+                    <div class="notification is-info">
+                        Nenhum componente disponível ainda. 
+                        <a href="/admin/learning/components">Clique aqui</a> para criar componentes.
+                    </div>
+                `;
+            }
+            
+            // Adicionar classe ao modal para estilos específicos
+            modal.classList.add('components-modal');
+            
+            // Abrir modal
+            console.log('Ativando modal...');
+            modal.classList.add('is-active');
+            
+        } catch (error) {
+            console.error('Erro ao abrir modal de componentes:', error);
+            this.showNotification('Erro ao carregar componentes: ' + error.message, 'is-danger');
+        }
+    }
+
+    /**
+     * Mostra os componentes de uma categoria
+     */
+    showComponentsCategory(category, components) {
+        const container = document.getElementById('componentsList');
+        container.innerHTML = `
+            <div class="columns is-multiline">
+                ${components.map(comp => `
+                    <div class="column is-6">
+                        <div class="card">
+                            <header class="card-header">
+                                <p class="card-header-title">
+                                    <span class="icon mr-2"><i class="${comp.icon}"></i></span>
+                                    ${comp.name}
+                                </p>
+                            </header>
+                            <div class="card-content">
+                                <div class="preview-container" style="min-height: 120px; border: 1px solid #dbdbdb; border-radius: 4px; padding: 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center;">
+                                    ${this.componentsLibrary.renderComponent(comp.id)}
+                                </div>
+                                <div class="buttons is-centered">
+                                    <button class="button is-info" data-action="preview" data-component="${comp.id}">
+                                        <span class="icon"><i class="fas fa-eye"></i></span>
+                                        <span>Visualizar</span>
+                                    </button>
+                                    <button class="button is-primary" data-action="insert" data-component="${comp.id}">
+                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                        <span>Inserir</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        // Adicionar eventos nos botões
+        container.querySelectorAll('[data-action]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const action = btn.dataset.action;
+                const componentId = btn.dataset.component;
+                
+                if (action === 'preview') {
+                    this.previewComponent(componentId);
+                } else if (action === 'insert') {
+                    if (this.componentsLibrary.needsDialog(componentId)) {
+                        this.openComponentConfig(componentId);
+                    } else {
+                        this.insertComponent(componentId);
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Mostra uma prévia do componente em tela cheia
+     */
+    previewComponent(componentId) {
+        const component = this.componentsLibrary.components[componentId];
+        if (!component) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal is-active';
+        modal.innerHTML = `
+            <div class="modal-background"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">
+                        <span class="icon"><i class="${component.icon}"></i></span>
+                        <span>${component.name}</span>
+                    </p>
+                    <button class="delete" aria-label="close"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="tabs">
+                        <ul>
+                            <li class="is-active"><a data-tab="preview">Prévia</a></li>
+                            <li><a data-tab="html">HTML</a></li>
+                            <li><a data-tab="css">CSS</a></li>
+                            <li><a data-tab="js">JavaScript</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div id="preview-tab" class="tab-content">
+                        <div class="preview-container p-4" style="min-height: 200px; border: 1px solid #dbdbdb; border-radius: 4px;">
+                            ${this.componentsLibrary.renderComponent(componentId)}
+                        </div>
+                    </div>
+                    
+                    <div id="html-tab" class="tab-content is-hidden">
+                        <pre><code class="language-html">${this.escapeHtml(component.html || '')}</code></pre>
+                    </div>
+                    
+                    <div id="css-tab" class="tab-content is-hidden">
+                        <pre><code class="language-css">${this.escapeHtml(component.styles || '')}</code></pre>
+                    </div>
+                    
+                    <div id="js-tab" class="tab-content is-hidden">
+                        <pre><code class="language-javascript">${this.escapeHtml(component.scripts || '')}</code></pre>
+                    </div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button is-success" onclick="this.closest('.modal').querySelector('[data-action=insert]').click()">
+                        <span class="icon"><i class="fas fa-plus"></i></span>
+                        <span>Inserir no Editor</span>
+                    </button>
+                    <button class="button" onclick="this.closest('.modal').remove()">Fechar</button>
+                </footer>
+            </div>
+        `;
+
+        // Adicionar ao DOM
+        document.body.appendChild(modal);
+
+        // Configurar tabs
+        const tabs = modal.querySelectorAll('.tabs li');
+        const contents = modal.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.querySelector('a').dataset.tab;
+                
+                // Atualizar tabs ativas
+                tabs.forEach(t => t.classList.remove('is-active'));
+                tab.classList.add('is-active');
+                
+                // Mostrar conteúdo correspondente
+                contents.forEach(content => {
+                    content.classList.toggle('is-hidden', !content.id.startsWith(target));
+                });
+            });
+        });
+
+        // Configurar fechamento
+        modal.querySelector('.delete').addEventListener('click', () => modal.remove());
+        modal.querySelector('.modal-background').addEventListener('click', () => modal.remove());
+    }
+
+    /**
+     * Escapa caracteres HTML para exibição segura
+     */
+    escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    /**
+     * Abre o modal de configuração do componente
+     */
+    openComponentConfig(componentId) {
+        this.selectedComponent = componentId;
+        const modal = document.getElementById('componentConfigModal');
+        const container = document.getElementById('componentConfig');
+        
+        // Configurar campos baseado no componente
+        switch (componentId) {
+            case 'detailsButton':
+                container.innerHTML = `
+                    <div class="field">
+                        <label class="label">ID do Conteúdo</label>
+                        <div class="control">
+                            <input class="input" type="text" id="detailsId" placeholder="Ex: info_produto">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Conteúdo</label>
+                        <div class="control">
+                            <textarea class="textarea" id="detailsContent" rows="5" placeholder="Conteúdo que será mostrado ao clicar no botão"></textarea>
+                        </div>
+                    </div>
+                `;
+                break;
+                
+            case 'navigationLink':
+                container.innerHTML = `
+                    <div class="field">
+                        <label class="label">Caminho de Navegação</label>
+                        <div class="control">
+                            <input class="input" type="text" id="navPath" placeholder="Ex: Comercial -> Vendas -> Pedidos">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Texto do Link</label>
+                        <div class="control">
+                            <input class="input" type="text" id="navText" placeholder="Ex: Cadastro de Pedidos">
+                        </div>
+                    </div>
+                `;
+                break;
+                
+            case 'dataTable':
+                container.innerHTML = `
+                    <div class="field">
+                        <label class="label">Cabeçalhos (separados por vírgula)</label>
+                        <div class="control">
+                            <input class="input" type="text" id="tableHeaders" placeholder="Ex: Nome, Idade, Cidade">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Dados (uma linha por vez, valores separados por vírgula)</label>
+                        <div class="control">
+                            <textarea class="textarea" id="tableData" rows="5" placeholder="João, 25, São Paulo&#10;Maria, 30, Rio de Janeiro"></textarea>
+                        </div>
+                    </div>
+                `;
+                break;
+        }
+        
+        modal.classList.add('is-active');
+    }
+
+    /**
+     * Insere o componente selecionado no editor
+     */
+    insertSelectedComponent() {
+        if (!this.selectedComponent) return;
+        
+        let html = '';
+        
+        switch (this.selectedComponent) {
+            case 'detailsButton':
+                const id = document.getElementById('detailsId').value;
+                const content = document.getElementById('detailsContent').value;
+                
+                // Criar div oculta com o conteúdo
+                html = `
+                    <div id="${id}" style="display: none;" data-title="Detalhes">
+                        ${content}
+                    </div>
+                    ${this.componentsLibrary.renderComponent('detailsButton', id)}
+                `;
+                break;
+                
+            case 'navigationLink':
+                const path = document.getElementById('navPath').value;
+                const text = document.getElementById('navText').value;
+                html = this.componentsLibrary.renderComponent('navigationLink', path, text);
+                break;
+                
+            case 'dataTable':
+                const headers = document.getElementById('tableHeaders').value.split(',').map(h => h.trim());
+                const rows = document.getElementById('tableData').value
+                    .split('\n')
+                    .filter(line => line.trim())
+                    .map(line => line.split(',').map(cell => cell.trim()));
+                html = this.componentsLibrary.renderComponent('dataTable', headers, rows);
+                break;
+        }
+        
+        // Inserir HTML no editor
+        if (html) {
+            const cursor = this.editor.codemirror.getCursor();
+            this.editor.codemirror.replaceRange(html, cursor);
+        }
+        
+        // Fechar modais
+        document.getElementById('componentConfigModal').classList.remove('is-active');
+        document.getElementById('componentsModal').classList.remove('is-active');
+        this.selectedComponent = null;
+    }
+
+    /**
+     * Insere um componente simples no editor
+     */
+    insertComponent(componentId) {
+        const html = this.componentsLibrary.renderComponent(componentId);
+        if (html) {
+            const cursor = this.editor.codemirror.getCursor();
+            this.editor.codemirror.replaceRange(html, cursor);
+        }
+        document.getElementById('componentsModal').classList.remove('is-active');
+    }
+
+    /**
+     * Mostra uma notificação na tela
+     */
+    showNotification(message, type = 'is-info') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <button class="delete"></button>
+            ${message}
+        `;
+
+        // Posicionar no canto superior direito
+        notification.style.position = 'fixed';
+        notification.style.top = '1rem';
+        notification.style.right = '1rem';
+        notification.style.zIndex = '9999';
+        notification.style.minWidth = '300px';
+
+        // Adicionar ao DOM
+        document.body.appendChild(notification);
+
+        // Configurar botão de fechar
+        notification.querySelector('.delete').addEventListener('click', () => {
+            notification.remove();
+        });
+
+        // Auto-remover após 3 segundos
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
 }
 

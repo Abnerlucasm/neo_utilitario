@@ -1,6 +1,12 @@
 .editor-container {
+    min-height: 500px;
     display: flex;
-    height: calc(100vh - 150px);
+    flex-direction: column;
+}
+
+.editor-area {
+    flex: 1;
+    min-height: 400px;
 }
 
 .sidebar {
@@ -448,4 +454,144 @@
     .tags-input .tag {
         font-size: 0.8rem;
     }
+}
+
+/* Estilos para componentes */
+.preview-container {
+    background: #fff;
+    border-radius: 4px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Modal de componentes */
+.components-modal .modal-card {
+    width: 90%;
+    max-width: 1200px;
+    height: 90vh;
+}
+
+.components-modal .modal-card-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.components-modal .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.components-modal .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+}
+
+.components-modal .card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.components-modal .preview-container {
+    flex: 1;
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Estilos para preview no editor */
+.editor-preview {
+    padding: 1.5rem !important;
+    background: #fff !important;
+}
+
+.editor-preview [data-component] {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    margin: 0.25rem;
+    background: #fafafa;
+    cursor: move;
+}
+
+/* Tabs de componentes */
+.components-modal .tabs {
+    margin-bottom: 1.5rem;
+}
+
+.components-modal .tabs ul {
+    border-bottom-color: #dbdbdb;
+}
+
+.components-modal .tabs li.is-active a {
+    border-bottom-color: #3273dc;
+    color: #3273dc;
+}
+
+/* Botões de ação */
+.components-modal .buttons {
+    margin-top: 1rem;
+    justify-content: center;
+}
+
+.components-modal .button {
+    margin: 0 0.5rem;
+}
+
+/* Responsividade */
+@media screen and (max-width: 768px) {
+    .components-modal .column {
+        width: 100%;
+    }
+    
+    .components-modal .modal-card {
+        width: 95%;
+        margin: 0 auto;
+    }
+}
+
+/* Estilos para o CodeMirror */
+.CodeMirror {
+    height: auto !important;
+    min-height: 400px;
+}
+
+.CodeMirror [data-component] {
+    display: inline-block;
+    padding: 0.5rem;
+    border: 1px dashed #3273dc;
+    border-radius: 4px;
+    margin: 0.25rem;
+    background: #f5f5f5;
+    cursor: move;
+    position: relative;
+}
+
+.CodeMirror [data-component]::before {
+    content: attr(data-component);
+    position: absolute;
+    top: -0.75rem;
+    left: 0.5rem;
+    font-size: 0.75rem;
+    background: #3273dc;
+    color: white;
+    padding: 0.1rem 0.5rem;
+    border-radius: 2px;
+    pointer-events: none;
 } 

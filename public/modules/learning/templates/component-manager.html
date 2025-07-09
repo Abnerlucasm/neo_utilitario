@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Componentes | NeoHub</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="stylesheet" href="/styles/admin-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="container mt-6">
+        <div class="section">
+            <div class="level">
+                <div class="level-left">
+                    <h1 class="title">Gerenciar Componentes</h1>
+                </div>
+                <div class="level-right">
+                    <div class="buttons">
+                        <button class="button is-primary" id="newComponentBtn">
+                            <span class="icon"><i class="fas fa-plus"></i></span>
+                            <span>Novo Componente</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Componentes -->
+            <div class="box">
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Categoria</th>
+                            <th>Tipo</th>
+                            <th>Ícone</th>
+                            <th>Última Modificação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="componentsList">
+                        <!-- Lista será preenchida dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div class="modal" id="componentModal">
+        <div class="modal-background"></div>
+        <div class="modal-card" style="width: 90%; max-width: 1200px;">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Componente</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="columns">
+                    <!-- Configurações Básicas -->
+                    <div class="column is-4">
+                        <div class="field">
+                            <label class="label">Nome</label>
+                            <div class="control">
+                                <input class="input" type="text" id="componentName" placeholder="Ex: Botão de Ajuda">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Categoria</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="componentCategory">
+                                        <option value="Botões">Botões</option>
+                                        <option value="Caixas">Caixas</option>
+                                        <option value="Links">Links</option>
+                                        <option value="Tabelas">Tabelas</option>
+                                        <option value="Formulários">Formulários</option>
+                                        <option value="Outros">Outros</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Tipo</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="componentType">
+                                        <option value="button">Botão</option>
+                                        <option value="container">Container</option>
+                                        <option value="link">Link</option>
+                                        <option value="table">Tabela</option>
+                                        <option value="form">Formulário</option>
+                                        <option value="custom">Personalizado</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Ícone (FontAwesome)</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" id="componentIcon" placeholder="Ex: fas fa-info-circle">
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-icons"></i>
+                                </span>
+                            </div>
+                            <p class="help">Consulte os ícones em <a href="https://fontawesome.com/icons" target="_blank">fontawesome.com</a></p>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Requer Configuração</label>
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" id="componentNeedsConfig">
+                                    Mostrar diálogo de configuração
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="field" id="configFieldsContainer" style="display: none;">
+                            <label class="label">Campos de Configuração</label>
+                            <div class="control">
+                                <div id="configFields">
+                                    <!-- Campos serão adicionados aqui -->
+                                </div>
+                                <button class="button is-small is-info mt-2" id="addConfigField">
+                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                    <span>Adicionar Campo</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="field mt-5">
+                            <label class="label">Preview</label>
+                            <div class="control">
+                                <div id="componentPreview" class="box">
+                                    <!-- Preview será mostrado aqui -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Código do Componente -->
+                    <div class="column is-8">
+                        <div class="tabs">
+                            <ul>
+                                <li class="is-active"><a data-tab="html">HTML</a></li>
+                                <li><a data-tab="css">CSS</a></li>
+                                <li><a data-tab="js">JavaScript</a></li>
+                            </ul>
+                        </div>
+
+                        <div class="code-editors">
+                            <div id="htmlEditor" class="editor-container active"></div>
+                            <div id="cssEditor" class="editor-container" style="display: none;"></div>
+                            <div id="jsEditor" class="editor-container" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" id="saveComponentBtn">Salvar</button>
+                <button class="button" id="cancelComponentBtn">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/components/navbar/navbar.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="/modules/learning/js/component-manager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            window.componentManager = new ComponentManager();
+        });
+    </script>
+</body>
+</html> 

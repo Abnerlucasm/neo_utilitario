@@ -6,10 +6,13 @@
     <link rel="stylesheet" href="/styles/styles.css">
     <link rel="stylesheet" href="/styles/dark-theme.css">
     <link rel="stylesheet" href="/modules/learning/css/view.css">
+    <link rel="stylesheet" href="/modules/learning/css/editor.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <!-- Adicionar jQuery para componentes que precisem -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <neo-navbar></neo-navbar>
@@ -62,10 +65,45 @@
     <!-- Scripts -->
     <script src="/components/navbar/navbar.js" type="module"></script>
     <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/modules/learning/js/components-library.js"></script>
     <script src="/modules/learning/js/module-view.js"></script>
     <!-- Script de diagnóstico - remova em produção -->
     <script src="/modules/learning/js/debug-module.js"></script>
     <!-- Script de correção - remova em produção -->
     <script src="/modules/learning/js/fix-module-client.js"></script>
+
+    <script>
+        // Configurar marked para processar HTML
+        marked.setOptions({
+            headerIds: true,
+            gfm: true,
+            breaks: true,
+            pedantic: false,
+            sanitize: false, // Permitir HTML
+            smartLists: true,
+            smartypants: true,
+            // Adicionar suporte para componentes no marked
+            walkTokens: function(token) {
+                if (token.type === 'html' && token.text.includes('data-component')) {
+                    token.type = 'html';
+                    token.escaped = false;
+                }
+            }
+        });
+
+        // Inicializar biblioteca de componentes globalmente
+        let componentsLibrary;
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Inicializar highlight.js
+            hljs.highlightAll();
+
+            // Inicializar biblioteca de componentes
+            componentsLibrary = new ComponentsLibrary();
+            await componentsLibrary.loadComponents();
+
+            // Disponibilizar globalmente
+            window.componentsLibrary = componentsLibrary;
+        });
+    </script>
 </body>
 </html> 

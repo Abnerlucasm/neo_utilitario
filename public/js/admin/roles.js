@@ -93,13 +93,30 @@ class RoleManager {
         try {
             console.log('Carregando papéis...');
             
+            // Verificar token de autenticação
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                console.error('Token de autenticação não encontrado');
+                window.location.href = '/pages/login.html';
+                return;
+            }
+            
             const response = await fetch(this.baseUrl, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    'Authorization': `Bearer ${token}`
                 }
             });
             
             if (!response.ok) {
+                // Verificar se o erro é 401 (Unauthorized) ou 403 (Forbidden)
+                if (response.status === 401 || response.status === 403) {
+                    console.error('Erro de autenticação:', response.status);
+                    // Limpar o token e redirecionar para a página de login
+                    localStorage.removeItem('auth_token');
+                    window.location.href = '/pages/login.html';
+                    return;
+                }
+                
                 const error = await response.json();
                 console.error('Resposta da API:', error);
                 throw new Error('Erro ao carregar papéis');
@@ -250,13 +267,30 @@ class RoleManager {
 
     async loadRoleResources(roleId) {
         try {
+            // Verificar token de autenticação
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                console.error('Token de autenticação não encontrado');
+                window.location.href = '/pages/login.html';
+                return;
+            }
+            
             const response = await fetch(`${this.baseUrl}/${roleId}/resources`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    'Authorization': `Bearer ${token}`
                 }
             });
             
             if (!response.ok) {
+                // Verificar se o erro é 401 (Unauthorized) ou 403 (Forbidden)
+                if (response.status === 401 || response.status === 403) {
+                    console.error('Erro de autenticação:', response.status);
+                    // Limpar o token e redirecionar para a página de login
+                    localStorage.removeItem('auth_token');
+                    window.location.href = '/pages/login.html';
+                    return;
+                }
+                
                 throw new Error('Erro ao carregar recursos');
             }
             

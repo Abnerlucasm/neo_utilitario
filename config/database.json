@@ -1,0 +1,35 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "09042003",
+    "database": "neoutilitario",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "define": {
+      "underscored": true,
+      "timestamps": true
+    }
+  },
+  "test": {
+    "username": "postgres",
+    "password": "09042003",
+    "database": "neo_utilitario_test",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "define": {
+      "underscored": true,
+      "timestamps": true
+    }
+  },
+  "production": {
+    "username": "postgres",
+    "password": "09042003",
+    "database": "neoutilitario",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "define": {
+      "underscored": true,
+      "timestamps": true
+    }
+  }
+} 

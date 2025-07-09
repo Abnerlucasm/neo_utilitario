@@ -87,8 +87,13 @@ const authMiddleware = async (req, res, next) => {
         '/pages/login.html',
         '/pages/register.html',
         '/pages/forgot-password.html',
+        '/pages/verify-email.html',
         '/api/auth/login',
         '/api/auth/register',
+        '/api/auth/verify-email',
+        '/api/auth/resend-verification',
+        '/api/auth/reset-password',
+        '/api/auth/request-reset',
         '/styles/',
         '/js/',
         '/assets/',
@@ -99,30 +104,39 @@ const authMiddleware = async (req, res, next) => {
     ];
 
     // Verificar se é uma rota pública
-    if (publicPaths.some(path => req.path.startsWith(path))) {
+    const isPublicPath = publicPaths.some(path => req.path.startsWith(path));
+    if (isPublicPath) {
+        logger.debug(`Acesso a rota pública: ${req.path}`);
         return next();
     }
 
     try {
-        // Extrair token do cookie ou do header Authorization (limpando possíveis prefixos)
+        // Extrair token do cookie ou do header Authorization
         let token = req.cookies.auth_token;
         
         if (!token && req.headers.authorization) {
-            // Limpar prefixos como "Bearer " se existirem
-            token = req.headers.authorization.replace(/^(Bearer|Token)\s+/i, '');
+            const authHeader = req.headers.authorization;
+            // Tratar tanto 'Bearer TOKEN' quanto apenas 'TOKEN'
+            token = authHeader.startsWith('Bearer ') 
+                ? authHeader.substring(7) 
+                : authHeader;
+            
+            logger.debug(`Token extraído do header Authorization: ${authHeader.substring(0, 15)}...`);
         }
 
         if (!token) {
             logger.debug('Token não fornecido', {
                 path: req.path,
                 method: req.method,
-                headers: req.headers.authorization ? 'Authorization presente' : 'Sem Authorization'
+                headers: Object.keys(req.headers),
+                cookies: Object.keys(req.cookies || {})
             });
             throw new Error('Token não fornecido');
         }
 
         // Verificar e decodificar token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        logger.debug(`Token verificado para usuário ID: ${decoded.id}`);
         
         // Buscar usuário
         const user = await User.findByPk(decoded.id, {
@@ -147,6 +161,7 @@ const authMiddleware = async (req, res, next) => {
         req.isAdmin = user.userRoles && 
                      user.userRoles.some(role => role.name.toLowerCase() === 'admin');
         
+        logger.debug(`Autenticação bem-sucedida para usuário ${user.username} (ID: ${user.id})`);
         next();
     } catch (error) {
         logger.error('Erro na autenticação:', {

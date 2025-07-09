@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
-const { LearningModule } = require('../models/postgresql');
+const { LearningModule, Component, User } = require('../models/postgresql/associations');
 const { Op } = require('sequelize');
 const { requireAdmin } = require('../middlewares/ensure-admin');
 const path = require('path');
@@ -698,6 +698,86 @@ router.get('/modules/:id/full', requireAdmin, async (req, res) => {
             error: 'Erro ao buscar dados do módulo',
             details: error.message 
         });
+    }
+});
+
+// Rotas para componentes
+router.get('/components', async (req, res) => {
+    try {
+        const components = await Component.findAll({
+            where: {
+                is_active: true
+            },
+            include: [{
+                model: User,
+                as: 'creator',
+                attributes: ['id', 'name', 'username']
+            }]
+        });
+        res.json(components);
+    } catch (error) {
+        logger.error('Erro ao listar componentes:', error);
+        res.status(500).json({ error: 'Erro ao listar componentes' });
+    }
+});
+
+router.get('/components/:id', async (req, res) => {
+    try {
+        const component = await Component.findByPk(req.params.id, {
+            include: [{
+                model: User,
+                as: 'creator',
+                attributes: ['id', 'name', 'username']
+            }]
+        });
+        if (!component) {
+            return res.status(404).json({ error: 'Componente não encontrado' });
+        }
+        res.json(component);
+    } catch (error) {
+        logger.error('Erro ao buscar componente:', error);
+        res.status(500).json({ error: 'Erro ao buscar componente' });
+    }
+});
+
+router.post('/components', requireAdmin, async (req, res) => {
+    try {
+        const component = await Component.create({
+            ...req.body,
+            created_by: req.user.id
+        });
+        res.status(201).json(component);
+    } catch (error) {
+        logger.error('Erro ao criar componente:', error);
+        res.status(500).json({ error: 'Erro ao criar componente' });
+    }
+});
+
+router.put('/components/:id', requireAdmin, async (req, res) => {
+    try {
+        const component = await Component.findByPk(req.params.id);
+        if (!component) {
+            return res.status(404).json({ error: 'Componente não encontrado' });
+        }
+        await component.update(req.body);
+        res.json(component);
+    } catch (error) {
+        logger.error('Erro ao atualizar componente:', error);
+        res.status(500).json({ error: 'Erro ao atualizar componente' });
+    }
+});
+
+router.delete('/components/:id', requireAdmin, async (req, res) => {
+    try {
+        const component = await Component.findByPk(req.params.id);
+        if (!component) {
+            return res.status(404).json({ error: 'Componente não encontrado' });
+        }
+        await component.update({ is_active: false });
+        res.json({ message: 'Componente excluído com sucesso' });
+    } catch (error) {
+        logger.error('Erro ao excluir componente:', error);
+        res.status(500).json({ error: 'Erro ao excluir componente' });
     }
 });
 
