@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
 </head>
 <body>
     <neo-navbar></neo-navbar>
@@ -72,6 +73,10 @@
                                         <button class="button is-info" id="importHtmlBtn" title="Importar HTML">
                                             <span class="icon"><i class="fas fa-file-import"></i></span>
                                             <span>Importar HTML</span>
+                                        </button>
+                                        <button class="button is-primary" id="componentsBtn" title="Inserir Componente">
+                                            <span class="icon"><i class="fas fa-puzzle-piece"></i></span>
+                                            <span>Componentes</span>
                                         </button>
                                         <button class="button is-success" id="saveBtn">
                                             <span class="icon"><i class="fas fa-save"></i></span>
@@ -180,12 +185,7 @@
                             <input type="checkbox" id="convertToMarkdown" checked>
                             Converter para Markdown
                         </label>
-                    </div>
-                    <div class="control mt-2">
-                        <label class="checkbox">
-                            <input type="checkbox" id="preserveStyles" checked>
-                            Preservar estilos CSS
-                        </label>
+                        <p class="help">Converte o conteúdo HTML para Markdown usando Turndown. Recomendado para melhor compatibilidade.</p>
                     </div>
                     <div class="control mt-2">
                         <label class="checkbox">
@@ -202,9 +202,55 @@
         </div>
     </div>
 
+    <!-- Modal para seleção de componentes -->
+    <div class="modal" id="componentsModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Inserir Componente</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="tabs">
+                    <ul id="componentTabs">
+                        <!-- Tabs serão geradas dinamicamente -->
+                    </ul>
+                </div>
+                <div id="componentsList">
+                    <!-- Lista de componentes será gerada dinamicamente -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal para configuração de componente -->
+    <div class="modal" id="componentConfigModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Configurar Componente</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <div id="componentConfig">
+                    <!-- Campos de configuração serão gerados dinamicamente -->
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" id="insertComponentBtn">Inserir</button>
+                <button class="button" id="cancelComponentBtn">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
     <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/javascript.min.js"></script>
     <script src="/components/navbar/navbar.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
@@ -216,21 +262,32 @@
                 return hljs.highlight(code, { language }).value;
             }
         });
+
+        // Inicializar highlight.js
+        document.addEventListener('DOMContentLoaded', () => {
+            hljs.configure({
+                languages: ['xml', 'css', 'javascript']
+            });
+            hljs.highlightAll();
+        });
     </script>
     <script src="/modules/learning/js/path-debug.js"></script>
     <script src="/modules/learning/js/editor-diagnostics.js"></script>
+    <script src="/modules/learning/js/components-library.js"></script>
     <script src="/modules/learning/js/module-content-editor.js"></script>
     <script>
-        // Disponibilizar a instância do editor globalmente para diagnóstico
+        // Inicializar o editor quando o DOM estiver pronto
         document.addEventListener('DOMContentLoaded', function() {
+            // Aguardar um momento para garantir que todos os scripts foram carregados
             setTimeout(function() {
-                // Aguardar um pouco para garantir que o editor foi inicializado
-                if (typeof ModuleContentEditor !== 'undefined') {
-                    // Adicionar uma forma de acessar a instância a partir do console
-                    window.moduleContentEditor = document.querySelector('.editor-container').__moduleEditor;
-                    console.log('Editor disponibilizado globalmente como window.moduleContentEditor');
-                }
-            }, 1000);
+                // Criar instância do editor
+                const editor = new ModuleContentEditor();
+                
+                // Disponibilizar globalmente para diagnóstico
+                window.moduleContentEditor = editor;
+                
+                console.log('Editor inicializado e disponível globalmente como window.moduleContentEditor');
+            }, 500);
         });
     </script>
 </body>

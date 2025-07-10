@@ -61,7 +61,7 @@ class UserManager {
 
     async loadRoles() {
         try {
-            const response = await fetch('/api/admin/roles', {
+            const response = await fetch('/api/roles', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }

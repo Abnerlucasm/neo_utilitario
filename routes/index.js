@@ -15,7 +15,11 @@ const learningRoutes = require('./learning');
 const userRoutes = require('./user');
 const rolesRoutes = require('./roles');
 const progressRoutes = require('./progress');
+<<<<<<< HEAD
 const serverRoutes = require('./servers');
+=======
+const resourcesRoutes = require('./resources');
+>>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
 
 // Configuração de logging para diagnóstico de rotas
 router.use((req, res, next) => {
@@ -33,7 +37,11 @@ router.use('/api/learning', requireAuth, learningRoutes);
 router.use('/api/user', requireAuth, userRoutes);
 router.use('/api/roles', [requireAuth, requireAdmin], rolesRoutes);
 router.use('/api/progress', requireAuth, progressRoutes);
+<<<<<<< HEAD
 router.use('/api', serverRoutes);
+=======
+router.use('/api/resources', [requireAuth, requireAdmin], resourcesRoutes);
+>>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
 
 // Rota de diagnóstico
 router.get('/api/status', (req, res) => {
@@ -48,7 +56,11 @@ router.get('/api/status', (req, res) => {
             '/api/user',
             '/api/roles',
             '/api/progress',
+<<<<<<< HEAD
             '/api/servers'
+=======
+            '/api/resources'
+>>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
         ]
     });
 });

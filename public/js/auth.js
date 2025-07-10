@@ -41,7 +41,9 @@ class AuthManager {
             if (!token) {
                 console.log('Nenhum token encontrado no localStorage');
                 if (!window.location.pathname.includes('/pages/login.html') && 
-                    !window.location.pathname.includes('/pages/register.html')) {
+                    !window.location.pathname.includes('/pages/register.html') &&
+                    !window.location.pathname.includes('/pages/verify-email.html') &&
+                    !window.location.pathname.includes('/pages/forgot-password.html')) {
                     window.location.href = '/pages/login.html';
                 }
                 return null;
@@ -49,9 +51,12 @@ class AuthManager {
 
             console.log('Token encontrado, verificando autenticação...');
             const response = await fetch('/api/auth/check', {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
             });
 
             console.log('Resposta da verificação de auth:', response.status, response.statusText);
@@ -66,21 +71,20 @@ class AuthManager {
                 }
                 
                 localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
                 console.log('Token removido do localStorage');
                 
-                // Comentamos temporariamente a redireção automática para diagnóstico
-                // if (!window.location.pathname.includes('/pages/login.html')) {
-                //     window.location.href = '/pages/login.html';
-                // }
+                if (!window.location.pathname.includes('/pages/login.html')) {
+                    window.location.href = '/pages/login.html';
+                }
                 
                 return null;
             }
 
             const data = await response.json();
-            console.log('Dados do usuário recebidos:', data.isAuthenticated);
+            console.log('Dados do usuário recebidos:', data);
             
             // Atualizar informações do usuário na navbar usando um evento customizado
-            // em vez de chamar o método diretamente
             const userInfoEvent = new CustomEvent('user-info-updated', { 
                 detail: { userData: data.user },
                 bubbles: true,
@@ -92,12 +96,12 @@ class AuthManager {
         } catch (error) {
             console.error('Erro ao verificar autenticação:', error);
             localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
             console.log('Token removido após erro');
             
-            // Comentamos temporariamente a redireção automática para diagnóstico
-            // if (!window.location.pathname.includes('/pages/login.html')) {
-            //     window.location.href = '/pages/login.html';
-            // }
+            if (!window.location.pathname.includes('/pages/login.html')) {
+                window.location.href = '/pages/login.html';
+            }
             
             return null;
         }
@@ -170,7 +174,8 @@ class AuthManager {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password }),
+                credentials: 'include' // Para permitir que o servidor defina cookies
             });
             
             console.log(`Resposta recebida: status ${response.status}`);
@@ -205,8 +210,20 @@ class AuthManager {
             }
             
             console.log('Login bem-sucedido, salvando token...');
-            localStorage.setItem('auth_token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            // Armazenar o token no localStorage
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+                
+                // Se houver dados do usuário, armazená-los também
+                if (data.user) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                }
+                
+                console.log('Token e dados do usuário salvos no localStorage');
+            } else {
+                console.error('Token não recebido na resposta de login');
+                throw new Error('Token de autenticação não recebido');
+            }
             
             console.log('Redirecionando para home...');
             window.location.href = '/';
@@ -359,6 +376,51 @@ class AuthManager {
             AuthManager.checkAuth();
         }
     }
+
+    /**
+     * Configura a interceptação de todas as requisições fetch para adicionar token de autenticação
+     * quando disponível
+     */
+    static setupAuthHeaders() {
+        console.log('Configurando interceptação de requisições para adicionar token de autenticação');
+        
+        // Guarda a referência original do método fetch
+        const originalFetch = window.fetch;
+        
+        // Sobreescreve o método fetch
+        window.fetch = async function(url, options = {}) {
+            // Obtém o token do localStorage
+            const token = localStorage.getItem('auth_token');
+            
+            if (token) {
+                // Cria ou atualiza as headers com o token de autenticação
+                options.headers = options.headers || {};
+                
+                // Se já for um objeto Headers, cria uma cópia
+                if (options.headers instanceof Headers) {
+                    const originalHeaders = options.headers;
+                    options.headers = {};
+                    
+                    // Converter do objeto Headers para um objeto simples
+                    for (const [key, value] of originalHeaders.entries()) {
+                        options.headers[key] = value;
+                    }
+                }
+                
+                if (typeof options.headers === 'object') {
+                    // Certifica-se de que o token não seja sobrescrito se já estiver nas opções
+                    if (!options.headers.Authorization) {
+                        options.headers.Authorization = `Bearer ${token}`;
+                    }
+                }
+            }
+            
+            // Chama o método fetch original com as opções atualizadas
+            return originalFetch.call(this, url, options);
+        };
+        
+        console.log('Interceptação de requisições configurada');
+    }
 }
 
 // Inicializar o AuthManager e definir globalmente
@@ -366,15 +428,25 @@ window.AuthManager = AuthManager;
 
 // Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
-    new AuthManager();
-    AuthManager.setupAuthCheck();
+    // Configurar interceptação de requisições
+    AuthManager.setupAuthHeaders();
+    
+    // Inicializar o gerenciador de autenticação
+    const authManager = new AuthManager();
+    
+    // Verificar autenticação se não estiver na página de login ou registro
+    if (!window.location.pathname.includes('/pages/login.html') && 
+        !window.location.pathname.includes('/pages/register.html') &&
+        !window.location.pathname.includes('/pages/verify-email.html') &&
+        !window.location.pathname.includes('/pages/forgot-password.html')) {
+        AuthManager.checkAuth();
+    }
     
     // Verificar parâmetros na URL para mensagens após verificação de email
     const urlParams = new URLSearchParams(window.location.search);
     
     // Verificar se a verificação de email foi bem-sucedida
     if (urlParams.get('verified') === 'true') {
-        const authManager = new AuthManager();
         authManager.showSuccess('Email verificado com sucesso! Você já pode fazer login.');
         
         // Limpar parâmetros da URL sem recarregar a página
@@ -383,26 +455,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Verificar se houve erro na verificação
     if (urlParams.get('error') === 'verification_failed') {
-        const authManager = new AuthManager();
         authManager.showError('Houve um problema na verificação do email. Tente novamente.');
         
         // Limpar parâmetros da URL sem recarregar a página
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 });
-
-// Interceptor para requisições fetch
-const originalFetch = window.fetch;
-window.fetch = async function(...args) {
-    const token = localStorage.getItem('auth_token');
-    
-    if (!args[0].includes('/api/auth/login') && !args[0].includes('/api/auth/register')) {
-        if (token) {
-            if (!args[1]) args[1] = {};
-            if (!args[1].headers) args[1].headers = {};
-            args[1].headers['Authorization'] = `Bearer ${token}`;
-        }
-    }
-    
-    return originalFetch.apply(this, args);
-};

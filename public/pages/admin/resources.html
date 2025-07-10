@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Recursos - Admin</title>
+    <!-- Substituindo referências CSS locais por CDNs -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+    <link rel="stylesheet" href="/css/admin/resources.css">
+    <style>
+        /* Estilos básicos para a página */
+        .resource-icon {
+            margin-right: 15px;
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+        
+        .resource-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .resource-path {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .resource-description {
+            font-size: 0.85rem;
+            margin-top: 5px;
+            color: #666;
+        }
+        
+        .resource-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .resource-item:last-child {
+            border-bottom: none;
+        }
+        
+        .resource-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .resource-type-badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .resource-type-page { background-color: #007bff; }
+        .resource-type-api { background-color: #28a745; }
+        .resource-type-component { background-color: #f58207; }
+        .resource-type-report { background-color: #6f42c1; }
+        .resource-type-other { background-color: #6c757d; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background-color: #e1f5e9;
+            color: #0d6832;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #84222a;
+        }
+        
+        .filter-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        
+        .no-resources-container {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+        
+        .no-resources-container i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #6c757d;
+        }
+        
+        .d-none {
+            display: none !important;
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Estilos para o seletor de ícones */
+        .icon-selector {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .icons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 8px;
+            padding: 10px;
+        }
+        
+        .icon-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .icon-option:hover {
+            background-color: #f0f0f0;
+            transform: scale(1.1);
+        }
+        
+        .icon-option.selected {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        /* Dark mode para o seletor de ícones */
+        .dark-theme .icon-selector {
+            background-color: #2c3034;
+            border-color: #495057;
+        }
+        
+        .dark-theme .icon-option:hover {
+            background-color: #495057;
+        }
+        
+        .dark-theme .icon-option.selected {
+            background-color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <neo-navbar></neo-navbar>
+
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="mb-0">Gerenciamento de Recursos</h1>
+                    <p class="mb-0">Configure os recursos do sistema</p>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-light" id="addResourceBtn">
+                        <i class="fas fa-plus"></i> Novo Recurso
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+                <div class="filter-container mb-3">
+                    <input type="text" id="resourceSearch" class="form-control" placeholder="Buscar recursos...">
+                    <select id="resourceTypeFilter" class="form-select" style="width: 200px;">
+                        <option value="all">Todos os tipos</option>
+                        <option value="page">Página</option>
+                        <option value="api">API</option>
+                        <option value="component">Componente</option>
+                        <option value="report">Relatório</option>
+                        <option value="other">Outro</option>
+                    </select>
+                    <select id="resourceStatusFilter" class="form-select" style="width: 200px;">
+                        <option value="all">Todos os status</option>
+                        <option value="active">Ativos</option>
+                        <option value="inactive">Inativos</option>
+                    </select>
+                </div>
+                
+                <div class="accordion" id="resourceAccordion">
+                    <!-- Os recursos serão agrupados aqui -->
+                </div>
+                
+                <!-- Loading -->
+                <div id="loadingContainer" class="loading-container">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+                
+                <!-- Sem recursos -->
+                <div id="noResourcesContainer" class="no-resources-container d-none">
+                    <i class="fas fa-file-alt"></i>
+                    <h5>Nenhum recurso encontrado</h5>
+                    <p>Nenhum recurso corresponde aos critérios de busca ou não existem recursos cadastrados.</p>
+                    <button id="noResourcesAddBtn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Adicionar Novo Recurso
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para adicionar/editar recurso -->
+    <div class="modal" id="resourceModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" id="resourceModalLabel">Novo Recurso</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form id="resourceForm">
+                    <div class="columns">
+                        <div class="column is-half">
+                            <div class="field">
+                                <label class="label" for="resourceName">Nome*</label>
+                                <div class="control">
+                                    <input type="text" class="input" id="resourceName" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-half">
+                            <div class="field">
+                                <label class="label" for="resourceType">Tipo*</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select id="resourceType" required>
+                                            <option value="">Selecione um tipo</option>
+                                            <option value="page">Página</option>
+                                            <option value="api">API</option>
+                                            <option value="component">Componente</option>
+                                            <option value="report">Relatório</option>
+                                            <option value="other">Outro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label" for="resourcePath">Caminho*</label>
+                        <div class="control">
+                            <input type="text" class="input" id="resourcePath" required>
+                        </div>
+                        <p class="help">Exemplo: /admin/users ou /api/users</p>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label" for="resourceDescription">Descrição</label>
+                        <div class="control">
+                            <textarea class="textarea" id="resourceDescription" rows="2"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="columns">
+                        <div class="column is-half">
+                            <div class="field">
+                                <label class="label" for="parentResource">Recurso Pai</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select id="parentResource">
+                                            <option value="">Nenhum (recurso raiz)</option>
+                                            <!-- Opções de recursos pais serão carregadas dinamicamente -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-half">
+                            <div class="field">
+                                <label class="label" for="resourceIcon">Ícone</label>
+                                <div class="control">
+                                    <input type="text" class="input" id="resourceIcon" placeholder="fa-file">
+                                </div>
+                                <div id="iconPreview" class="mt-2"><i class="fas fa-file"></i></div>
+                                <p class="help">Use classes do FontAwesome (ex: fa-users)</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <div class="control">
+                            <label class="checkbox">
+                                <input type="checkbox" id="resourceActive" checked>
+                                Recurso ativo
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-primary" id="saveResourceBtn">Salvar</button>
+                <button class="button" id="cancelResourceBtn">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Modal de confirmação de exclusão -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Confirmar Exclusão</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <p>Tem certeza que deseja excluir o recurso <span id="deleteResourceName" class="has-text-weight-bold"></span>?</p>
+                <p class="has-text-danger">Esta ação não pode ser desfeita.</p>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-danger" id="confirmDeleteBtn">Excluir</button>
+                <button class="button">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+    
+    <neo-footer></neo-footer>
+    
+    <!-- Scripts necessários -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/components/navbar/navbar.js"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/js/admin/resources.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar o gerenciador de recursos
+            window.resourceManager = new ResourceManager();
+            resourceManager.init();
+            
+            // Vincular evento ao botão adicionar da tela de "nenhum recurso"
+            const noResourcesAddBtn = document.getElementById("noResourcesAddBtn");
+            if (noResourcesAddBtn) {
+                noResourcesAddBtn.addEventListener("click", function() {
+                    resourceManager.showAddResourceModal();
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

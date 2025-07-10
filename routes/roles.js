@@ -12,7 +12,8 @@ router.get('/', requireAdmin, async (req, res) => {
         const roles = await Role.findAll({
             include: [{
                 model: Resource,
-                as: 'accessibleResources'
+                as: 'accessibleResources',
+                attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'created_at', 'updated_at']
             }]
         });
         
@@ -30,7 +31,8 @@ router.get('/list', requireAdmin, async (req, res) => {
         const roles = await Role.findAll({
             include: [{
                 model: Resource,
-                as: 'accessibleResources'
+                as: 'accessibleResources',
+                attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'created_at', 'updated_at']
             }]
         });
         
@@ -48,7 +50,8 @@ router.get('/:id', requireAdmin, async (req, res) => {
         const role = await Role.findByPk(req.params.id, {
             include: [{
                 model: Resource,
-                as: 'accessibleResources'
+                as: 'accessibleResources',
+                attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'created_at', 'updated_at']
             }]
         });
         
@@ -70,7 +73,8 @@ router.get('/:id/resources', requireAdmin, async (req, res) => {
         const role = await Role.findByPk(req.params.id, {
             include: [{
                 model: Resource,
-                as: 'accessibleResources'
+                as: 'accessibleResources',
+                attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'created_at', 'updated_at']
             }]
         });
         
@@ -79,7 +83,9 @@ router.get('/:id/resources', requireAdmin, async (req, res) => {
         }
         
         // Obter todos os recursos do sistema
-        const allResources = await Resource.findAll();
+        const allResources = await Resource.findAll({
+            attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'created_at', 'updated_at']
+        });
         
         // Filtrar recursos já atribuídos
         const assignedResources = role.accessibleResources;

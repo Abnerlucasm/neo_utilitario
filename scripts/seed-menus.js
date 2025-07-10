@@ -144,6 +144,15 @@ async function seedMenus() {
                 resourcePath: '/pages/admin/roles.html'
             },
             {
+                title: 'Gerenciar REcursos',
+                path: '/pages/admin/resources.html',
+                icon: 'fas fa-bars',
+                order: 4,
+                parentId: adminId,
+                isAdminOnly: true,
+                resourcePath: '/pages/admin/resources.html'
+            },
+            {
                 title: 'Gerenciar Menus',
                 path: '/pages/admin/menus.html',
                 icon: 'fas fa-bars',

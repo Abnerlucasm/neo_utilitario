@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 const bcrypt = require('bcrypt');
 const { requireAdmin } = require('../middlewares/access-control');
 const { sequelize } = require('../models/postgresql/associations');
+const { Op } = require('sequelize');
 
 // Middleware de autenticação
 router.use(authenticate);
@@ -366,12 +367,203 @@ router.post('/roles/:id/resources', requireAdmin, async (req, res) => {
 router.get('/resources', requireAdmin, async (req, res) => {
     try {
         const resources = await Resource.findAll({
-            order: [['name', 'ASC']]
+            attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'order', 'created_at', 'updated_at'],
+            // Removendo temporariamente a associação com parent
+            // include: [{
+            //     model: Resource,
+            //     as: 'parent',
+            //     attributes: ['id', 'name'],
+            //     required: false
+            // }],
+            order: [
+                ['type', 'ASC'],
+                ['order', 'ASC'],
+                ['name', 'ASC']
+            ]
         });
+        
         res.json(resources);
     } catch (error) {
         logger.error('Erro ao listar recursos:', error);
-        res.status(500).json({ error: 'Erro ao listar recursos' });
+        res.status(500).json({ 
+            error: 'Erro ao listar recursos',
+            message: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
+// Obter um recurso pelo ID
+router.get('/resources/:id', requireAdmin, async (req, res) => {
+    try {
+        const resource = await Resource.findByPk(req.params.id, {
+            include: [
+                // Removendo temporariamente a associação com parent
+                // {
+                //     model: Resource,
+                //     as: 'parent',
+                //     attributes: ['id', 'name']
+                // },
+                {
+                    model: Role,
+                    as: 'roles',
+                    attributes: ['id', 'name'],
+                    through: { attributes: [] }
+                }
+            ]
+        });
+
+        if (!resource) {
+            return res.status(404).json({ error: 'Recurso não encontrado' });
+        }
+
+        res.json(resource);
+    } catch (error) {
+        logger.error(`Erro ao buscar recurso ${req.params.id}:`, error);
+        res.status(500).json({ error: 'Erro ao buscar recurso' });
+    }
+});
+
+// Criar novo recurso
+router.post('/resources', requireAdmin, async (req, res) => {
+    try {
+        const {
+            name, path, description, type,
+            icon, is_active,
+            //parent_id, // Comentando parent_id
+            order
+        } = req.body;
+
+        // Verificar se o caminho já existe
+        const existingPath = await Resource.findOne({ where: { path } });
+        if (existingPath) {
+            return res.status(400).json({
+                error: 'Já existe um recurso com este caminho'
+            });
+        }
+
+        // Criar o recurso
+        const resource = await Resource.create({
+            name,
+            path,
+            description,
+            type: type.toUpperCase(),
+            icon,
+            is_active: is_active !== undefined ? is_active : true,
+            //parent_id: parent_id || null, // Comentando parent_id
+            order: order || 0,
+            is_system: false // Recursos criados pelo admin não são do sistema por padrão
+        });
+
+        // Retornar o recurso criado
+        const createdResource = await Resource.findByPk(resource.id, {
+            include: [
+                // Removendo temporariamente a associação com parent
+                // {
+                //     model: Resource,
+                //     as: 'parent',
+                //     attributes: ['id', 'name']
+                // }
+            ]
+        });
+
+        res.status(201).json(createdResource);
+    } catch (error) {
+        logger.error('Erro ao criar recurso:', error);
+        res.status(500).json({ error: 'Erro ao criar recurso' });
+    }
+});
+
+// Atualizar recurso existente
+router.put('/resources/:id', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            name, path, description, type,
+            icon, is_active, 
+            //parent_id, // Comentando parent_id
+            order, is_system
+        } = req.body;
+
+        // Verificar se o recurso existe
+        const resource = await Resource.findByPk(id);
+        if (!resource) {
+            return res.status(404).json({ error: 'Recurso não encontrado' });
+        }
+
+        // Verificar se o caminho já existe e não pertence a este recurso
+        if (path && path !== resource.path) {
+            const existingPath = await Resource.findOne({
+                where: {
+                    path,
+                    id: { [Op.ne]: id }
+                }
+            });
+
+            if (existingPath) {
+                return res.status(400).json({
+                    error: 'Já existe um recurso com este caminho'
+                });
+            }
+        }
+
+        // Atualizar o recurso
+        await resource.update({
+            name,
+            path,
+            description,
+            type: type ? type.toUpperCase() : resource.type,
+            icon,
+            is_active: is_active !== undefined ? is_active : resource.is_active,
+            //parent_id: parent_id !== undefined ? parent_id : resource.parent_id, // Comentando parent_id
+            order: order !== undefined ? order : resource.order,
+            is_system: is_system !== undefined ? is_system : resource.is_system
+        });
+
+        // Buscar o recurso atualizado
+        const updatedResource = await Resource.findByPk(id, {
+            include: [
+                // Removendo temporariamente a associação com parent
+                // {
+                //     model: Resource,
+                //     as: 'parent',
+                //     attributes: ['id', 'name']
+                // }
+            ]
+        });
+
+        res.json(updatedResource);
+    } catch (error) {
+        logger.error(`Erro ao atualizar recurso ${req.params.id}:`, error);
+        res.status(500).json({ error: 'Erro ao atualizar recurso' });
+    }
+});
+
+// Excluir um recurso
+router.delete('/resources/:id', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Verificar se o recurso existe
+        const resource = await Resource.findByPk(id);
+        if (!resource) {
+            return res.status(404).json({ error: 'Recurso não encontrado' });
+        }
+
+        // Verificar se é um recurso do sistema
+        if (resource.is_system) {
+            return res.status(403).json({
+                error: 'Não é possível excluir um recurso do sistema'
+            });
+        }
+
+        // Excluir o recurso
+        await resource.destroy();
+
+        res.json({ success: true, message: 'Recurso excluído com sucesso' });
+    } catch (error) {
+        logger.error(`Erro ao excluir recurso ${req.params.id}:`, error);
+        res.status(500).json({ error: 'Erro ao excluir recurso' });
     }
 });
 

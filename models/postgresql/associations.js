@@ -18,7 +18,11 @@ const defineMenu = require('./Menu');
 const defineRolePermission = require('./RolePermission');
 const defineUserRole = require('./UserRole');
 const defineRoleResource = require('./RoleResource');
+<<<<<<< HEAD
 const Server = require('./Server');
+=======
+const defineComponent = require('./Component');
+>>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
 
 // Inicializar modelos
 const User = defineUser(sequelize);
@@ -35,6 +39,7 @@ const Menu = defineMenu(sequelize);
 const RolePermission = defineRolePermission(sequelize);
 const UserRole = defineUserRole(sequelize);
 const RoleResource = defineRoleResource(sequelize);
+const Component = defineComponent(sequelize);
 
 // Definir as associações
 function initAssociations() {
@@ -119,7 +124,18 @@ function initAssociations() {
         through: 'role_resources',
         foreignKey: 'resource_id',
         otherKey: 'role_id',
-        as: 'accessRoles'
+        as: 'roles'
+    });
+
+    // Associações auto-referenciais do Resource (parent-child)
+    Resource.belongsTo(Resource, { 
+        foreignKey: 'parent_id', 
+        as: 'parent' 
+    });
+    
+    Resource.hasMany(Resource, { 
+        foreignKey: 'parent_id', 
+        as: 'children' 
     });
 
     // User - Session
@@ -151,6 +167,7 @@ function initAssociations() {
     // Associações do Menu
     Menu.associate({ Menu });
 
+<<<<<<< HEAD
     // User - Server
     User.hasMany(Server, {
         foreignKey: 'createdBy',
@@ -170,6 +187,17 @@ function initAssociations() {
     Server.belongsTo(User, {
         foreignKey: 'updatedBy',
         as: 'updater'
+=======
+    // Component - User
+    Component.belongsTo(User, {
+        foreignKey: 'created_by',
+        as: 'creator'
+    });
+
+    User.hasMany(Component, {
+        foreignKey: 'created_by',
+        as: 'components'
+>>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
     });
 }
 
@@ -193,6 +221,10 @@ module.exports = {
     RolePermission,
     UserRole,
     RoleResource,
+<<<<<<< HEAD
     Server,
+=======
+    Component,
+>>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
     initAssociations
 }; 
