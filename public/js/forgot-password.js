@@ -319,15 +319,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function showError(message, step) {
         clearNotifications(step);
         const container = document.getElementById(`errorContainer${step}`);
-        container.textContent = message;
-        container.classList.remove('d-none');
+        if (container) {
+            container.className = 'alert alert-error';
+            container.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>${message}</span>
+            `;
+        }
     }
     
     function showSuccess(message, step) {
         clearNotifications(step);
         const container = document.getElementById(`successContainer${step}`);
-        container.textContent = message;
-        container.classList.remove('d-none');
+        if (container) {
+            container.className = 'alert alert-success';
+            container.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>${message}</span>
+            `;
+        }
     }
     
     function showInfo(message, step) {
@@ -337,15 +347,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) {
             container = document.createElement('div');
             container.id = `infoContainer${step}`;
-            container.className = 'notification is-info is-light';
+            container.className = 'alert alert-info';
             
             // Inserir antes do primeiro campo em cada formulário
             const targetForm = document.getElementById(`step${step}`).querySelector('form');
-            targetForm.insertBefore(container, targetForm.firstChild);
+            if (targetForm) {
+                targetForm.insertBefore(container, targetForm.firstChild);
+            }
         }
         
-        container.textContent = message;
-        container.classList.remove('d-none');
+        container.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>${message}</span>
+        `;
     }
     
     function clearNotifications(step) {
@@ -355,13 +369,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const successContainer = document.getElementById(`successContainer${step}`);
             const infoContainer = document.getElementById(`infoContainer${step}`);
             
-            if (errorContainer) errorContainer.classList.add('d-none');
-            if (successContainer) successContainer.classList.add('d-none');
-            if (infoContainer) infoContainer.classList.add('d-none');
+            if (errorContainer) {
+                errorContainer.className = 'hidden';
+                errorContainer.innerHTML = '';
+            }
+            if (successContainer) {
+                successContainer.className = 'hidden';
+                successContainer.innerHTML = '';
+            }
+            if (infoContainer) {
+                infoContainer.className = 'hidden';
+                infoContainer.innerHTML = '';
+            }
         } else {
             // Limpar todas as notificações
-            document.querySelectorAll('.notification').forEach(notification => {
-                notification.classList.add('d-none');
+            document.querySelectorAll('.alert').forEach(notification => {
+                notification.className = 'hidden';
+                notification.innerHTML = '';
             });
         }
     }
