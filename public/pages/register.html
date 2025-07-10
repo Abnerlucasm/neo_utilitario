@@ -4,95 +4,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - NeoHub</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/styles/styles.css">
     <link rel="stylesheet" href="/styles/dark-theme.css">
     <link rel="stylesheet" href="/styles/auth.css">
+    <style>
+      :root {
+        --color-neo: #b6ce3f;
+      }
+      .btn-neo, .text-neo {
+        background-color: var(--color-neo) !important;
+        color: #fff !important;
+        border: none;
+      }
+      .btn-neo:hover, .text-neo:hover {
+        background-color: #a0b82e !important;
+        color: #fff !important;
+      }
+      .link-neo {
+        color: var(--color-neo) !important;
+      }
+      .link-neo:hover {
+        text-decoration: underline;
+        color: #a0b82e !important;
+      }
+    </style>
 </head>
-<body>
-    <div class="auth-container">
-        <div class="auth-box">
-            <div class="auth-header">
-                <img src="/assets/neo-logo-small.png" alt="NeoHub Logo" class="auth-logo">
-                <h1 class="auth-title">Criar Conta</h1>
-                <p class="auth-subtitle">Junte-se à plataforma NeoHub</p>
+<body class="bg-base-200 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-xl flex flex-col gap-8">
+        <div class="flex flex-col items-center gap-2">
+            <img src="/assets/neo-logo-small.png" alt="NeoHub Logo" class="mb-2 mx-auto max-h-20 w-auto object-contain">
+            <h1 class="text-2xl font-bold text-neo">Criar Conta</h1>
+            <p class="text-base text-gray-500">Junte-se à plataforma NeoHub</p>
+        </div>
+
+        <form id="registerForm" class="flex flex-col gap-4">
+            <div id="errorContainer" class="hidden"></div>
+            <div id="successContainer" class="hidden"></div>
+
+            <div class="form-control">
+                <label class="label" for="name">
+                    <span class="label-text">Nome</span>
+                </label>
+                <div class="relative">
+                    <input class="input input-bordered w-full pr-10" type="text" id="name" placeholder="Seu nome completo" required>
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <i class="fas fa-user"></i>
+                    </span>
+                </div>
             </div>
 
-            <form id="registerForm">
-                <div id="errorContainer" class="notification is-danger is-light d-none"></div>
-                <div id="successContainer" class="notification is-success is-light d-none"></div>
-                
-                <div class="field">
-                    <label class="label">Nome</label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="text" id="name" placeholder="Seu nome completo" required>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-user"></i>
-                        </span>
-                    </div>
+            <div class="form-control">
+                <label class="label" for="username">
+                    <span class="label-text">Nome de Usuário</span>
+                </label>
+                <div class="relative">
+                    <input class="input input-bordered w-full pr-10" type="text" id="username" placeholder="Seu nome de usuário" required>
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <i class="fas fa-id-badge"></i>
+                    </span>
                 </div>
-
-                <div class="field">
-                    <label class="label">Nome de Usuário</label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="text" id="username" placeholder="Seu nome de usuário" required>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-id-badge"></i>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Email</label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="email" id="email" placeholder="seu@email.com" required>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-envelope"></i>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Senha</label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="password" id="password" placeholder="Crie uma senha forte" required>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-lock"></i>
-                        </span>
-                    </div>
-                    <p class="help">A senha deve ter no mínimo 6 caracteres</p>
-                </div>
-
-                <div class="field">
-                    <label class="label">Confirmar Senha</label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="password" id="confirmPassword" placeholder="Digite a senha novamente" required>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-lock"></i>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <div class="control">
-                        <button type="submit" class="button is-primary is-fullwidth">
-                            <span class="icon">
-                                <i class="fas fa-user-plus"></i>
-                            </span>
-                            <span>Criar Conta</span>
-                        </button>
-                    </div>
-                </div>
-            </form>
-
-            <div class="auth-footer">
-                <p>Já tem uma conta? <a href="/pages/login.html">Faça login</a></p>
             </div>
+
+            <div class="form-control">
+                <label class="label" for="email">
+                    <span class="label-text">Email</span>
+                </label>
+                <div class="relative">
+                    <input class="input input-bordered w-full pr-10" type="email" id="email" placeholder="seu@email.com" required>
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <i class="fas fa-envelope"></i>
+                    </span>
+                </div>
+            </div>
+
+            <div class="form-control">
+                <label class="label" for="password">
+                    <span class="label-text">Senha</span>
+                </label>
+                <div class="relative">
+                    <input class="input input-bordered w-full pr-10" type="password" id="password" placeholder="Crie uma senha forte" required>
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                </div>
+                <label class="label justify-end">
+                    <span class="label-text-alt text-gray-400">A senha deve ter no mínimo 6 caracteres</span>
+                </label>
+            </div>
+
+            <div class="form-control">
+                <label class="label" for="confirmPassword">
+                    <span class="label-text">Confirmar Senha</span>
+                </label>
+                <div class="relative">
+                    <input class="input input-bordered w-full pr-10" type="password" id="confirmPassword" placeholder="Digite a senha novamente" required>
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-neo btn-block text-base font-semibold flex items-center gap-2">
+                <i class="fas fa-user-plus"></i>
+                Criar Conta
+            </button>
+        </form>
+
+        <div class="text-center text-sm text-gray-500">
+            Já tem uma conta?
+            <a href="/pages/login.html" class="link-neo font-semibold">Faça login</a>
         </div>
     </div>
 
     <script src="/js/auth.js"></script>
     <script src="/js/theme-manager.js" type="module"></script>
+    <script src="/js/register.js"></script>
 </body>
 </html> 

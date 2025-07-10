@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 showSuccess('Registro realizado! Verifique seu email para confirmar a conta.');
                 setTimeout(() => {
-                    window.location.href = '/verify-email.html';
+                    window.location.href = '/pages/verify-email.html';
                 }, 2000);
             } else {
                 throw new Error(result.error || result.details || 'Erro no registro');
@@ -61,36 +61,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function showError(message) {
     removeNotifications();
-    const notification = document.createElement('div');
-    notification.className = 'notification is-danger';
-    notification.innerHTML = `
-        <button class="delete"></button>
-        ${message}
-    `;
-    document.querySelector('.box').insertBefore(notification, document.querySelector('form'));
-    setupNotificationClose(notification);
+    const errorContainer = document.getElementById('errorContainer');
+    if (errorContainer) {
+        errorContainer.textContent = message;
+        errorContainer.className = 'alert alert-error';
+        errorContainer.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>${message}</span>
+        `;
+    }
 }
 
 function showSuccess(message) {
     removeNotifications();
-    const notification = document.createElement('div');
-    notification.className = 'notification is-success';
-    notification.innerHTML = `
-        <button class="delete"></button>
-        ${message}
-    `;
-    document.querySelector('.box').insertBefore(notification, document.querySelector('form'));
-    setupNotificationClose(notification);
+    const successContainer = document.getElementById('successContainer');
+    if (successContainer) {
+        successContainer.textContent = message;
+        successContainer.className = 'alert alert-success';
+        successContainer.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>${message}</span>
+        `;
+    }
 }
 
 function removeNotifications() {
-    const notifications = document.querySelectorAll('.notification');
-    notifications.forEach(notification => notification.remove());
-}
-
-function setupNotificationClose(notification) {
-    const deleteButton = notification.querySelector('.delete');
-    deleteButton.addEventListener('click', () => {
-        notification.remove();
-    });
+    const errorContainer = document.getElementById('errorContainer');
+    const successContainer = document.getElementById('successContainer');
+    
+    if (errorContainer) {
+        errorContainer.className = 'hidden';
+        errorContainer.textContent = '';
+    }
+    if (successContainer) {
+        successContainer.className = 'hidden';
+        successContainer.textContent = '';
+    }
 } 
