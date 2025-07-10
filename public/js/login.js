@@ -71,43 +71,50 @@ class LoginManager {
     showError(message) {
         this.removeNotifications();
         const notification = document.createElement('div');
-        notification.className = 'notification is-danger';
+        notification.className = 'alert alert-error mb-4';
         notification.innerHTML = `
-            <button class="delete"></button>
-            ${message}
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>${message}</span>
         `;
         this.form.parentNode.insertBefore(notification, this.form);
-        this.setupNotificationClose(notification);
     }
 
     showSuccess(message) {
         this.removeNotifications();
         const notification = document.createElement('div');
-        notification.className = 'notification is-success';
+        notification.className = 'alert alert-success mb-4';
         notification.innerHTML = `
-            <button class="delete"></button>
-            ${message}
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>${message}</span>
         `;
         this.form.parentNode.insertBefore(notification, this.form);
-        this.setupNotificationClose(notification);
     }
 
     removeNotifications() {
-        const notifications = this.form.parentNode.querySelectorAll('.notification');
+        const notifications = this.form.parentNode.querySelectorAll('.alert');
         notifications.forEach(notification => notification.remove());
-    }
-
-    setupNotificationClose(notification) {
-        const deleteButton = notification.querySelector('.delete');
-        if (deleteButton) {
-            deleteButton.addEventListener('click', () => {
-                notification.remove();
-            });
-        }
     }
 }
 
 // Inicializar o gerenciador de login quando a página carregar
 document.addEventListener('DOMContentLoaded', () => {
-    new LoginManager();
+    // Toggle olho da senha
+    const passwordInput = document.getElementById('password');
+    const togglePassword = document.getElementById('togglePassword');
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            const icon = togglePassword.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
+
+    // Inicializar o gerenciador de login
+    if (typeof LoginManager === 'function') {
+        new LoginManager();
+    }
 }); 
