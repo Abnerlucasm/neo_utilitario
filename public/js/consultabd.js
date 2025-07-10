@@ -59,7 +59,7 @@ function setupEventListeners() {
     const modal = document.getElementById('serverModal');
     if (modal) {
         modal.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal-background') || e.target.classList.contains('delete')) {
+            if (e.target.classList.contains('modal-backdrop') || e.target.classList.contains('delete')) {
                 closeServerModal();
             }
         });
@@ -89,7 +89,7 @@ async function loadServers() {
         
     } catch (error) {
         console.error('Erro ao carregar servidores:', error);
-        showNotification('Erro ao carregar servidores', 'is-danger');
+        showNotification('Erro ao carregar servidores', 'error');
     }
 }
 
@@ -149,48 +149,36 @@ function renderServersList() {
     
     if (servers.length === 0) {
         container.innerHTML = `
-            <div class="has-text-centered has-text-grey-light">
-                <p class="mb-3">
-                    <span class="icon is-large">
-                        <i class="fas fa-server fa-2x"></i>
-                    </span>
-                </p>
-                <p>Nenhum servidor cadastrado</p>
-                <p class="is-size-7">Clique em "Novo Servidor" para começar</p>
+            <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-server text-4xl mb-4 text-gray-300"></i>
+                <p class="text-lg mb-2">Nenhum servidor cadastrado</p>
+                <p class="text-sm">Clique em "Novo Servidor" para começar</p>
             </div>
         `;
         return;
     }
 
     container.innerHTML = servers.map(server => `
-        <div class="box server-card mb-3" data-server-id="${server.id}">
-            <div class="columns is-vcentered">
-                <div class="column">
-                    <div class="is-flex is-align-items-center">
+        <div class="card bg-base-200 shadow-sm mb-3 server-card" data-server-id="${server.id}">
+            <div class="card-body p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
                         <span class="status-indicator status-${server.connectionStatus}"></span>
                         <div>
-                            <p class="has-text-weight-semibold">${server.name}</p>
-                            <p class="is-size-7 has-text-grey">${server.host}:${server.port}</p>
-                            <p class="is-size-7 has-text-grey">${server.type.toUpperCase()}</p>
+                            <h3 class="font-semibold text-base">${server.name}</h3>
+                            <p class="text-sm text-gray-600">${server.host}:${server.port}</p>
+                            <p class="text-xs text-gray-500 uppercase">${server.type}</p>
                         </div>
                     </div>
-                </div>
-                <div class="column is-narrow">
-                    <div class="buttons are-small">
-                        <button class="button is-info" onclick="testServerConnection(${server.id})" title="Testar Conexão">
-                            <span class="icon">
-                                <i class="fas fa-plug"></i>
-                            </span>
+                    <div class="flex space-x-2">
+                        <button class="btn btn-info btn-sm" onclick="testServerConnection(${server.id})" title="Testar Conexão">
+                            <i class="fas fa-plug"></i>
                         </button>
-                        <button class="button is-warning" onclick="editServer(${server.id})" title="Editar">
-                            <span class="icon">
-                                <i class="fas fa-edit"></i>
-                            </span>
+                        <button class="btn btn-warning btn-sm" onclick="editServer(${server.id})" title="Editar">
+                            <i class="fas fa-edit"></i>
                         </button>
-                        <button class="button is-danger" onclick="deleteServer(${server.id})" title="Excluir">
-                            <span class="icon">
-                                <i class="fas fa-trash"></i>
-                            </span>
+                        <button class="btn btn-error btn-sm" onclick="deleteServer(${server.id})" title="Excluir">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
@@ -204,26 +192,26 @@ function renderServerCheckboxes() {
     const container = document.getElementById('serverCheckboxes');
     
     if (servers.length === 0) {
-        container.innerHTML = '<p class="has-text-grey-light">Nenhum servidor disponível</p>';
+        container.innerHTML = '<p class="text-gray-500">Nenhum servidor disponível</p>';
         return;
     }
 
     container.innerHTML = `
-        <div class="field">
-            <label class="checkbox">
-                <input type="checkbox" id="selectAllServers" onchange="toggleAllServers()">
-                Selecionar Todos
+        <div class="form-control">
+            <label class="label cursor-pointer">
+                <span class="label-text">Selecionar Todos</span>
+                <input type="checkbox" class="checkbox" id="selectAllServers" onchange="toggleAllServers()">
             </label>
         </div>
-        <div class="columns is-multiline">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
             ${servers.map(server => `
-                <div class="column is-6">
-                    <label class="checkbox">
-                        <input type="checkbox" class="server-checkbox" value="${server.id}" data-server-name="${server.name}">
+                <label class="label cursor-pointer">
+                    <span class="label-text flex items-center">
                         <span class="status-indicator status-${server.connectionStatus}"></span>
                         ${server.name}
-                    </label>
-                </div>
+                    </span>
+                    <input type="checkbox" class="checkbox" value="${server.id}" data-server-name="${server.name}">
+                </label>
             `).join('')}
         </div>
     `;
@@ -232,7 +220,7 @@ function renderServerCheckboxes() {
 // Selecionar/Desselecionar todos os servidores
 function toggleAllServers() {
     const selectAll = document.getElementById('selectAllServers');
-    const checkboxes = document.querySelectorAll('.server-checkbox');
+    const checkboxes = document.querySelectorAll('input[value]');
     
     checkboxes.forEach(checkbox => {
         checkbox.checked = selectAll.checked;
@@ -253,13 +241,13 @@ function openServerModal(serverId = null) {
         resetServerForm();
     }
     
-    modal.classList.add('is-active');
+    modal.showModal();
 }
 
 // Fechar modal
 function closeServerModal() {
     const modal = document.getElementById('serverModal');
-    modal.classList.remove('is-active');
+    modal.close();
     currentServerId = null;
     resetServerForm();
 }
@@ -299,7 +287,7 @@ async function loadServerData(serverId) {
         
     } catch (error) {
         console.error('Erro ao carregar dados do servidor:', error);
-        showNotification('Erro ao carregar dados do servidor', 'is-danger');
+        showNotification('Erro ao carregar dados do servidor', 'error');
     }
 }
 
@@ -324,7 +312,7 @@ function handleServerSubmit(e) {
     // Validar campos obrigatórios
     if (!formData.name || !formData.host || !formData.username || !formData.password) {
         console.error('Campos obrigatórios não preenchidos');
-        showNotification('Por favor, preencha todos os campos obrigatórios.', 'is-danger');
+        showNotification('Por favor, preencha todos os campos obrigatórios.', 'error');
         return;
     }
     
@@ -353,17 +341,17 @@ function handleServerSubmit(e) {
     .then(data => {
         console.log('Response data:', data);
         if (data.success) {
-            showNotification('Servidor salvo com sucesso!', 'is-success');
+            showNotification('Servidor salvo com sucesso!', 'success');
             closeServerModal();
             loadServers();
         } else {
             console.error('Erro ao salvar servidor:', data.message);
-            showNotification(data.message || 'Erro ao salvar servidor.', 'is-danger');
+            showNotification(data.message || 'Erro ao salvar servidor.', 'error');
         }
     })
     .catch(error => {
         console.error('Erro na requisição:', error);
-        showNotification('Erro ao conectar com o servidor.', 'is-danger');
+        showNotification('Erro ao conectar com o servidor.', 'error');
     });
 }
 
@@ -383,8 +371,8 @@ async function testServerConnection(serverId) {
         }
 
         const data = await response.json();
-        const status = data.data.success ? 'success' : 'danger';
-        showNotification(data.data.message, `is-${status}`);
+        const status = data.data.success ? 'success' : 'error';
+        showNotification(data.data.message, status);
         
         // Recarregar servidores para atualizar status
         loadServers();
@@ -392,7 +380,7 @@ async function testServerConnection(serverId) {
         
     } catch (error) {
         console.error('Erro ao testar conexão:', error);
-        showNotification('Erro ao testar conexão', 'is-danger');
+        showNotification('Erro ao testar conexão', 'error');
     }
 }
 
@@ -421,13 +409,13 @@ async function deleteServer(serverId) {
         }
 
         const data = await response.json();
-        showNotification(data.message, 'is-success');
+        showNotification(data.message, 'success');
         loadServers();
         loadServerStats();
         
     } catch (error) {
         console.error('Erro ao excluir servidor:', error);
-        showNotification('Erro ao excluir servidor', 'is-danger');
+        showNotification('Erro ao excluir servidor', 'error');
     }
 }
 
@@ -436,13 +424,13 @@ async function loadDatabases() {
     const selectedServers = getSelectedServers();
     
     if (selectedServers.length === 0) {
-        showNotification('Selecione pelo menos um servidor.', 'is-warning');
+        showNotification('Selecione pelo menos um servidor.', 'warning');
         return;
     }
     
     // Mostrar loading
     const loadingSpinner = document.getElementById('databaseLoading');
-    loadingSpinner.classList.add('is-active');
+    loadingSpinner.classList.add('loading');
     
     try {
         const response = await fetch(`${API_BASE}/servers/list-databases`, {
@@ -461,13 +449,13 @@ async function loadDatabases() {
         if (data.success) {
             displayDatabasesGrid(data.data);
         } else {
-            showNotification(data.message || 'Erro ao carregar databases.', 'is-danger');
+            showNotification(data.message || 'Erro ao carregar databases.', 'error');
         }
     } catch (error) {
         console.error('Erro ao carregar databases:', error);
-        showNotification('Erro ao conectar com o servidor.', 'is-danger');
+        showNotification('Erro ao conectar com o servidor.', 'error');
     } finally {
-        loadingSpinner.classList.remove('is-active');
+        loadingSpinner.classList.remove('loading');
     }
 }
 
@@ -549,16 +537,29 @@ function renderDatabasesTable(pageData, total, totalPages) {
     const databasesSection = document.getElementById('databasesSection');
     const databasesGrid = document.getElementById('databasesGrid');
     if (!pageData.length) {
-        databasesGrid.innerHTML = `<div class="notification is-info"><p>Nenhuma database encontrada.</p></div>`;
+        databasesGrid.innerHTML = `<div class="alert alert-info"><p>Nenhuma database encontrada.</p></div>`;
         databasesSection.style.display = 'block';
         return;
     }
-    let html = `<div class="table-container"><table class="table is-striped is-hoverable is-fullwidth"><thead><tr><th>Servidor</th><th>Nome</th><th>Tamanho</th><th>Dono</th><th style="width: 90px;">Ação</th></tr></thead><tbody>`;
+    let html = `
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr>
+                        <th>Servidor</th>
+                        <th>Nome</th>
+                        <th>Tamanho</th>
+                        <th>Dono</th>
+                        <th style="width: 90px;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
     pageData.forEach(db => {
         if (db.error) {
-            html += `<tr><td colspan="5"><span class="has-text-danger"><strong>${db.serverName}:</strong> ${db.errorMsg || 'Erro ao conectar com o servidor'}</span></td></tr>`;
+            html += `<tr><td colspan="5"><span class="text-error"><strong>${db.serverName}:</strong> ${db.errorMsg || 'Erro ao conectar com o servidor'}</span></td></tr>`;
         } else {
-            html += `<tr><td>${db.serverName}</td><td style="word-break: break-all;">${db.name}</td><td>${formatSize(db.size)}</td><td>${db.owner || 'N/A'}</td><td><button class="button is-small is-info" onclick="copyDatabaseInfo('${db.serverHost}', '${db.name}')"><span class="icon is-small"><i class="fas fa-copy"></i></span><span>Copiar</span></button></td></tr>`;
+            html += `<tr><td>${db.serverName}</td><td class="break-all">${db.name}</td><td>${formatSize(db.size)}</td><td>${db.owner || 'N/A'}</td><td><button class="btn btn-info btn-sm" onclick="copyDatabaseInfo('${db.serverHost}', '${db.name}')" title="Copiar"><i class="fas fa-copy"></i></button></td></tr>`;
         }
     });
     html += `</tbody></table></div>`;
@@ -574,17 +575,15 @@ function renderDatabasesPagination(totalPages) {
         return;
     }
     let html = '';
-    html += `<a class="pagination-previous" ${currentPage === 1 ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage - 1})">Anterior</a>`;
-    html += `<a class="pagination-next" ${currentPage === totalPages ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage + 1})">Próxima</a>`;
-    html += '<ul class="pagination-list">';
+    html += `<button class="join-item btn" ${currentPage === 1 ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage - 1})">Anterior</button>`;
+    html += `<button class="join-item btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage + 1})">Próxima</button>`;
     for (let i = 1; i <= totalPages; i++) {
         if (i === currentPage) {
-            html += `<li><a class="pagination-link is-current">${i}</a></li>`;
+            html += `<button class="join-item btn btn-active">${i}</button>`;
         } else {
-            html += `<li><a class="pagination-link" onclick="filterAndPaginateDatabases(${i})">${i}</a></li>`;
+            html += `<button class="join-item btn" onclick="filterAndPaginateDatabases(${i})">${i}</button>`;
         }
     }
-    html += '</ul>';
     pagination.innerHTML = html;
     pagination.style.display = 'flex';
 }
@@ -596,7 +595,6 @@ function displayDatabasesGrid(databasesData) {
     filterAndPaginateDatabases();
 }
 
-
 // Função para atualizar a lista de databases
 function refreshDatabases() {
     const databasesSection = document.getElementById('databasesSection');
@@ -606,7 +604,7 @@ function refreshDatabases() {
 
 // Função para obter servidores selecionados
 function getSelectedServers() {
-    const checkboxes = document.querySelectorAll('.server-checkbox:checked');
+    const checkboxes = document.querySelectorAll('input[value]:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
@@ -617,7 +615,7 @@ function copyDatabaseInfo(serverHost, databaseName) {
     // Usar a API de clipboard moderna
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(databaseInfo).then(() => {
-            showNotification(`Copiado: ${databaseInfo}`, 'is-success');
+            showNotification(`Copiado: ${databaseInfo}`, 'success');
         }).catch(err => {
             console.error('Erro ao copiar:', err);
             fallbackCopyTextToClipboard(databaseInfo);
@@ -641,31 +639,30 @@ function fallbackCopyTextToClipboard(text) {
     
     try {
         document.execCommand('copy');
-        showNotification(`Copiado: ${text}`, 'is-success');
+        showNotification(`Copiado: ${text}`, 'success');
     } catch (err) {
         console.error('Erro ao copiar:', err);
-        showNotification('Erro ao copiar para a área de transferência', 'is-danger');
+        showNotification('Erro ao copiar para a área de transferência', 'error');
     }
     
     document.body.removeChild(textArea);
 }
 
-
 // Recarregar servidores
 function refreshServers() {
     loadServers();
     loadServerStats();
-    showNotification('Servidores atualizados', 'is-info');
+    showNotification('Servidores atualizados', 'info');
 }
 
 // Mostrar notificação
-function showNotification(message, type = 'is-info') {
-    // Criar notificação usando Bulma
+function showNotification(message, type = 'info') {
+    // Criar notificação usando DaisyUI
     const notification = document.createElement('div');
-    notification.className = `notification ${type} is-light`;
+    notification.className = `alert alert-${type} mb-4`;
     notification.innerHTML = `
-        <button class="delete" onclick="this.parentElement.remove()"></button>
-        ${message}
+        <button class="btn btn-sm btn-circle" onclick="this.parentElement.remove()">✕</button>
+        <span>${message}</span>
     `;
     
     // Adicionar ao topo da página
