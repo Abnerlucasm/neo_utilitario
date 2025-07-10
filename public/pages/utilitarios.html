@@ -1,192 +1,175 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Utilitários</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="../styles/styles.css">
-    <link rel="stylesheet" href="../styles/dark-theme.css">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="manifest" href="../manifest.json">
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
 <body>
     <neo-navbar></neo-navbar>
 
-    <div class="container">
-        <h1 class="title">Utilitários</h1>
-        <div class="columns is-multiline">
-
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8">
+            <i class="fas fa-tools mr-3 text-primary"></i>
+            Utilitários
+        </h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Card Neo Chamados -->
-            <div class="column is-4">
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">
-                            <span class="icon-text">
-                                <span class="icon">
-                                    <i class="fas fa-headset"></i>
-                                </span>
-                                <span>Neo Chamados</span>
-                            </span>
-                        </p>
-                    </header>
-                    <div class="card-content">
-                        <div class="content">
-                            <p>Sistema de gerenciamento de chamados e suporte.</p>
-                            <div class="tags">
-                                <span class="tag is-info">Suporte</span>
-                                <span class="tag is-info">Chamados</span>
-                                <span class="tag is-info">Help Desk</span>
-                            </div>
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-headset text-3xl text-info"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="card-title text-xl">Neo Chamados</h3>
+                            <p class="text-gray-600">Sistema de gerenciamento de chamados e suporte.</p>
                         </div>
                     </div>
-                    <footer class="card-footer">
-                        <a href="https://app.neosistemas.com.br/neo-chamados/" class="card-footer-item">
-                            <span class="icon">
-                                <i class="fas fa-external-link-alt"></i>
-                            </span>
-                            <span>Acessar</span>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="badge badge-info">Suporte</span>
+                        <span class="badge badge-info">Chamados</span>
+                        <span class="badge badge-info">Help Desk</span>
+                    </div>
+                    
+                    <div class="card-actions justify-end">
+                        <a href="https://app.neosistemas.com.br/neo-chamados/" class="btn btn-info btn-sm" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-external-link-alt mr-1"></i>
+                            Acessar
                         </a>
-                    </footer>
+                    </div>
                 </div>
             </div>
 
             <!-- Card Glassfish -->
-            <div class="column is-4">
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">
-                            <span class="icon-text">
-                                <span class="icon">
-                                    <i class="fas fa-globe"></i>
-                                </span>
-                                <span>Gerenciador Glassfish</span>
-                            </span>
-                        </p>
-                    </header>
-                    <div class="card-content">
-                        <div class="content">
-                            <p>Sistema web para gerenciamento corporativo.</p>
-                            <div class="tags">
-                                <span class="tag is-info">Web</span>
-                                <span class="tag is-info">Sistema</span>
-                                <span class="tag is-info">Gestão</span>
-                            </div>
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-globe text-3xl text-success"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="card-title text-xl">Gerenciador Glassfish</h3>
+                            <p class="text-gray-600">Sistema web para gerenciamento corporativo.</p>
                         </div>
                     </div>
-                    <footer class="card-footer">
-                        <a href="glassfish.html" class="card-footer-item">
-                            <span class="icon">
-                                <i class="fas fa-external-link-alt"></i>
-                            </span>
-                            <span>Acessar</span>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="badge badge-success">Web</span>
+                        <span class="badge badge-success">Sistema</span>
+                        <span class="badge badge-success">Gestão</span>
+                    </div>
+                    
+                    <div class="card-actions justify-end">
+                        <a href="glassfish.html" class="btn btn-success btn-sm">
+                            <i class="fas fa-external-link-alt mr-1"></i>
+                            Acessar
                         </a>
-                    </footer>
+                    </div>
                 </div>
             </div>
 
-
             <!-- Card do NeoTrack -->
-            <div class="column is-one-third">
-                <div class="card">
-                    <div class="card-content">
-                        <div class="media">
-                            <div class="media-left">
-                                <span class="icon is-large">
-                                    <i class="fas fa-tasks fa-2x"></i>
-                                </span>
-                            </div>
-                            <div class="media-content">
-                                <p class="title is-4">NeoTrack</p>
-                                <p class="subtitle is-6">Gerenciamento de Serviços</p>
-                            </div>
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-tasks text-3xl text-warning"></i>
                         </div>
-
-                        <div class="content">
-                            Sistema de gerenciamento de serviços com kanban, timer e controle de etapas.
-                            <div class="tags mt-2">
-                                <span class="tag is-info">Kanban</span>
-                                <span class="tag is-success">Timer</span>
-                                <span class="tag is-warning">Etapas</span>
-                            </div>
+                        <div class="ml-4">
+                            <h3 class="card-title text-xl">NeoTrack</h3>
+                            <p class="text-gray-600">Gerenciamento de Serviços</p>
                         </div>
                     </div>
-                    <footer class="card-footer">
-                        <a href="neotrack.html" class="card-footer-item">
-                            <span class="icon">
-                                <i class="fas fa-external-link-alt"></i>
-                            </span>
-                            <span>Acessar</span>
+                    
+                    <p class="text-gray-600 mb-4">
+                        Sistema de gerenciamento de serviços com kanban, timer e controle de etapas.
+                    </p>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="badge badge-warning">Kanban</span>
+                        <span class="badge badge-success">Timer</span>
+                        <span class="badge badge-info">Etapas</span>
+                    </div>
+                    
+                    <div class="card-actions justify-end">
+                        <a href="neotrack.html" class="btn btn-warning btn-sm">
+                            <i class="fas fa-external-link-alt mr-1"></i>
+                            Acessar
                         </a>
-                    </footer>
+                    </div>
                 </div>
             </div>
 
             <!-- Card PostgreSQL -->
-            <div class="column is-4">
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">
-                            <span class="icon-text">
-                                <span class="icon">
-                                    <i class="fas fa-book-reader"></i>
-                                </span>
-                                <span>Central de Aprendizagem</span>
-                            </span>
-                        </p>
-                    </header>
-                    <div class="card-content">
-                        <div class="content">
-                            <p>Acesse todos os materiais de aprendizagem, tutoriais e documentações.</p>
-                            <div class="tags">
-                                <span class="tag is-info">Tutoriais</span>
-                                <span class="tag is-info">Documentação</span>
-                                <span class="tag is-info">Aprendizagem</span>
-                            </div>
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-book-reader text-3xl text-primary"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="card-title text-xl">Central de Aprendizagem</h3>
+                            <p class="text-gray-600">Acesse todos os materiais de aprendizagem, tutoriais e documentações.</p>
                         </div>
                     </div>
-                    <footer class="card-footer">
-                        <a href="/learn" class="card-footer-item">
-                            <span class="icon">
-                                <i class="fas fa-book"></i>
-                            </span>
-                            <span>Acessar</span>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="badge badge-primary">Tutoriais</span>
+                        <span class="badge badge-primary">Documentação</span>
+                        <span class="badge badge-primary">Aprendizagem</span>
+                    </div>
+                    
+                    <div class="card-actions justify-end">
+                        <a href="/learn" class="btn btn-primary btn-sm">
+                            <i class="fas fa-book mr-1"></i>
+                            Acessar
                         </a>
-                    </footer>
+                    </div>
                 </div>
             </div>
 
             <!-- Card Consulta de Bancos -->
-            <div class="column is-4">
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">
-                            <span class="icon-text">
-                                <span class="icon">
-                                    <i class="fas fa-database"></i>
-                                </span>
-                                <span>Consulta de Bancos</span>
-                            </span>
-                        </p>
-                    </header>
-                    <div class="card-content">
-                        <div class="content">
-                            <p>Gerencie servidores e execute consultas em múltiplas bases de dados.</p>
-                            <div class="tags">
-                                <span class="tag is-info">PostgreSQL</span>
-                                <span class="tag is-info">MySQL</span>
-                                <span class="tag is-info">SQL Server</span>
-                            </div>
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-database text-3xl text-error"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="card-title text-xl">Consulta de Bancos</h3>
+                            <p class="text-gray-600">Gerencie servidores e execute consultas em múltiplas bases de dados.</p>
                         </div>
                     </div>
-                    <footer class="card-footer">
-                        <a href="consultabd.html" class="card-footer-item">
-                            <span class="icon">
-                                <i class="fas fa-search"></i>
-                            </span>
-                            <span>Acessar</span>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="badge badge-error">PostgreSQL</span>
+                        <span class="badge badge-error">MySQL</span>
+                        <span class="badge badge-error">SQL Server</span>
+                    </div>
+                    
+                    <div class="card-actions justify-end">
+                        <a href="consultabd.html" class="btn btn-error btn-sm">
+                            <i class="fas fa-search mr-1"></i>
+                            Acessar
                         </a>
-                    </footer>
+                    </div>
                 </div>
             </div>
         </div>
