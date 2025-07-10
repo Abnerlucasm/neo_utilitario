@@ -4,100 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificar Email - NeoHub</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/styles/styles.css">
     <link rel="stylesheet" href="/styles/dark-theme.css">
     <style>
-        .notification {
-            margin-bottom: 1rem;
-        }
-        .d-none {
-            display: none;
-        }
-        .code-container {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        .code-input {
-            width: 50px;
-            height: 60px;
-            font-size: 24px;
-            text-align: center;
-            border: 2px solid #dbdbdb;
-            border-radius: 4px;
-            transition: border-color 0.3s;
-        }
-        .code-input:focus {
-            border-color: #485fc7;
-            outline: none;
-        }
-        .code-input.filled {
-            border-color: #48c774;
-        }
+      :root {
+        --color-neo: #b6ce3f;
+      }
+      .btn-neo, .text-neo {
+        background-color: var(--color-neo) !important;
+        color: #fff !important;
+        border: none;
+      }
+      .btn-neo:hover, .text-neo:hover {
+        background-color: #a0b82e !important;
+        color: #fff !important;
+      }
+      .link-neo {
+        color: var(--color-neo) !important;
+      }
+      .link-neo:hover {
+        text-decoration: underline;
+        color: #a0b82e !important;
+      }
+      .code-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .code-input {
+        width: 50px;
+        height: 60px;
+        font-size: 24px;
+        text-align: center;
+        border: 2px solid #dbdbdb;
+        border-radius: 4px;
+        transition: border-color 0.3s;
+      }
+      .code-input:focus {
+        border-color: var(--color-neo);
+        outline: none;
+      }
+      .code-input.filled {
+        border-color: #48c774;
+      }
     </style>
 </head>
-<body>
-    <section class="hero is-fullheight">
-        <div class="hero-body">
-            <div class="container">
-                <div class="columns is-centered">
-                    <div class="column is-5-tablet is-4-desktop">
-                        <div class="box">
-                            <h1 class="title has-text-centered">Verificar Email</h1>
-                            <p class="subtitle has-text-centered">
-                                Digite o código enviado para seu email
-                            </p>
-                            
-                            <div class="has-text-centered mb-4">
-                                <span class="icon">
-                                    <i class="fas fa-envelope"></i>
-                                </span>
-                                <span id="userEmail">carregando...</span>
-                            </div>
-                            
-                            <form id="verifyForm">
-                                <input type="hidden" id="fullCode" name="code">
-                                
-                                <div class="code-container">
-                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off" autofocus>
-                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
-                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
-                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
-                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
-                                    <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
-                                </div>
-
-                                <div class="field">
-                                    <div class="control">
-                                        <button type="submit" class="button is-primary is-fullwidth">
-                                            Verificar
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="has-text-centered mt-4">
-                                    <a href="#" id="resendCode">Não recebeu o código? Clique aqui</a>
-                                </div>
-                                
-                                <div class="has-text-centered mt-3">
-                                    <a href="/pages/login.html" class="button is-text">
-                                        <span class="icon">
-                                            <i class="fas fa-arrow-left"></i>
-                                        </span>
-                                        <span>Voltar para o login</span>
-                                    </a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<body class="bg-base-200 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-xl flex flex-col gap-8">
+        <div class="flex flex-col items-center gap-2">
+            <img src="/assets/neo-logo-small.png" alt="NeoHub Logo" class="mb-2 mx-auto max-h-20 w-auto object-contain">
+            <h1 class="text-2xl font-bold text-neo">Verificar Email</h1>
+            <p class="text-base text-gray-500">Digite o código enviado para seu email</p>
         </div>
-    </section>
-
+        <form id="verifyForm" class="flex flex-col gap-4">
+            <input type="hidden" id="fullCode" name="code">
+            <div class="flex flex-col items-center gap-2">
+                <span class="text-gray-500">Enviado para <span id="userEmail" class="font-semibold text-neo">carregando...</span></span>
+            </div>
+            <div class="code-container">
+                <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off" autofocus>
+                <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+                <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+                <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+                <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+                <input type="text" class="code-input" maxlength="1" pattern="[0-9A-Za-z]" autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-neo btn-block text-base font-semibold">Verificar</button>
+            <div class="text-center mt-2">
+                <a href="#" id="resendCode" class="link-neo">Não recebeu o código? Clique aqui</a>
+            </div>
+            <div class="text-center mt-2">
+                <a href="/pages/login.html" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left mr-1"></i> Voltar para o login</a>
+            </div>
+        </form>
+    </div>
     <script src="/js/verify-email.js"></script>
 </body>
 </html> 
