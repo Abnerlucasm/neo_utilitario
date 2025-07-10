@@ -14,6 +14,7 @@ const {
     Suggestion,
     Glassfish,
     Menu,
+    Server,
     initAssociations
 } = require('./associations');
 
@@ -183,5 +184,6 @@ module.exports = {
     Resource,
     Suggestion,
     Glassfish,
-    Menu
+    Menu,
+    Server
 }; 

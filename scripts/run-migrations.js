@@ -32,7 +32,10 @@ const umzug = new Umzug({
             };
         }
     },
-    context: sequelize.getQueryInterface(),
+    context: { 
+        queryInterface: sequelize.getQueryInterface(), 
+        sequelize: sequelize 
+    },
     storage: new SequelizeStorage({ sequelize }),
     logger: console
 });

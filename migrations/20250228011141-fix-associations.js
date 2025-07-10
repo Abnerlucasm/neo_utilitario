@@ -5,8 +5,12 @@ module.exports = {
   async up (queryInterface, Sequelize) {
     // Verificar se a tabela user_roles existe e criar se não existir
     try {
-      const userRolesExists = await queryInterface.showAllTables()
-        .then(tables => tables.includes('user_roles'));
+      const tables = await queryInterface.sequelize.query(
+        "SELECT tablename FROM pg_tables WHERE schemaname = 'public'",
+        { type: queryInterface.sequelize.QueryTypes.SELECT }
+      );
+      const tableNames = tables.map(t => t.tablename);
+      const userRolesExists = tableNames.includes('user_roles');
       
       if (!userRolesExists) {
         await queryInterface.createTable('user_roles', {
@@ -45,8 +49,7 @@ module.exports = {
       }
 
       // Verificar se a tabela role_permissions existe e criar se não existir
-      const rolePermissionsExists = await queryInterface.showAllTables()
-        .then(tables => tables.includes('role_permissions'));
+      const rolePermissionsExists = tableNames.includes('role_permissions');
       
       if (!rolePermissionsExists) {
         await queryInterface.createTable('role_permissions', {
@@ -85,8 +88,7 @@ module.exports = {
       }
 
       // Verificar se a tabela role_resources existe e criar se não existir
-      const roleResourcesExists = await queryInterface.showAllTables()
-        .then(tables => tables.includes('role_resources'));
+      const roleResourcesExists = tableNames.includes('role_resources');
       
       if (!roleResourcesExists) {
         await queryInterface.createTable('role_resources', {

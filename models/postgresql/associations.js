@@ -18,6 +18,7 @@ const defineMenu = require('./Menu');
 const defineRolePermission = require('./RolePermission');
 const defineUserRole = require('./UserRole');
 const defineRoleResource = require('./RoleResource');
+const Server = require('./Server');
 
 // Inicializar modelos
 const User = defineUser(sequelize);
@@ -149,6 +150,27 @@ function initAssociations() {
 
     // Associações do Menu
     Menu.associate({ Menu });
+
+    // User - Server
+    User.hasMany(Server, {
+        foreignKey: 'createdBy',
+        as: 'createdServers'
+    });
+
+    Server.belongsTo(User, {
+        foreignKey: 'createdBy',
+        as: 'creator'
+    });
+
+    User.hasMany(Server, {
+        foreignKey: 'updatedBy',
+        as: 'updatedServers'
+    });
+
+    Server.belongsTo(User, {
+        foreignKey: 'updatedBy',
+        as: 'updater'
+    });
 }
 
 // Aplicar as associações imediatamente
@@ -171,5 +193,6 @@ module.exports = {
     RolePermission,
     UserRole,
     RoleResource,
+    Server,
     initAssociations
 }; 
