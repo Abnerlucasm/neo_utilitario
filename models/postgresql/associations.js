@@ -10,19 +10,16 @@ const definePermission = require('./Permission');
 const defineLearningModule = require('./LearningModule');
 const defineUserProgress = require('./UserProgress');
 const defineService = require('./Service');
-const defineSession = require('./Session');
+const defineSession = require('./session');
 const defineResource = require('./Resource');
-const defineSuggestion = require('./Suggestion');
+const defineSuggestion = require('./suggestion');
 const defineGlassfish = require('./Glassfish');
 const defineMenu = require('./Menu');
 const defineRolePermission = require('./RolePermission');
 const defineUserRole = require('./UserRole');
 const defineRoleResource = require('./RoleResource');
-<<<<<<< HEAD
-const Server = require('./Server');
-=======
 const defineComponent = require('./Component');
->>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
+const Server = require('./Server');
 
 // Inicializar modelos
 const User = defineUser(sequelize);
@@ -167,7 +164,6 @@ function initAssociations() {
     // Associações do Menu
     Menu.associate({ Menu });
 
-<<<<<<< HEAD
     // User - Server
     User.hasMany(Server, {
         foreignKey: 'createdBy',
@@ -187,17 +183,6 @@ function initAssociations() {
     Server.belongsTo(User, {
         foreignKey: 'updatedBy',
         as: 'updater'
-=======
-    // Component - User
-    Component.belongsTo(User, {
-        foreignKey: 'created_by',
-        as: 'creator'
-    });
-
-    User.hasMany(Component, {
-        foreignKey: 'created_by',
-        as: 'components'
->>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
     });
 }
 
@@ -221,10 +206,7 @@ module.exports = {
     RolePermission,
     UserRole,
     RoleResource,
-<<<<<<< HEAD
-    Server,
-=======
     Component,
->>>>>>> c8d6dac1767d65f5298aba35e5d7d8aa53e3d592
+    Server,
     initAssociations
 }; 
