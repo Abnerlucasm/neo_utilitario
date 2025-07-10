@@ -197,13 +197,13 @@ function renderServerCheckboxes() {
     }
 
     container.innerHTML = `
-        <div class="form-control">
-            <label class="label cursor-pointer">
-                <span class="label-text">Selecionar Todos</span>
-                <input type="checkbox" class="checkbox" id="selectAllServers" onchange="toggleAllServers()">
+        <div class="form-control mb-4">
+            <label class="label cursor-pointer bg-base-200 p-3 rounded-lg hover:bg-base-300 transition-colors">
+                <span class="label-text font-medium">Selecionar Todos</span>
+                <input type="checkbox" class="checkbox checkbox-primary" id="selectAllServers" onchange="toggleAllServers()">
             </label>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
             ${servers.map(server => `
                 <label class="label cursor-pointer">
                     <span class="label-text flex items-center">
@@ -428,9 +428,33 @@ async function loadDatabases() {
         return;
     }
     
-    // Mostrar loading
+    // Mostrar loading no botão
+    const loadButton = document.querySelector('button[onclick="loadDatabases()"]');
+    const originalButtonText = loadButton.innerHTML;
+    loadButton.disabled = true;
+    loadButton.innerHTML = `
+        <span class="loading loading-spinner loading-md"></span>
+        <span class="ml-2">Carregando databases...</span>
+    `;
+    
+    // Mostrar loading no spinner
     const loadingSpinner = document.getElementById('databaseLoading');
-    loadingSpinner.classList.add('loading');
+    if (loadingSpinner) {
+        loadingSpinner.classList.add('loading');
+    }
+    
+    // Adicionar overlay de loading
+    const overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    overlay.innerHTML = `
+        <div class="bg-white rounded-lg p-8 flex flex-col items-center shadow-2xl">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mb-4"></div>
+            <p class="text-lg font-semibold text-gray-800">Carregando databases...</p>
+            <p class="text-sm text-gray-600 mt-2 text-center">Aguarde enquanto conectamos aos servidores</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
     
     try {
         const response = await fetch(`${API_BASE}/servers/list-databases`, {
@@ -455,7 +479,20 @@ async function loadDatabases() {
         console.error('Erro ao carregar databases:', error);
         showNotification('Erro ao conectar com o servidor.', 'error');
     } finally {
-        loadingSpinner.classList.remove('loading');
+        // Restaurar botão
+        loadButton.disabled = false;
+        loadButton.innerHTML = originalButtonText;
+        
+        // Remover loading do spinner
+        if (loadingSpinner) {
+            loadingSpinner.classList.remove('loading');
+        }
+        
+        // Remover overlay de loading
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
     }
 }
 

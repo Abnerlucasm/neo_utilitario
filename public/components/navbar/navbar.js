@@ -257,6 +257,12 @@ class NeoNavbar extends HTMLElement {
                         titulo: 'NeoTrack',
                         url: '/pages/neotrack.html',
                         icon: 'fas fa-chart-line'
+                    },
+                    {
+                        id: '3-3',
+                        titulo: 'Consulta Banco de Dados',
+                        url: '/pages/consultabd.html',
+                        icon: 'fas fa-database'
                     }
                 ]
             },
@@ -695,6 +701,7 @@ class NeoNavbar extends HTMLElement {
             'kanban': 'Kanban',
             'sugestoes-dev': 'Sugestões',
             'recursos-dev': 'Recursos em Desenvolvimento',
+            'consultabd': 'Consulta Banco de Dados',
             'user-settings': 'Configurações',
             'user-management': 'Gerenciamento de Usuários',
             'roles': 'Papéis e Permissões',
@@ -726,6 +733,7 @@ class NeoNavbar extends HTMLElement {
             'kanban': 'fa-columns',
             'sugestoes-dev': 'fa-lightbulb',
             'recursos-dev': 'fa-cogs',
+            'consultabd': 'fa-database',
             'user-settings': 'fa-user-cog',
             'user-management': 'fa-users',
             'roles': 'fa-user-shield',
