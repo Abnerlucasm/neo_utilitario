@@ -1,517 +1,385 @@
-class RoleManager {
+class RolesManager {
     constructor() {
-        this.baseUrl = '/api/roles';
-        this.selectedRole = null;
-        this.systemResources = [
-            {
-                id: '550e8400-e29b-41d4-a716-446655440000',
-                name: 'Página Inicial',
-                description: 'Acesso à página inicial do sistema',
-                icon: 'fas fa-home',
-                path: '/pages/index.html',
-                type: 'PAGE'
-            },
-            {
-                id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
-                name: 'Glassfish',
-                description: 'Gerenciamento de servidores Glassfish',
-                icon: 'fas fa-server',
-                path: '/pages/glassfish.html',
-                type: 'PAGE'
-            },
-            {
-                id: '6ba7b811-9dad-11d1-80b4-00c04fd430c8',
-                name: 'NeoTrack',
-                description: 'Monitoramento de sistemas',
-                icon: 'fas fa-chart-line',
-                path: '/pages/neotrack.html',
-                type: 'PAGE'
-            },
-            {
-                id: '6ba7b812-9dad-11d1-80b4-00c04fd430c8',
-                name: 'Central de Aprendizado',
-                description: 'Materiais e treinamentos',
-                icon: 'fas fa-graduation-cap',
-                path: '/pages/learning/learn.html',
-                type: 'PAGE'
-            },
-            {
-                id: '6ba7b813-9dad-11d1-80b4-00c04fd430c8',
-                name: 'Gerenciamento de Usuários',
-                description: 'Administração de usuários',
-                icon: 'fas fa-users-cog',
-                path: '/pages/admin/user-management.html',
-                type: 'PAGE'
-            },
-            {
-                id: '6ba7b814-9dad-11d1-80b4-00c04fd430c8',
-                name: 'Papéis e Permissões',
-                description: 'Gerenciamento de papéis',
-                icon: 'fas fa-user-shield',
-                path: '/pages/admin/roles.html',
-                type: 'PAGE'
-            },
-            {
-                id: '6ba7b815-9dad-11d1-80b4-00c04fd430c8',
-                name: 'Configurações',
-                description: 'Configurações do usuário',
-                path: '/pages/user-settings.html',
-                type: 'PAGE',
-                icon: 'fas fa-cog'
-            }
-        ];
-        
+        this.roles = [];
+        this.permissions = [];
+        this.currentRoleId = null;
         this.init();
     }
 
-    init() {
-        this.setupEventListeners();
-        this.loadRoles();
-    }
-
-    setupEventListeners() {
-        document.getElementById('createRoleForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleCreateRole(e);
-        });
-
-        document.getElementById('closeResourcesPanel').addEventListener('click', () => {
-            document.getElementById('resourcesPanel').style.display = 'none';
-        });
-        
-        // Adicionar listener para o formulário de edição
-        const editRoleForm = document.getElementById('editRoleForm');
-        if (editRoleForm) {
-            editRoleForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.handleUpdateRole();
-            });
+    async init() {
+        try {
+            await Promise.all([
+                this.loadRoles(),
+                this.loadPermissions()
+            ]);
+            this.updateStats();
+            this.setupEventListeners();
+            this.renderPermissionsCheckboxes();
+            this.updateRolePreview();
+        } catch (error) {
+            console.error('Erro ao inicializar gerenciador de papéis:', error);
+            this.showToast('Erro ao carregar dados', 'error');
         }
     }
 
     async loadRoles() {
         try {
-            console.log('Carregando papéis...');
-            
-            // Verificar token de autenticação
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-                console.error('Token de autenticação não encontrado');
-                window.location.href = '/pages/login.html';
-                return;
-            }
-            
-            const response = await fetch(this.baseUrl, {
+            const response = await fetch('/api/roles', {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
-            
+
             if (!response.ok) {
-                // Verificar se o erro é 401 (Unauthorized) ou 403 (Forbidden)
-                if (response.status === 401 || response.status === 403) {
-                    console.error('Erro de autenticação:', response.status);
-                    // Limpar o token e redirecionar para a página de login
-                    localStorage.removeItem('auth_token');
-                    window.location.href = '/pages/login.html';
-                    return;
-                }
-                
-                const error = await response.json();
-                console.error('Resposta da API:', error);
                 throw new Error('Erro ao carregar papéis');
             }
-            
-            const roles = await response.json();
-            console.log('Papéis carregados:', roles);
-            
-            this.renderRoles(roles);
+
+            this.roles = await response.json();
+            this.renderRoles();
+            this.updateStats();
         } catch (error) {
             console.error('Erro ao carregar papéis:', error);
-            this.showError('Falha ao carregar papéis');
+            this.showToast('Erro ao carregar papéis', 'error');
         }
     }
 
-    renderRoles(roles) {
-        const rolesList = document.getElementById('rolesList');
-        rolesList.innerHTML = '';
-
-        roles.forEach(role => {
-            const isAdmin = role.name.toLowerCase() === 'admin';
-            const roleItem = document.createElement('div');
-            roleItem.className = `role-item ${isAdmin ? 'admin' : ''}`;
-            roleItem.dataset.id = role.id;
-            roleItem.innerHTML = `
-                    <span>${role.name}</span>
-                <div>
-                    <button class="btn btn-sm btn-outline-primary edit-role" data-id="${role.id}" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    ${!isAdmin ? `
-                        <button class="btn btn-sm btn-outline-danger delete-role" data-id="${role.id}" title="Excluir">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    ` : ''}
-                </div>
-            `;
-            
-            roleItem.addEventListener('click', (e) => {
-                // Ignorar cliques nos botões
-                if (e.target.closest('button')) return;
-                
-                // Selecionar papel
-                document.querySelectorAll('.role-item').forEach(item => {
-                    item.classList.remove('selected');
-                });
-                roleItem.classList.add('selected');
-                this.selectedRole = role.id;
-                this.updateSelectedRole();
-                this.loadRoleResources(role.id);
-                document.getElementById('resourcesPanel').style.display = 'block';
-            });
-            
-            // Adicionar event listeners para os botões
-            roleItem.querySelector('.edit-role')?.addEventListener('click', () => {
-                this.handleEditRole(role.name, role.id);
-            });
-            
-            roleItem.querySelector('.delete-role')?.addEventListener('click', () => {
-                this.handleDeleteRole(role.id);
-            });
-            
-            rolesList.appendChild(roleItem);
-        });
-    }
-
-    async handleEditRole(name, roleId) {
-        console.log(`Editar papel: ${name} (${roleId})`);
-        
+    async loadPermissions() {
         try {
-            // Buscar dados completos do papel
-            const response = await fetch(`${this.baseUrl}/${roleId}`, {
+            const response = await fetch('/api/permissions', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
-            
-            if (!response.ok) {
-                throw new Error('Erro ao carregar dados do papel');
-            }
-            
-            const role = await response.json();
-            console.log('Papel carregado:', role);
-            
-            // Preencher o modal de edição
-            document.getElementById('editRoleId').value = role.id;
-            document.getElementById('editRoleName').value = role.name;
-            document.getElementById('editRoleDescription').value = role.description || '';
-            
-            // Exibir o modal
-            const editModal = new bootstrap.Modal(document.getElementById('editRoleModal'));
-            editModal.show();
-        } catch (error) {
-            console.error('Erro ao preparar edição do papel:', error);
-            this.showError('Erro ao carregar dados do papel');
-        }
-    }
-
-    async handleUpdateRole() {
-        const roleId = document.getElementById('editRoleId').value;
-        const name = document.getElementById('editRoleName').value;
-        const description = document.getElementById('editRoleDescription').value;
-        
-        if (!name) {
-            this.showError('O nome do papel é obrigatório');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${this.baseUrl}/${roleId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                },
-                body: JSON.stringify({ 
-                    name, 
-                    description
-                })
-            });
 
             if (!response.ok) {
-                throw new Error('Erro ao atualizar papel');
+                throw new Error('Erro ao carregar permissões');
             }
-            
-            // Fechar o modal
-            const editModal = bootstrap.Modal.getInstance(document.getElementById('editRoleModal'));
-            editModal.hide();
-            
-            // Recarregar a lista de papéis
-            this.loadRoles();
-            
-            // Mostrar mensagem de sucesso
-            this.showSuccess('Papel atualizado com sucesso');
+
+            this.permissions = await response.json();
+            this.renderPermissions();
         } catch (error) {
-            console.error('Erro ao atualizar papel:', error);
-            this.showError('Erro ao atualizar papel');
+            console.error('Erro ao carregar permissões:', error);
+            this.showToast('Erro ao carregar permissões', 'error');
         }
     }
 
-    updateSelectedRole() {
-        const selectedRoleName = document.getElementById('selectedRoleName');
-        const selectedRole = document.querySelector(`.role-item[data-id="${this.selectedRole}"]`);
-        if (selectedRole) {
-            selectedRoleName.textContent = selectedRole.querySelector('span').textContent;
+    renderRoles() {
+        const container = document.getElementById('rolesList');
+        if (!container) return;
+
+        container.innerHTML = this.roles.map(role => `
+            <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-all duration-200">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="avatar placeholder">
+                                <div class="bg-primary text-primary-content rounded-full w-12">
+                                    <span class="text-lg font-bold">${role.name.charAt(0).toUpperCase()}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg">${role.name}</h3>
+                                <p class="text-base-content/70">${role.description || 'Papel do sistema'}</p>
+                                <div class="flex gap-2 mt-2">
+                                    <span class="badge badge-outline badge-sm">${role.users_count || 0} usuários</span>
+                                    <span class="badge badge-outline badge-sm">${role.permissions_count || 0} permissões</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn btn-ghost btn-sm" onclick="rolesManager.editRole('${role.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-ghost btn-sm text-error" onclick="rolesManager.deleteRole('${role.id}')" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('') || '<div class="text-center py-8 text-base-content/70">Nenhum papel encontrado</div>';
+    }
+
+    renderPermissions() {
+        const container = document.getElementById('permissionsList');
+        if (!container) return;
+
+        container.innerHTML = this.permissions.map(permission => `
+            <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-all duration-200">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold">${permission.name}</h3>
+                            <p class="text-base-content/70">${permission.description || 'Permissão do sistema'}</p>
+                            <div class="flex gap-2 mt-2">
+                                <span class="badge badge-outline badge-sm">${permission.resource}</span>
+                                <span class="badge badge-outline badge-sm">${permission.action}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn btn-ghost btn-sm" onclick="rolesManager.editPermission('${permission.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-ghost btn-sm text-error" onclick="rolesManager.deletePermission('${permission.id}')" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('') || '<div class="text-center py-8 text-base-content/70">Nenhuma permissão encontrada</div>';
+        
+        // Atualizar também as checkboxes no modal
+        this.renderPermissionsCheckboxes();
+    }
+
+    updateStats() {
+        const totalRoles = document.getElementById('totalRoles');
+        const totalPermissions = document.getElementById('totalPermissions');
+        const activeRoles = document.getElementById('activeRoles');
+
+        if (totalRoles) totalRoles.textContent = this.roles.length;
+        if (totalPermissions) totalPermissions.textContent = this.permissions.length;
+        if (activeRoles) activeRoles.textContent = this.roles.filter(r => r.is_active).length;
+    }
+
+    openRoleModal(roleId = null) {
+        this.currentRoleId = roleId;
+        const modal = document.getElementById('roleModal');
+        const title = document.getElementById('modalTitle');
+        const form = document.getElementById('roleForm');
+
+        title.textContent = roleId ? 'Editar Papel' : 'Novo Papel';
+        form.reset();
+
+        if (roleId) {
+            const role = this.roles.find(r => r.id === roleId);
+            if (role) {
+                document.getElementById('roleName').value = role.name;
+                document.getElementById('roleDescription').value = role.description || '';
+                document.getElementById('roleIsActive').checked = role.is_active;
+
+                // Marcar permissões do papel
+                this.permissions.forEach(permission => {
+                    const checkbox = document.getElementById(`permission_${permission.id}`);
+                    if (checkbox) {
+                        checkbox.checked = role.permissions && role.permissions.some(p => p.id === permission.id);
+                    }
+                });
+            }
+        }
+
+        if (modal) {
+            modal.showModal();
         }
     }
 
-    async loadRoleResources(roleId) {
+    renderPermissionsCheckboxes() {
+        const container = document.getElementById('permissionsCheckboxes');
+        if (!container) return;
+
+        container.innerHTML = this.permissions.map(permission => `
+            <label class="label cursor-pointer justify-start gap-3 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+                <input type="checkbox" class="checkbox" value="${permission.id}" id="permission_${permission.id}" name="permissions">
+                <div class="flex-1">
+                    <div class="font-medium">${permission.name}</div>
+                    <div class="text-sm text-base-content/70">${permission.description || 'Permissão do sistema'}</div>
+                    <div class="flex gap-2 mt-2">
+                        <span class="badge badge-outline badge-xs">${permission.resource}</span>
+                        <span class="badge badge-outline badge-xs">${permission.action}</span>
+                    </div>
+                </div>
+            </label>
+        `).join('') || '<div class="text-center py-8 text-base-content/70">Nenhuma permissão encontrada</div>';
+    }
+
+    updateRolePreview() {
+        const previewName = document.getElementById('previewName');
+        const previewDescription = document.getElementById('previewDescription');
+        const previewInitial = document.getElementById('previewInitial');
+        const previewStatus = document.getElementById('previewStatus');
+        const previewPermissions = document.getElementById('previewPermissions');
+        const previewId = document.getElementById('previewId');
+
+        const roleName = document.getElementById('roleName').value || 'Nome do Papel';
+        const roleDescription = document.getElementById('roleDescription').value || 'Descrição do papel';
+        const roleIsActive = document.getElementById('roleIsActive').checked;
+
+        // Atualizar preview
+        if (previewName) previewName.textContent = roleName;
+        if (previewDescription) previewDescription.textContent = roleDescription;
+        if (previewInitial) previewInitial.textContent = roleName.charAt(0).toUpperCase();
+        if (previewId) previewId.textContent = this.currentRoleId || 'Novo';
+
+        // Atualizar status
+        if (previewStatus) {
+            if (roleIsActive) {
+                previewStatus.className = 'badge badge-success badge-lg';
+                previewStatus.innerHTML = '<i class="fas fa-check-circle"></i> Ativo';
+            } else {
+                previewStatus.className = 'badge badge-neutral badge-lg';
+                previewStatus.innerHTML = '<i class="fas fa-times-circle"></i> Inativo';
+            }
+        }
+
+        // Atualizar permissões selecionadas
+        if (previewPermissions) {
+            const selectedPermissions = Array.from(document.querySelectorAll('#permissionsCheckboxes input:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedPermissions.length > 0) {
+                previewPermissions.innerHTML = selectedPermissions.map(permId => {
+                    const permission = this.permissions.find(p => p.id === permId);
+                    return permission ? `<span class="badge badge-outline badge-sm">${permission.name}</span>` : '';
+                }).join('');
+            } else {
+                previewPermissions.innerHTML = '<span class="badge badge-outline badge-sm">Nenhuma permissão</span>';
+            }
+        }
+    }
+
+    setupEventListeners() {
+        // Event listeners para preview em tempo real
+        const previewFields = ['roleName', 'roleDescription', 'roleIsActive'];
+        previewFields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                const eventType = element.type === 'checkbox' ? 'change' : 'input';
+                element.addEventListener(eventType, () => {
+                    this.updateRolePreview();
+                });
+            }
+        });
+
+        // Event listeners para permissões
+        document.addEventListener('change', (e) => {
+            if (e.target.name === 'permissions') {
+                this.updateRolePreview();
+            }
+        });
+    }
+
+    async saveRole() {
         try {
-            // Verificar token de autenticação
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-                console.error('Token de autenticação não encontrado');
-                window.location.href = '/pages/login.html';
+            const form = document.getElementById('roleForm');
+            const permissionCheckboxes = document.querySelectorAll('#permissionsList input[type="checkbox"]:checked');
+            
+            const roleData = {
+                name: document.getElementById('roleName').value.trim(),
+                description: document.getElementById('roleDescription').value.trim(),
+                is_active: document.getElementById('roleIsActive').checked,
+                permissions: Array.from(permissionCheckboxes).map(cb => cb.value)
+            };
+
+            // Validar campos obrigatórios
+            if (!roleData.name) {
+                this.showToast('Nome do papel é obrigatório', 'warning');
                 return;
             }
-            
-            const response = await fetch(`${this.baseUrl}/${roleId}/resources`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            if (!response.ok) {
-                // Verificar se o erro é 401 (Unauthorized) ou 403 (Forbidden)
-                if (response.status === 401 || response.status === 403) {
-                    console.error('Erro de autenticação:', response.status);
-                    // Limpar o token e redirecionar para a página de login
-                    localStorage.removeItem('auth_token');
-                    window.location.href = '/pages/login.html';
-                    return;
-                }
-                
-                throw new Error('Erro ao carregar recursos');
-            }
-            
-            const data = await response.json();
-            
-            console.log('Recursos carregados:', data);
-            
-            // Renderizar recursos disponíveis
-            this.renderResources('availableResources', data.availableResources, false);
-            
-            // Renderizar recursos atribuídos
-            this.renderResources('assignedResources', data.assignedResources, true);
-        } catch (error) {
-            console.error('Erro ao carregar recursos:', error);
-            this.showError('Falha ao carregar recursos');
-        }
-    }
 
-    renderResources(containerId, resources, isAssigned) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
+            const url = this.currentRoleId ? 
+                `/api/roles/${this.currentRoleId}` : 
+                '/api/roles';
 
-        if (!resources || resources.length === 0) {
-            container.innerHTML = `<p class="text-muted">Nenhum recurso ${isAssigned ? 'atribuído' : 'disponível'}</p>`;
-            return;
-        }
-
-        resources.forEach(resource => {
-            const resourceItem = document.createElement('div');
-            resourceItem.className = 'resource-item';
-            resourceItem.dataset.id = resource.id;
-            
-            // Determinar o ícone com base no tipo ou usar o ícone do recurso
-            const icon = resource.icon || 'fas fa-link';
-            
-            resourceItem.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="resource-icon"><i class="${icon}"></i></span>
-                        <span>${resource.name}</span>
-                        <div class="path">${resource.path}</div>
-                    </div>
-                    <button class="btn btn-sm ${isAssigned ? 'btn-danger' : 'btn-success'}" title="${isAssigned ? 'Remover' : 'Adicionar'}">
-                        <i class="fas ${isAssigned ? 'fa-minus' : 'fa-plus'}"></i>
-                    </button>
-                </div>
-            `;
-            
-            // Adicionar event listener para o botão
-            resourceItem.querySelector('button').addEventListener('click', () => {
-                this.handleResourceToggle(resource.id, !isAssigned);
-            });
-            
-            container.appendChild(resourceItem);
-        });
-    }
-
-    async handleResourceToggle(resourceId, isAssigning) {
-        if (!this.selectedRole) return;
-        
-        try {
-            const method = isAssigning ? 'POST' : 'DELETE';
-            const url = `${this.baseUrl}/${this.selectedRole}/resources/${resourceId}`;
-            
-            console.log(`Enviando requisição ${method} para ${url}`);
-            
-            // Se estiver adicionando, incluir dados do recurso
-            let options = {
-                method,
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                }
-            };
-            
-            if (isAssigning) {
-                // Encontrar o recurso nos recursos do sistema
-                const resource = this.systemResources.find(r => r.id === resourceId);
-                if (resource) {
-                    options.headers['Content-Type'] = 'application/json';
-                    options.body = JSON.stringify({
-                        name: resource.name,
-                        path: resource.path,
-                        description: resource.description,
-                        type: resource.type,
-                        icon: resource.icon
-                    });
-                }
-            }
-            
-            const response = await fetch(url, options);
-            const result = await response.json();
-            
-            console.log('Resposta do servidor:', result);
-            
-            if (!response.ok) {
-                throw new Error(result.error || 'Erro ao adicionar recurso');
-            }
-            
-            // Recarregar recursos para atualizar a interface
-            this.loadRoleResources(this.selectedRole);
-            
-            // Mostrar mensagem de sucesso
-            this.showSuccess(`Recurso ${isAssigning ? 'adicionado' : 'removido'} com sucesso`);
-        } catch (error) {
-            console.error('Erro ao atualizar recursos:', error);
-            this.showError(`Erro ao ${isAssigning ? 'adicionar' : 'remover'} recurso`);
-        }
-    }
-
-    async handleCreateRole(event) {
-        event.preventDefault();
-        const form = event.target;
-        const formData = new FormData(form);
-        
-        try {
-            const response = await fetch(this.baseUrl, {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: this.currentRoleId ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 },
-                body: JSON.stringify({
-                    name: formData.get('name'),
-                    description: formData.get('description')
-                })
+                body: JSON.stringify(roleData)
             });
 
             if (!response.ok) {
-                throw new Error('Erro ao criar papel');
+                const error = await response.json();
+                throw new Error(error.error || error.message || 'Erro ao salvar papel');
             }
-            
-            // Limpar formulário
-            form.reset();
+
+            await this.loadRoles();
             
             // Fechar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('createRoleModal'));
-            modal.hide();
+            const modal = document.getElementById('roleModal');
+            if (modal) {
+                modal.close();
+            }
             
-            // Recarregar papéis
-            this.loadRoles();
-            
-            // Mostrar mensagem de sucesso
-            this.showSuccess('Papel criado com sucesso');
+            // Mostrar mensagem apropriada
+            if (!this.currentRoleId) {
+                this.showToast('Papel criado com sucesso!', 'success');
+            } else {
+                this.showToast('Papel atualizado com sucesso', 'success');
+            }
         } catch (error) {
-            console.error('Erro ao criar papel:', error);
-            this.showError('Falha ao criar papel');
+            console.error('Erro ao salvar papel:', error);
+            this.showToast(error.message || 'Erro ao salvar papel', 'error');
         }
     }
 
-    async handleDeleteRole(roleId) {
-        if (!confirm('Tem certeza que deseja excluir este papel?')) {
-            return;
-        }
-        
+    async deleteRole(roleId) {
+        if (!confirm('Tem certeza que deseja excluir este papel?')) return;
+
         try {
-            const response = await fetch(`${this.baseUrl}/${roleId}`, {
+            const response = await fetch(`/api/roles/${roleId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error('Erro ao excluir papel');
             }
-            
-            // Recarregar papéis
-            this.loadRoles();
-            
-            // Esconder painel de recursos se o papel excluído estava selecionado
-            if (this.selectedRole === roleId) {
-                document.getElementById('resourcesPanel').style.display = 'none';
-                this.selectedRole = null;
-            }
-            
-            // Mostrar mensagem de sucesso
-            this.showSuccess('Papel excluído com sucesso');
+
+            await this.loadRoles();
+            this.showToast('Papel excluído com sucesso', 'success');
         } catch (error) {
             console.error('Erro ao excluir papel:', error);
-            this.showError('Falha ao excluir papel');
+            this.showToast(error.message || 'Erro ao excluir papel', 'error');
         }
     }
 
-    showError(message) {
-        // Criar notificação de erro
-        const notification = document.createElement('div');
-        notification.className = 'alert alert-danger alert-dismissible fade show';
-        notification.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        // Adicionar ao container de notificações
-        const container = document.getElementById('notifications') || document.body;
-        container.appendChild(notification);
-        
-        // Auto-remover após 5 segundos
-        setTimeout(() => {
-            notification.remove();
-        }, 5000);
+    editRole(roleId) {
+        this.openRoleModal(roleId);
     }
 
-    showSuccess(message) {
-        // Criar notificação de sucesso
-        const notification = document.createElement('div');
-        notification.className = 'alert alert-success alert-dismissible fade show';
-        notification.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    editPermission(permissionId) {
+        // Implementar edição de permissão
+        console.log('Editar permissão:', permissionId);
+    }
+
+    deletePermission(permissionId) {
+        // Implementar exclusão de permissão
+        console.log('Excluir permissão:', permissionId);
+    }
+
+    showToast(message, type = 'info', duration = 5000) {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} fixed bottom-4 right-4 z-50 max-w-sm`;
+        toast.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas ${this.getToastIcon(type)}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
         `;
-        
-        // Adicionar ao container de notificações
-        const container = document.getElementById('notifications') || document.body;
-        container.appendChild(notification);
-        
-        // Auto-remover após 5 segundos
-        setTimeout(() => {
-            notification.remove();
-        }, 5000);
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), duration);
+    }
+    
+    getToastIcon(type) {
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+        return icons[type] || icons.info;
     }
 }
 
-// Inicializar o gerenciador de papéis
-const roleManager = new RoleManager(); 
+// Inicializar quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', () => {
+    window.rolesManager = new RolesManager();
+}); 

@@ -1,57 +1,182 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Sugestões</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="../styles/styles.css">
-    <link rel="stylesheet" href="../styles/dark-theme.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>Sistema de Sugestões de Desenvolvimento - NeoHub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            daisyui: {
+                themes: [
+                    "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", 
+                    "synthwave", "retro", "cyberpunk", "valentine", "halloween", 
+                    "garden", "forest", "aqua", "lofi", "pastel", "fantasy", 
+                    "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", 
+                    "business", "acid", "lemonade", "night", "coffee", "winter",
+                    "dim", "nord", "sunset", "caramellatte", "abyss", "silk"
+                ]
+            }
+        }
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../styles/sugestoes-dev.css">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            background: hsl(var(--b1));
+            border: 1px solid hsl(var(--b3));
+            transition: all 0.2s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-box .icon {
+            font-size: 2rem;
+            color: hsl(var(--p));
+            margin-bottom: 0.5rem;
+        }
+        
+        .filter-container {
+            margin-bottom: 1rem;
+        }
+        
+        .filter-tag {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-tag:hover {
+            transform: scale(1.05);
+        }
+        
+        .filter-tag.active {
+            background-color: hsl(var(--p)) !important;
+            color: hsl(var(--pc)) !important;
+        }
+        
+        .suggestion-item {
+            border: 1px solid hsl(var(--b3));
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: hsl(var(--b1));
+            transition: all 0.2s ease;
+        }
+        
+        .suggestion-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .status-pending {
+            background-color: hsl(var(--wa));
+            color: hsl(var(--wac));
+        }
+        
+        .status-in_progress {
+            background-color: hsl(var(--a));
+            color: hsl(var(--ac));
+        }
+        
+        .status-implemented {
+            background-color: hsl(var(--s));
+            color: hsl(var(--sc));
+        }
+        
+        .category-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            margin-right: 0.5rem;
+        }
+        
+        .category-correcao {
+            background-color: hsl(var(--er));
+            color: hsl(var(--erc));
+        }
+        
+        .category-melhoria {
+            background-color: hsl(var(--a));
+            color: hsl(var(--ac));
+        }
+        
+        .category-novo {
+            background-color: hsl(var(--s));
+            color: hsl(var(--sc));
+        }
+    </style>
 </head>
-<body class="has-background-light">
+<body class="bg-base-200 min-h-screen">
     <neo-navbar></neo-navbar>
 
-
     <!-- Hero Section -->
-    <section class="hero is-medium">
-        <div class="hero-body">
-            <div class="container">
-                <h1 class="title has-text-white has-text-centered">
-                    Sistema de Sugestões de Desenvolvimento
-                </h1>
-                <p class="subtitle has-text-white has-text-centered">
-                    Contribua para a evolução dos nossos sistemas
-                </p>
-                <div class="has-text-centered">
-                    <a href="recursos-dev.html" class="button is-info">
-                        <span class="icon"><i class="fas fa-cogs"></i></span>
-                        <span>Ver Recursos em Desenvolvimento</span>
-                    </a>
-                </div>
+    <section class="hero-section">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl font-bold mb-4">
+                Sistema de Sugestões de Desenvolvimento
+            </h1>
+            <p class="text-xl mb-6 opacity-90">
+                Contribua para a evolução dos nossos sistemas
+            </p>
+            <div class="flex justify-center">
+                <a href="recursos-dev.html" class="btn btn-primary">
+                    <i class="fas fa-cogs"></i>
+                    Ver Recursos em Desenvolvimento
+                </a>
             </div>
         </div>
     </section>
 
-    <div class="container">
-        <div class="columns">
-            <div class="column is-6">
-                <!-- Últimas Sugestões -->
-                <div class="box">
-                    <h2 class="title is-4">Últimas Sugestões</h2>
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Últimas Sugestões -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">Últimas Sugestões</h2>
+                    
                     <div class="filter-container">
-                        <label class="label">Filtrar por Status:</label>
-                        <span class="tag is-light status-tag" data-value="pending">Em Análise</span>
-                        <span class="tag is-light status-tag" data-value="in_progress">Em Progresso</span>
-                        <span class="tag is-light status-tag" data-value="implemented">Implementado</span>
+                        <label class="label">
+                            <span class="label-text font-medium">Filtrar por Status:</span>
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="badge badge-outline filter-tag status-filter" data-value="pending">Em Análise</span>
+                            <span class="badge badge-outline filter-tag status-filter" data-value="in_progress">Em Progresso</span>
+                            <span class="badge badge-outline filter-tag status-filter" data-value="implemented">Implementado</span>
+                        </div>
                     </div>
+                    
                     <div class="filter-container">
-                        <label class="label">Filtrar por Categoria:</label>
-                        <span class="tag is-light category-tag" data-value="correcao">Correções</span>
-                        <span class="tag is-light category-tag" data-value="melhoria">Melhorias</span>
-                        <span class="tag is-light category-tag" data-value="novo">Novos Recursos</span>
+                        <label class="label">
+                            <span class="label-text font-medium">Filtrar por Categoria:</span>
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="badge badge-outline filter-tag category-filter" data-value="correcao">Correções</span>
+                            <span class="badge badge-outline filter-tag category-filter" data-value="melhoria">Melhorias</span>
+                            <span class="badge badge-outline filter-tag category-filter" data-value="novo">Novos Recursos</span>
+                        </div>
                     </div>
+                    
                     <div id="suggestionList" class="suggestion-list">
                         <!-- Sugestões serão carregadas aqui -->
                     </div>
@@ -59,162 +184,166 @@
             </div>
 
             <!-- Stats Section -->
-            <div class="column is-6">
-                <div class="box">
-                    <h2 class="title is-4">Estatísticas</h2>
-                    <div class="columns stats-container">
-                        <div class="column">
+            <div class="space-y-6">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">Estatísticas</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="stat-box">
-                                <span class="icon">
+                                <div class="icon">
                                     <i class="fas fa-lightbulb"></i>
-                                </span>
-                                <p class="heading">Total de Sugestões</p>
-                                <p class="title" id="totalSuggestions">0</p>
+                                </div>
+                                <p class="text-sm font-medium text-base-content/70">Total de Sugestões</p>
+                                <p class="text-2xl font-bold" id="totalSuggestions">0</p>
                             </div>
-                        </div>
-                        <div class="column">
                             <div class="stat-box">
-                                <span class="icon">
+                                <div class="icon">
                                     <i class="fas fa-check-circle"></i>
-                                </span>
-                                <p class="heading">Implementadas</p>
-                                <p class="title" id="implementedSuggestions">0</p>
+                                </div>
+                                <p class="text-sm font-medium text-base-content/70">Implementadas</p>
+                                <p class="text-2xl font-bold" id="implementedSuggestions">0</p>
                             </div>
-                        </div>
-                        <div class="column">
                             <div class="stat-box">
-                                <span class="icon">
+                                <div class="icon">
                                     <i class="fas fa-clock"></i>
-                                </span>
-                                <p class="heading">Em Análise</p>
-                                <p class="title" id="pendingSuggestions">0</p>
+                                </div>
+                                <p class="text-sm font-medium text-base-content/70">Em Análise</p>
+                                <p class="text-2xl font-bold" id="pendingSuggestions">0</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Form Section -->
-                <div class="box">
-                    <h2 class="title is-4">Nova Sugestão</h2>
-                    <form id="suggestionForm">
-                        <div class="field">
-                            <label class="label">Solicitante</label>
-                            <div class="control">
-                                <input type="text" id="createdBy" class="input" readonly>
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">Nova Sugestão</h2>
+                        <form id="suggestionForm" class="space-y-4">
+                            <div class="form-control">
+                                <label class="label" for="createdBy">
+                                    <span class="label-text font-medium">Solicitante</span>
+                                </label>
+                                <input type="text" id="createdBy" class="input input-bordered" readonly>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">Categoria</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select id="category" required>
-                                        <option value="correcao">Correção</option>
-                                        <option value="melhoria">Melhoria</option>
-                                        <option value="novo">Novo Recurso</option>
-                                    </select>
-                                </div>
+                            
+                            <div class="form-control">
+                                <label class="label" for="category">
+                                    <span class="label-text font-medium">Categoria</span>
+                                </label>
+                                <select id="category" class="select select-bordered w-full" required>
+                                    <option value="correcao">Correção</option>
+                                    <option value="melhoria">Melhoria</option>
+                                    <option value="novo">Novo Recurso</option>
+                                </select>
                             </div>
-                        </div>
 
-                        <div class="field">
-                            <label class="label">Descrição</label>
-                            <div class="control">
-                                <div class="buttons mb-2">
-                                    <button type="button" id="toggleView" class="button is-small is-info">
-                                        <span class="icon"><i class="fas fa-code"></i></span>
-                                        <span>Ver em Raw</span>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-medium">Descrição</span>
+                                </label>
+                                <div class="flex gap-2 mb-2">
+                                    <button type="button" id="toggleView" class="btn btn-sm btn-outline">
+                                        <i class="fas fa-code"></i>
+                                        Ver em Raw
                                     </button>
-                                    <button type="button" id="markdownHelp" class="button is-small is-info">
-                                        <span class="icon"><i class="fas fa-question-circle"></i></span>
-                                        <span>Guia Markdown</span>
+                                    <button type="button" id="markdownHelp" class="btn btn-sm btn-outline">
+                                        <i class="fas fa-question-circle"></i>
+                                        Guia Markdown
                                     </button>
                                 </div>
                                 <div id="description-container">
-                                    <textarea id="description" class="textarea" style="display: none;" placeholder="Digite sua descrição usando Markdown..."></textarea>
-                                    <div id="formatted-description" class="textarea content" contenteditable="true" style="min-height: 150px; overflow-y: auto;" placeholder="Digite sua descrição usando Markdown..."></div>
+                                    <textarea id="description" class="textarea textarea-bordered w-full" style="display: none;" placeholder="Digite sua descrição usando Markdown..."></textarea>
+                                    <div id="formatted-description" class="textarea textarea-bordered w-full" contenteditable="true" style="min-height: 150px; overflow-y: auto;" placeholder="Digite sua descrição usando Markdown..."></div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="field">
-                            <label class="label">Anexar Imagem</label>
-                            <div class="control">
-                                <input type="file" id="imageUpload" class="input" accept="image/*">
+                            <div class="form-control">
+                                <label class="label" for="imageUpload">
+                                    <span class="label-text font-medium">Anexar Imagem</span>
+                                </label>
+                                <input type="file" id="imageUpload" class="file-input file-input-bordered w-full" accept="image/*">
                             </div>
-                        </div>
 
-                        <div class="field">
-                            <div class="control">
-                                <button type="submit" class="button is-primary is-fullwidth">
+                            <div class="form-control">
+                                <button type="submit" class="btn btn-primary w-full">
+                                    <i class="fas fa-paper-plane"></i>
                                     Enviar Sugestão
                                 </button>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Modal para alterar o status -->
-        <div class="modal" id="statusModal">
-            <div class="modal-background" onclick="closeStatusModal()"></div>
-            <div class="modal-card">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">Alterar Status da Sugestão</p>
-                    <button class="delete" aria-label="close" onclick="closeStatusModal()"></button>
-                </header>
-                <section class="modal-card-body">
-                    <div class="field">
-                        <label class="label">Selecione o novo status:</label>
-                        <div class="control">
-                            <div class="select">
-                                <select id="newStatus">
-                                    <option value="pending">Em Análise</option>
-                                    <option value="in_progress">Em Progresso</option>
-                                    <option value="implemented">Implementado</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <footer class="modal-card-foot">
-                    <button class="button is-success" id="confirmStatusChange">Confirmar</button>
-                    <button class="button" onclick="closeStatusModal()">Cancelar</button>
-                </footer>
+    <!-- Modal para alterar o status -->
+    <dialog id="statusModal" class="modal">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-bold text-xl">Alterar Status da Sugestão</h3>
+                <form method="dialog">
+                    <button class="btn btn-ghost btn-circle">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <div class="form-control">
+                <label class="label" for="newStatus">
+                    <span class="label-text font-medium">Selecione o novo status:</span>
+                </label>
+                <select id="newStatus" class="select select-bordered w-full">
+                    <option value="pending">Em Análise</option>
+                    <option value="in_progress">Em Progresso</option>
+                    <option value="implemented">Implementado</option>
+                </select>
+            </div>
+            
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-ghost">Cancelar</button>
+                </form>
+                <button class="btn btn-success" id="confirmStatusChange">
+                    <i class="fas fa-check"></i>
+                    Confirmar
+                </button>
             </div>
         </div>
+    </dialog>
 
-        <!-- Modal de Ajuda Markdown -->
-        <div class="modal" id="markdownHelpModal">
-            <div class="modal-background"></div>
-            <div class="modal-card">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">Guia de Markdown</p>
-                    <button class="delete" aria-label="close"></button>
-                </header>
-                <section class="modal-card-body">
-                    <div class="content">
-                        <h3>Formatação Básica</h3>
-                        <ul>
-                            <li><code>**texto**</code> → <strong>texto em negrito</strong></li>
-                            <li><code>*texto*</code> → <em>texto em itálico</em></li>
-                            <li><code># Título</code> → título principal</li>
-                            <li><code>## Subtítulo</code> → subtítulo</li>
-                            <li><code>- item</code> → item de lista</li>
-                            <li><code>1. item</code> → item numerado</li>
-                            <li><code>`código`</code> → <code>código inline</code></li>
-                        </ul>
-                    </div>
-                </section>
+    <!-- Modal de Ajuda Markdown -->
+    <dialog id="markdownHelpModal" class="modal">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-bold text-xl">Guia de Markdown</h3>
+                <form method="dialog">
+                    <button class="btn btn-ghost btn-circle">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <div class="prose max-w-none">
+                <h3 class="text-lg font-semibold mb-3">Formatação Básica</h3>
+                <ul class="list-disc list-inside space-y-1">
+                    <li><code>**texto**</code> → <strong>texto em negrito</strong></li>
+                    <li><code>*texto*</code> → <em>texto em itálico</em></li>
+                    <li><code># Título</code> → título principal</li>
+                    <li><code>## Subtítulo</code> → subtítulo</li>
+                    <li><code>- item</code> → item de lista</li>
+                    <li><code>1. item</code> → item numerado</li>
+                    <li><code>`código`</code> → <code>código inline</code></li>
+                </ul>
             </div>
         </div>
+    </dialog>
 
-        <neo-footer></neo-footer>
+    <neo-footer></neo-footer>
 
-        <script src="../components/navbar/navbar.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <script src="../js/sugestoes-dev.js"></script>
-        <script src="../components/footer/footer.js" type="module"></script>
-    </body>
-
+    <script src="../components/navbar/navbar.js" type="module"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="../js/sugestoes-dev.js"></script>
+    <script src="../components/footer/footer.js" type="module"></script>
+</body>
 </html>

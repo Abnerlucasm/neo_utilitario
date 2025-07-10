@@ -1,12 +1,3 @@
-// Importar CSS como módulo
-const cssPromise = fetch('/components/footer/footer.css')
-    .then(response => response.text())
-    .then(css => {
-        const sheet = new CSSStyleSheet();
-        sheet.replaceSync(css);
-        return sheet;
-    });
-
 // Importar template
 const templatePromise = import('./footer.template.js')
     .then(module => module.getFooterTemplate);
@@ -14,43 +5,36 @@ const templatePromise = import('./footer.template.js')
 class NeoFooter extends HTMLElement {
     constructor() {
         super();
-        this.attachShadow({ mode: 'open' });
     }
 
     async connectedCallback() {
-        // Carregar CSS e template
-        const [sheet, getTemplate] = await Promise.all([
-            cssPromise,
-            templatePromise
-        ]);
-        
-        // Aplicar estilos
-        this.shadowRoot.adoptedStyleSheets = [sheet];
-        
+        // Carregar template
+        const templatePromise = import('./footer.template.js')
+            .then(module => module.getFooterTemplate);
+
         // Renderizar com o template
-        this.render(getTemplate);
+        this.render(await templatePromise);
         
         // Configurar tema e observar mudanças
         this.setupTheme();
     }
 
     setupTheme() {
-        const theme = localStorage.getItem('theme') || 'light';
+        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+        const theme = userSettings.theme || 'light';
         this.applyTheme(theme);
 
-        window.addEventListener('themeChange', (e) => {
+        // Observar mudanças de tema
+        document.addEventListener('theme-changed', (e) => {
             this.applyTheme(e.detail.theme);
         });
     }
 
     applyTheme(theme) {
-        const footer = this.shadowRoot.querySelector('.neo-footer');
+        const footer = this.querySelector('.footer');
         if (footer) {
-            if (theme === 'dark') {
-                footer.classList.add('dark-theme');
-            } else {
-                footer.classList.remove('dark-theme');
-            }
+            // Aplicar tema do DaisyUI
+            document.documentElement.setAttribute('data-theme', theme);
         }
     }
 
@@ -59,7 +43,7 @@ class NeoFooter extends HTMLElement {
         const isDark = userSettings.theme === 'dark';
         
         // Usar o template
-        this.shadowRoot.innerHTML = getTemplate(isDark);
+        this.innerHTML = getTemplate(isDark);
     }
 }
 

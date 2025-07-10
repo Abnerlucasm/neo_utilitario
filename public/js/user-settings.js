@@ -19,15 +19,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function setupEventListeners() {
     // Alternar tema
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('change', toggleTheme);
+    const themeSelect = document.getElementById('themeSelect');
+    if (themeSelect) {
+        themeSelect.addEventListener('change', toggleTheme);
     }
     
-    // Salvar configurações
-    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-    if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', saveUserSettings);
+    // Salvar configurações - corrigir para usar o formulário
+    const userSettingsForm = document.getElementById('userSettingsForm');
+    if (userSettingsForm) {
+        userSettingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveUserSettings();
+        });
+    }
+    
+    // Botão Editar
+    const toggleEditBtn = document.getElementById('toggleEdit');
+    if (toggleEditBtn) {
+        toggleEditBtn.addEventListener('click', toggleEditMode);
     }
     
     // Alternar visibilidade da senha
@@ -40,6 +49,30 @@ function setupEventListeners() {
     const changePasswordForm = document.getElementById('changePasswordForm');
     if (changePasswordForm) {
         changePasswordForm.addEventListener('submit', handleChangePassword);
+    }
+}
+
+function toggleEditMode() {
+    const userName = document.getElementById('userName');
+    const userEmail = document.getElementById('userEmail');
+    const toggleEditBtn = document.getElementById('toggleEdit');
+    
+    if (userName.readOnly) {
+        // Habilitar edição
+        userName.readOnly = false;
+        userEmail.readOnly = false;
+        userEmail.disabled = false;
+        toggleEditBtn.innerHTML = '<i class="fas fa-eye"></i> Visualizar';
+        toggleEditBtn.classList.remove('btn-info');
+        toggleEditBtn.classList.add('btn-warning');
+    } else {
+        // Desabilitar edição
+        userName.readOnly = true;
+        userEmail.readOnly = true;
+        userEmail.disabled = true;
+        toggleEditBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
+        toggleEditBtn.classList.remove('btn-warning');
+        toggleEditBtn.classList.add('btn-info');
     }
 }
 
@@ -99,16 +132,17 @@ async function loadUserSettings() {
         document.getElementById('userEmail').value = settings.email || '';
         
         // Configurar tema
-        const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) {
-            themeToggle.checked = settings.theme === 'dark';
+        const themeSelect = document.getElementById('themeSelect');
+        if (themeSelect) {
+            themeSelect.value = settings.theme || 'light';
             
-            // Aplicar tema
+            // Aplicar tema do DaisyUI
+            document.documentElement.setAttribute('data-theme', settings.theme || 'light');
+            
+            // Manter compatibilidade com tema escuro customizado
             if (settings.theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
                 document.body.classList.add('dark-theme');
             } else {
-                document.documentElement.removeAttribute('data-theme');
                 document.body.classList.remove('dark-theme');
             }
         }
@@ -132,16 +166,17 @@ function applyDefaultSettings() {
     const savedSettings = JSON.parse(localStorage.getItem('userSettings')) || { theme: 'light' };
     
     // Configurar tema
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.checked = savedSettings.theme === 'dark';
+    const themeSelect = document.getElementById('themeSelect');
+    if (themeSelect) {
+        themeSelect.value = savedSettings.theme || 'light';
         
-        // Aplicar tema
+        // Aplicar tema do DaisyUI
+        document.documentElement.setAttribute('data-theme', savedSettings.theme || 'light');
+        
+        // Manter compatibilidade com tema escuro customizado
         if (savedSettings.theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
             document.body.classList.add('dark-theme');
         } else {
-            document.documentElement.removeAttribute('data-theme');
             document.body.classList.remove('dark-theme');
         }
     }
@@ -172,7 +207,7 @@ async function checkUserPermissions() {
         // Mostrar ou ocultar seção de administração
         const adminSection = document.getElementById('adminSection');
         if (adminSection) {
-            adminSection.style.display = isAdmin ? 'block' : 'none';
+            adminSection.classList.toggle('hidden', !isAdmin);
         }
         
     } catch (error) {
@@ -181,20 +216,25 @@ async function checkUserPermissions() {
 }
 
 function toggleTheme(event) {
-    const isDarkTheme = event.target.checked;
+    const selectedTheme = event.target.value;
     
-    if (isDarkTheme) {
-        document.documentElement.setAttribute('data-theme', 'dark');
+    // Aplicar tema do DaisyUI
+    document.documentElement.setAttribute('data-theme', selectedTheme);
+    
+    // Manter compatibilidade com tema escuro customizado
+    if (selectedTheme === 'dark') {
         document.body.classList.add('dark-theme');
-                } else {
-        document.documentElement.removeAttribute('data-theme');
+    } else {
         document.body.classList.remove('dark-theme');
     }
     
     // Salvar configuração no localStorage
     const settings = JSON.parse(localStorage.getItem('userSettings')) || {};
-    settings.theme = isDarkTheme ? 'dark' : 'light';
+    settings.theme = selectedTheme;
     localStorage.setItem('userSettings', JSON.stringify(settings));
+    
+    // Mostrar notificação de sucesso
+    showNotification(`Tema alterado para: ${selectedTheme}`, 'success');
 }
 
 async function saveUserSettings() {
@@ -202,7 +242,7 @@ async function saveUserSettings() {
         const token = localStorage.getItem('auth_token');
         const name = document.getElementById('userName').value;
         const email = document.getElementById('userEmail').value;
-        const theme = document.getElementById('themeToggle').checked ? 'dark' : 'light';
+        const theme = document.getElementById('themeSelect').value;
         
         // Salvar valores no localStorage como backup
         localStorage.setItem('userName', name);
@@ -300,21 +340,20 @@ async function handleChangePassword(event) {
 
 function showNotification(message, type) {
     const notification = document.createElement('div');
-    notification.className = `notification is-${type}`;
+    notification.className = `alert alert-${type === 'danger' ? 'error' : type} mb-4`;
     notification.innerHTML = `
-        <button class="delete"></button>
-        ${message}
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            ${type === 'success' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />' : 
+              type === 'danger' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />' :
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'}
+        </svg>
+        <span>${message}</span>
     `;
     
-    // Adicionar evento para fechar notificação
-    notification.querySelector('.delete').addEventListener('click', () => {
-        notification.remove();
-    });
-    
     // Adicionar notificação à página
-    const notificationsContainer = document.getElementById('notifications');
-    if (notificationsContainer) {
-        notificationsContainer.appendChild(notification);
+    const container = document.querySelector('.container');
+    if (container) {
+        container.insertBefore(notification, container.firstChild);
     } else {
         // Se não houver container, adicionar ao body
         notification.style.position = 'fixed';
@@ -332,6 +371,16 @@ function showNotification(message, type) {
 
 // Limpar token e redirecionar para login
 function clearTokenAndRedirect() {
+    const logoutButton = document.getElementById('logoutButton');
+    const originalText = logoutButton.innerHTML;
+    
+    // Adicionar loading
+    logoutButton.innerHTML = `
+        <span class="loading loading-spinner loading-sm"></span>
+        Saindo...
+    `;
+    logoutButton.disabled = true;
+    
     localStorage.removeItem('auth_token');
     
     // console.log('Token removido. Redirecionando para login...');

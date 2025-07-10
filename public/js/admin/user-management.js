@@ -16,7 +16,7 @@ class UserManager {
             this.updateStats();
         } catch (error) {
             console.error('Erro ao inicializar:', error);
-            this.showToast('Erro ao carregar dados', 'danger');
+            this.showToast('Erro ao carregar dados', 'error');
         }
     }
 
@@ -55,7 +55,7 @@ class UserManager {
             this.updateStats();
         } catch (error) {
             console.error('Erro ao carregar usuários:', error);
-            this.showToast('Erro ao carregar usuários', 'danger');
+            this.showToast('Erro ao carregar usuários', 'error');
         }
     }
 
@@ -76,7 +76,7 @@ class UserManager {
             this.updateStats();
         } catch (error) {
             console.error('Erro ao carregar papéis:', error);
-            this.showToast('Erro ao carregar papéis', 'danger');
+            this.showToast('Erro ao carregar papéis', 'error');
         }
     }
 
@@ -87,61 +87,63 @@ class UserManager {
         container.innerHTML = users.map(user => `
             <tr>
                 <td>
-                    <div class="d-flex align-items-center">
-                        <div class="avatar-circle" style="background-color: ${this.stringToColor(user.username)}">
-                            ${user.username.charAt(0).toUpperCase()}
+                    <div class="flex items-center gap-3">
+                        <div class="avatar placeholder">
+                            <div class="bg-neutral text-neutral-content rounded-full w-8 h-8">
+                                <span class="text-xs">${user.username.charAt(0).toUpperCase()}</span>
+                            </div>
                         </div>
-                        <div class="ms-2">${user.username}</div>
+                        <div class="font-medium">${user.username}</div>
                     </div>
                 </td>
                 <td>${user.email}</td>
                 <td>
-                    <span class="user-status ${user.is_active ? 'active' : 'inactive'}"></span>
-                    ${user.is_active ? 'Ativo' : 'Inativo'}
+                    <div class="flex items-center gap-2">
+                        <div class="badge badge-sm ${user.is_active ? 'badge-success' : 'badge-error'} gap-1">
+                            <div class="w-2 h-2 rounded-full ${user.is_active ? 'bg-success' : 'bg-error'}"></div>
+                            ${user.is_active ? 'Ativo' : 'Inativo'}
+                        </div>
+                    </div>
                 </td>
                 <td>
                     ${user.userRoles?.map(role => `
-                        <span class="roles-badge">${role.name}</span>
+                        <span class="badge badge-outline badge-sm mr-1">${role.name}</span>
                     `).join('') || ''}
                 </td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-warning btn-action" onclick="userManager.editUser('${user.id}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger btn-action" onclick="userManager.deleteUser('${user.id}')" title="Excluir">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                <td class="text-right">
+                    <div class="flex gap-1 justify-end">
+                        <button class="btn btn-ghost btn-sm" onclick="userManager.editUser('${user.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-ghost btn-sm text-error" onclick="userManager.deleteUser('${user.id}')" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="5" class="text-center">Nenhum usuário encontrado</td></tr>';
+        `).join('') || '<tr><td colspan="5" class="text-center py-8 text-base-content/70">Nenhum usuário encontrado</td></tr>';
     }
 
     renderRoles() {
         const rolesContainer = document.getElementById('rolesList');
+        if (!rolesContainer) return;
+        
         rolesContainer.innerHTML = '';
         
         this.roles.forEach(role => {
             const roleCard = document.createElement('div');
-            roleCard.className = `col-md-6 mb-3`;
+            roleCard.className = 'role-card';
             roleCard.innerHTML = `
-                <div class="card role-card border">
-                    <div class="card-body">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="${role.id}" id="role_${role.id}" name="roles">
-                            <label class="form-check-label w-100" for="role_${role.id}">
-                                ${role.name}
-                                <small class="text-muted d-block mt-1">${role.description || 'Papel do sistema'}</small>
-                            </label>
-                        </div>
+                <label class="label cursor-pointer justify-start gap-3 p-4">
+                    <input class="checkbox" type="checkbox" value="${role.id}" id="role_${role.id}" name="roles">
+                    <div class="flex-1">
+                        <div class="font-medium">${role.name}</div>
+                        <div class="text-sm text-base-content/70">${role.description || 'Papel do sistema'}</div>
                     </div>
-                </div>
+                </label>
             `;
             rolesContainer.appendChild(roleCard);
         });
-    }
-    
-    getRoleDescription(roleName) {
-        return 'Papel do sistema';
     }
 
     updateStats() {
@@ -154,18 +156,9 @@ class UserManager {
         if (totalRoles) totalRoles.textContent = this.roles.length;
     }
 
-    stringToColor(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-        return '#' + '00000'.substring(0, 6 - c.length) + c;
-    }
-
     openUserModal(userId = null) {
         this.currentUserId = userId;
-        const modal = new bootstrap.Modal(document.getElementById('userModal'));
+        const modal = document.getElementById('userModal');
         const title = document.getElementById('modalTitle');
         const form = document.getElementById('userForm');
 
@@ -189,7 +182,9 @@ class UserManager {
             }
         }
 
-        modal.show();
+        if (modal) {
+            modal.showModal();
+        }
     }
 
     async saveUser() {
@@ -227,12 +222,6 @@ class UserManager {
                 userData.password = password;
             }
 
-            console.log('Enviando dados do usuário:', { 
-                ...userData, 
-                password: password ? '[PRESENTE]' : '[NÃO ALTERADA]',
-                isUpdate: !!this.currentUserId
-            });
-
             const url = this.currentUserId ? 
                 `/api/admin/users/${this.currentUserId}` : 
                 '/api/admin/users';
@@ -251,12 +240,13 @@ class UserManager {
                 throw new Error(error.error || error.message || 'Erro ao salvar usuário');
             }
 
-            const savedUser = await response.json();
-            console.log('Usuário salvo com sucesso:', savedUser);
-
             await this.loadUsers();
-            const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
-            modal.hide();
+            
+            // Fechar modal
+            const modal = document.getElementById('userModal');
+            if (modal) {
+                modal.close();
+            }
             
             // Mostrar mensagem apropriada
             if (!this.currentUserId) {
@@ -266,7 +256,7 @@ class UserManager {
             }
         } catch (error) {
             console.error('Erro ao salvar usuário:', error);
-            this.showToast(error.message || 'Erro ao salvar usuário', 'danger');
+            this.showToast(error.message || 'Erro ao salvar usuário', 'error');
         }
     }
 
@@ -289,7 +279,7 @@ class UserManager {
             this.showToast('Usuário excluído com sucesso', 'success');
         } catch (error) {
             console.error('Erro ao excluir usuário:', error);
-            this.showToast(error.message || 'Erro ao excluir usuário', 'danger');
+            this.showToast(error.message || 'Erro ao excluir usuário', 'error');
         }
     }
 
@@ -299,14 +289,28 @@ class UserManager {
 
     showToast(message, type = 'info', duration = 5000) {
         const toast = document.createElement('div');
-        toast.className = `alert alert-${type} position-fixed bottom-0 end-0 m-3`;
-        toast.style.zIndex = '1050';
+        toast.className = `alert alert-${type} fixed bottom-4 right-4 z-50 max-w-sm`;
         toast.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="flex items-center gap-2">
+                <i class="fas ${this.getToastIcon(type)}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
         `;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), duration);
+    }
+    
+    getToastIcon(type) {
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+        return icons[type] || icons.info;
     }
 }
 

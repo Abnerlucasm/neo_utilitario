@@ -4,331 +4,188 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consulta de Bancos de Dados - Neo Utilitário</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            daisyui: {
+                themes: [
+                    "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", 
+                    "synthwave", "retro", "cyberpunk", "valentine", "halloween", 
+                    "garden", "forest", "aqua", "lofi", "pastel", "fantasy", 
+                    "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", 
+                    "business", "acid", "lemonade", "night", "coffee", "winter",
+                    "dim", "nord", "sunset", "caramellatte", "abyss", "silk"
+                ]
+            }
+        }
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="manifest" href="../manifest.json">
-    <style>
-        .query-results {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .server-card {
-            transition: all 0.3s ease;
-        }
-        .server-card:hover {
-            transform: translateY(-2px);
-        }
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-        .status-online { background-color: #10b981; }
-        .status-offline { background-color: #ef4444; }
-        .status-error { background-color: #f59e0b; }
-        .query-editor {
-            font-family: 'Courier New', monospace;
-            min-height: 120px;
-        }
-        .result-table {
-            font-size: 0.9em;
-        }
-        .loading-spinner {
-            display: none;
-        }
-        .loading-spinner.is-active {
-            display: inline-block;
-        }
-        /* Estilos para a grid de databases */
-        .databases-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-            padding: 0;
-        }
-        .database-card {
-            background: #f8f9fa;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            padding: 1rem;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: auto;
-            min-height: 120px;
-        }
-        /* Responsividade melhorada */
-        @media screen and (max-width: 768px) {
-            .column.is-4-tablet.is-3-desktop {
-                width: 50%;
-            }
-        }
-        @media screen and (max-width: 480px) {
-            .column.is-4-tablet.is-3-desktop {
-                width: 100%;
-            }
-        }
-        /* Melhorar espaçamento e layout */
-        .section {
-            padding-top: 1.5rem;
-            padding-bottom: 1rem;
-        }
-        .card-content {
-            padding: 1rem 1.25rem;
-        }
-        .box {
-            margin-bottom: 0;
-        }
-        /* Altura máxima para evitar scroll excessivo */
-        .columns.is-variable.is-0 {
-            min-height: 0;
-        }
-        /* Melhorar responsividade das colunas */
-        @media screen and (max-width: 1023px) {
-            .column.is-4 {
-                width: 100%;
-                margin-bottom: 1rem;
-            }
-            .column.is-8 {
-                width: 100%;
-            }
-        }
-        /* Grid flexível para databases */
-        .databases-flex-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        .database-card {
-            flex: 1 1 220px;
-            max-width: 260px;
-            min-width: 180px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            padding: 1rem;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        /* Remove scroll interno do card-content da grid */
-        #databasesCard .card-content {
-            max-height: none;
-            overflow: visible;
-        }
-        /* Responsividade melhorada */
-        @media screen and (max-width: 1023px) {
-            .databases-flex-grid {
-                gap: 0.5rem;
-            }
-            .database-card {
-                max-width: 48vw;
-            }
-        }
-        @media screen and (max-width: 600px) {
-            .database-card {
-                max-width: 100vw;
-                min-width: 90vw;
-            }
-        }
-        .databases-table-grid {
-            width: 100%;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-        .database-cell {
-            background: #fff;
-            border: 1px solid #e5e5e5;
-            border-radius: 6px;
-            padding: 0.75rem 1rem;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            min-width: 0;
-        }
-        .database-cell .db-name {
-            font-weight: 600;
-            font-size: 1rem;
-            margin-bottom: 0.25rem;
-            word-break: break-all;
-        }
-        .database-cell .db-info {
-            font-size: 0.9rem;
-            color: #888;
-            margin-bottom: 0.5rem;
-        }
-        .database-cell .db-actions {
-            margin-top: auto;
-            width: 100%;
-            display: flex;
-            justify-content: flex-end;
-        }
-    </style>
 </head>
-<body>
+<body class="bg-base-200 min-h-screen">
     <neo-navbar></neo-navbar>
 
-    <div class="container mx-auto px-4">
+    <div class="container mx-auto px-4 py-8">
         <!-- Header -->
-        <section class="py-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                        <i class="fas fa-database mr-3 text-primary"></i>
-                        Consulta de Bancos de Dados
-                    </h1>
-                    <p class="text-gray-600 dark:text-gray-300 mt-2">Gerencie servidores e execute consultas em múltiplas bases de dados</p>
-                </div>
-                <div>
-                    <button class="btn btn-primary" onclick="openServerModal()">
-                        <i class="fas fa-plus mr-2"></i>
-                        Novo Servidor
-                    </button>
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-base-content">
+                            <i class="fas fa-database mr-3 text-primary"></i>
+                            Consulta de Bancos de Dados
+                        </h1>
+                        <p class="text-base-content/70 mt-2">Gerencie servidores e execute consultas em múltiplas bases de dados</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="openServerModal()">
+                            <i class="fas fa-plus mr-2"></i>
+                            Novo Servidor
+                        </button>
+                    </div>
                 </div>
             </div>
-        </section>
+        </div>
 
         <!-- Estatísticas -->
-        <section class="mb-8">
-            <div class="stats shadow w-full">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="stats shadow">
                 <div class="stat">
                     <div class="stat-figure text-primary">
                         <i class="fas fa-server text-3xl"></i>
                     </div>
-                    <div class="stat-title">Total de Servidores</div>
+                    <div class="stat-title">Servidores</div>
                     <div class="stat-value text-primary" id="totalServers">0</div>
-                </div>
-                
-                <div class="stat">
-                    <div class="stat-figure text-success">
-                        <i class="fas fa-check-circle text-3xl"></i>
-                    </div>
-                    <div class="stat-title">Online</div>
-                    <div class="stat-value text-success" id="onlineServers">0</div>
-                </div>
-                
-                <div class="stat">
-                    <div class="stat-figure text-error">
-                        <i class="fas fa-times-circle text-3xl"></i>
-                    </div>
-                    <div class="stat-title">Offline</div>
-                    <div class="stat-value text-error" id="offlineServers">0</div>
-                </div>
-                
-                <div class="stat">
-                    <div class="stat-figure text-warning">
-                        <i class="fas fa-exclamation-triangle text-3xl"></i>
-                    </div>
-                    <div class="stat-title">Com Erro</div>
-                    <div class="stat-value text-warning" id="errorServers">0</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Servidores -->
-        <section class="mb-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Lista de Servidores -->
-                <div class="lg:col-span-1">
-                    <div class="card bg-base-100 shadow-xl">
-                        <div class="card-body">
-                            <div class="flex items-center justify-between mb-4">
-                                <h2 class="card-title">
-                                    <i class="fas fa-server mr-2"></i>
-                                    Servidores
-                                </h2>
-                                <button class="btn btn-ghost btn-sm" onclick="refreshServers()">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
-                            </div>
-                            <div id="serversList">
-                                <!-- Lista de servidores será carregada aqui -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Databases dos Servidores -->
-                <div class="lg:col-span-2">
-                    <div class="card bg-base-100 shadow-xl">
-                        <div class="card-body">
-                            <div class="flex items-center justify-between mb-4">
-                                <h2 class="card-title">
-                                    <i class="fas fa-database mr-2"></i>
-                                    Databases dos Servidores
-                                </h2>
-                                <button class="btn btn-ghost btn-sm" onclick="refreshDatabases()">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text">Selecionar Servidores</span>
-                                </label>
-                                <div id="serverCheckboxes">
-                                    <!-- Checkboxes dos servidores serão carregados aqui -->
-                                </div>
-                            </div>
-
-                            <div class="mt-4">
-                                                                    <button class="btn btn-primary" onclick="loadDatabases()">
-                                        <i class="fas fa-search mr-2"></i>
-                                        Listar Databases
-                                        <span class="loading loading-spinner loading-md ml-2" id="databaseLoading"></span>
-                                    </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
             
-            <!-- Seção de Databases -->
-            <div id="databasesSection" class="mt-8" style="display: none;">
+            <div class="stats shadow">
+                <div class="stat">
+                    <div class="stat-figure text-success">
+                        <i class="fas fa-database text-3xl"></i>
+                    </div>
+                    <div class="stat-title">Bancos</div>
+                    <div class="stat-value text-success" id="totalDatabases">0</div>
+                </div>
+            </div>
+            
+            <div class="stats shadow">
+                <div class="stat">
+                    <div class="stat-figure text-info">
+                        <i class="fas fa-check-circle text-3xl"></i>
+                    </div>
+                    <div class="stat-title">Online</div>
+                    <div class="stat-value text-info" id="onlineServers">0</div>
+                </div>
+            </div>
+            
+            <div class="stats shadow">
+                <div class="stat">
+                    <div class="stat-figure text-warning">
+                        <i class="fas fa-clock text-3xl"></i>
+                    </div>
+                    <div class="stat-title">Consultas</div>
+                    <div class="stat-value text-warning" id="totalQueries">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servidores -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Lista de Servidores -->
+            <div class="lg:col-span-1">
                 <div class="card bg-base-100 shadow-xl">
                     <div class="card-body">
-                        <h3 class="card-title mb-4">Databases Encontradas</h3>
-                        
-                        <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                            <div class="form-control flex-1">
-                                <input id="databaseSearch" class="input input-bordered" type="search" placeholder="Pesquisar database..." oninput="filterAndPaginateDatabases()">
-                            </div>
-                            <div class="form-control w-full sm:w-auto">
-                                <select id="databasesPerPage" class="select select-bordered" onchange="filterAndPaginateDatabases()">
-                                    <option value="5">5 por página</option>
-                                    <option value="10" selected>10 por página</option>
-                                    <option value="25">25 por página</option>
-                                    <option value="50">50 por página</option>
-                                </select>
-                            </div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="card-title">
+                                <i class="fas fa-server mr-2"></i>
+                                Servidores
+                            </h2>
+                            <button class="btn btn-ghost btn-sm" onclick="refreshServers()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
                         </div>
-                        
-                        <div id="databasesGrid"></div>
-                        
-                        <div class="flex justify-center mt-6">
-                            <div class="join" id="databasesPagination" style="display:none;"></div>
+                        <div id="serversList">
+                            <!-- Lista de servidores será carregada aqui -->
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
+
+            <!-- Databases dos Servidores -->
+            <div class="lg:col-span-2">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="card-title">
+                                <i class="fas fa-database mr-2"></i>
+                                Databases dos Servidores
+                            </h2>
+                            <button class="btn btn-ghost btn-sm" onclick="refreshDatabases()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Selecionar Servidores</span>
+                            </label>
+                            <div id="serverCheckboxes">
+                                <!-- Checkboxes dos servidores serão carregados aqui -->
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button class="btn btn-primary" onclick="loadDatabases()">
+                                <i class="fas fa-search mr-2"></i>
+                                Listar Databases
+                                <span class="loading loading-spinner loading-md ml-2" id="databaseLoading"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Seção de Databases -->
+        <div id="databasesSection" class="mb-8" style="display: none;">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">Databases Encontradas</h3>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                        <div class="form-control flex-1">
+                            <input id="databaseSearch" class="input input-bordered" type="search" placeholder="Pesquisar database..." oninput="filterAndPaginateDatabases()">
+                        </div>
+                        <div class="form-control w-full sm:w-auto">
+                            <select id="databasesPerPage" class="select select-bordered" onchange="filterAndPaginateDatabases()">
+                                <option value="5">5 por página</option>
+                                <option value="10" selected>10 por página</option>
+                                <option value="25">25 por página</option>
+                                <option value="50">50 por página</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="databasesGrid"></div>
+                    
+                    <div class="flex justify-center mt-6">
+                        <div class="join" id="databasesPagination" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Créditos -->
-        <section class="mb-4">
-            <div class="text-center text-gray-500 text-sm space-y-1">
-                <p>Idealizadores: <strong>Eder, Renato, Guilherme, Patrick</strong></p>
-                <p>Desenvolvido por <strong>Abner</strong></p>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="text-center text-base-content/70 text-sm space-y-1">
+                    <p>Idealizadores: <strong>Eder, Renato, Guilherme, Patrick</strong></p>
+                    <p>Desenvolvido por <strong>Abner</strong></p>
+                </div>
             </div>
-        </section>
+        </div>
     </div>
 
     <!-- Modal para adicionar/editar servidor -->
@@ -411,8 +268,14 @@
 
     <neo-footer></neo-footer>
 
-    <script src="../components/navbar/navbar.js"></script>
-    <script src="../js/consultabd.js"></script>
-    <script src="../components/footer/footer.js" type="module"></script>
+    <script src="/components/navbar/navbar.js" type="module"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/consultabd.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            AuthManager.checkAuth();
+        });
+    </script>
 </body>
 </html> 

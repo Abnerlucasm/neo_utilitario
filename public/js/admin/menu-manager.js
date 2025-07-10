@@ -1,34 +1,49 @@
 class MenuManager {
     constructor() {
-        this.menus = [];
-        this.selectedMenuId = null;
-        this.iconList = [
-            'fas fa-home', 'fas fa-user', 'fas fa-cog', 'fas fa-tools', 'fas fa-server',
-            'fas fa-database', 'fas fa-chart-line', 'fas fa-graduation-cap', 'fas fa-book',
-            'fas fa-users', 'fas fa-user-shield', 'fas fa-user-cog', 'fas fa-user-tag',
-            'fas fa-rocket', 'fas fa-lightbulb', 'fas fa-bars', 'fas fa-link', 'fas fa-globe',
-            'fas fa-ticket-alt', 'fas fa-file', 'fas fa-folder', 'fas fa-envelope',
-            'fas fa-bell', 'fas fa-calendar', 'fas fa-clock', 'fas fa-search',
-            'fas fa-shield-alt', 'fas fa-lock', 'fas fa-key', 'fas fa-sign-in-alt',
-            'fas fa-sign-out-alt', 'fas fa-plus', 'fas fa-minus', 'fas fa-times',
-            'fas fa-check', 'fas fa-exclamation-triangle', 'fas fa-info-circle',
-            'fas fa-question-circle', 'fas fa-comment', 'fas fa-comments',
-            'fas fa-paper-plane', 'fas fa-download', 'fas fa-upload', 'fas fa-sync',
-            'fas fa-redo', 'fas fa-undo', 'fas fa-trash', 'fas fa-edit',
-            'fas fa-eye', 'fas fa-eye-slash', 'fas fa-print', 'fas fa-save',
-            'fas fa-copy', 'fas fa-paste', 'fas fa-cut', 'fas fa-list',
-            'fas fa-table', 'fas fa-chart-bar', 'fas fa-chart-pie', 'fas fa-chart-area'
-        ];
+        // Estado da aplicação
+        this.state = {
+            menus: [],
+            selectedMenuId: null,
+            isLoading: false
+        };
+        
+        // Configurações
+        this.config = {
+            iconList: [
+                'fas fa-home', 'fas fa-user', 'fas fa-cog', 'fas fa-tools', 'fas fa-server',
+                'fas fa-database', 'fas fa-chart-line', 'fas fa-graduation-cap', 'fas fa-book',
+                'fas fa-users', 'fas fa-user-shield', 'fas fa-user-cog', 'fas fa-user-tag',
+                'fas fa-rocket', 'fas fa-lightbulb', 'fas fa-bars', 'fas fa-link', 'fas fa-globe',
+                'fas fa-ticket-alt', 'fas fa-file', 'fas fa-folder', 'fas fa-envelope',
+                'fas fa-bell', 'fas fa-calendar', 'fas fa-clock', 'fas fa-search',
+                'fas fa-shield-alt', 'fas fa-lock', 'fas fa-key', 'fas fa-sign-in-alt',
+                'fas fa-sign-out-alt', 'fas fa-plus', 'fas fa-minus', 'fas fa-times',
+                'fas fa-check', 'fas fa-exclamation-triangle', 'fas fa-info-circle',
+                'fas fa-question-circle', 'fas fa-comment', 'fas fa-comments',
+                'fas fa-paper-plane', 'fas fa-download', 'fas fa-upload', 'fas fa-sync',
+                'fas fa-redo', 'fas fa-undo', 'fas fa-trash', 'fas fa-edit',
+                'fas fa-eye', 'fas fa-eye-slash', 'fas fa-print', 'fas fa-save',
+                'fas fa-copy', 'fas fa-paste', 'fas fa-cut', 'fas fa-list',
+                'fas fa-table', 'fas fa-chart-bar', 'fas fa-chart-pie', 'fas fa-chart-area'
+            ],
+            validationRules: {
+                title: { minLength: 3, required: true },
+                path: { required: true, mustStartWith: '/' }
+            },
+            defaultMenu: {
+                icon: 'fas fa-link',
+                order: 0,
+                isAdminOnly: false,
+                isActive: true
+            }
+        };
         
         this.init();
     }
     
     async init() {
         try {
-            // Configurar event listeners
             this.setupEventListeners();
-            
-            // Carregar menus
             await this.loadMenus();
         } catch (error) {
             console.error('Erro ao inicializar gerenciador de menus:', error);
@@ -37,35 +52,59 @@ class MenuManager {
     }
     
     setupEventListeners() {
-        // Mostrar/ocultar menus inativos
-        const showInactiveMenus = document.getElementById('showInactiveMenus');
-        if (showInactiveMenus) {
-            showInactiveMenus.addEventListener('change', () => {
-                this.renderMenuTree();
-            });
+        // Elementos do formulário
+        const elements = {
+            showInactiveMenus: document.getElementById('showInactiveMenus'),
+            iconSelectorBtn: document.getElementById('iconSelectorBtn'),
+            menuIcon: document.getElementById('menuIcon'),
+            menuTitle: document.getElementById('menuTitle'),
+            menuPath: document.getElementById('menuPath'),
+            menuIsAdminOnly: document.getElementById('menuIsAdminOnly'),
+            menuIsActive: document.getElementById('menuIsActive'),
+            modal: document.getElementById('menuModal')
+        };
+        
+        // Event listeners para filtros
+        if (elements.showInactiveMenus) {
+            elements.showInactiveMenus.addEventListener('change', () => this.renderMenuTree());
         }
         
-        // Seletor de ícones
-        const iconSelectorBtn = document.getElementById('iconSelectorBtn');
-        if (iconSelectorBtn) {
-            iconSelectorBtn.addEventListener('click', (e) => {
+        // Event listeners para seletor de ícones
+        if (elements.iconSelectorBtn) {
+            elements.iconSelectorBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.toggleIconSelector();
             });
         }
         
-        // Atualizar preview do ícone
-        const menuIcon = document.getElementById('menuIcon');
-        if (menuIcon) {
-            menuIcon.addEventListener('input', () => {
-                this.updateIconPreview();
-            });
+        // Event listeners para preview em tempo real
+        const previewFields = ['menuIcon', 'menuTitle', 'menuPath', 'menuIsAdminOnly', 'menuIsActive'];
+        previewFields.forEach(fieldId => {
+            const element = elements[fieldId];
+            if (element) {
+                const eventType = element.type === 'checkbox' ? 'change' : 'input';
+                element.addEventListener(eventType, () => {
+                    this.updateMenuPreview();
+                    if (fieldId === 'menuIcon') {
+                        this.updateIconPreview();
+                    }
+                    if (['menuTitle', 'menuPath'].includes(fieldId)) {
+                        this.validateField(element, fieldId.replace('menu', '').toLowerCase());
+                    }
+                });
+            }
+        });
+        
+        // Event listener para limpeza do modal
+        if (elements.modal) {
+            elements.modal.addEventListener('close', () => this.clearMenuForm());
         }
     }
     
     async loadMenus() {
         try {
-            console.log('Tentando carregar menus...');
+            this.setState({ isLoading: true });
+            
             const response = await fetch('/api/menus', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -74,35 +113,38 @@ class MenuManager {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error(`Erro ao carregar menus: ${response.status} - ${errorText}`);
                 throw new Error(`Erro ${response.status}: ${errorText}`);
             }
             
             const menus = await response.json();
-            this.menus = this.flattenMenus(menus);
+            this.state.menus = this.flattenMenus(menus);
             
-            console.log('Menus carregados com sucesso:', this.menus);
-            
-            // Renderizar árvore de menus
             this.renderMenuTree();
-            
-            // Preencher select de menus pais
             this.populateParentSelect();
+            
         } catch (error) {
             console.error('Erro ao carregar menus:', error);
             this.showToast(`Erro ao carregar menus: ${error.message}`, 'danger');
-            
-            // Mostrar mensagem de erro na árvore de menus
-            const menuTree = document.getElementById('menuTree');
-            if (menuTree) {
-                menuTree.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Erro ao carregar menus: ${error.message}
-                        <br>
-                        <small>Verifique o console para mais detalhes ou entre em contato com o suporte.</small>
-                    </div>
-                `;
-            }
+            this.showErrorMessage(error.message);
+        } finally {
+            this.setState({ isLoading: false });
+        }
+    }
+    
+    setState(newState) {
+        this.state = { ...this.state, ...newState };
+    }
+    
+    showErrorMessage(message) {
+        const menuTree = document.getElementById('menuTree');
+        if (menuTree) {
+            menuTree.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar menus: ${message}
+                    <br>
+                    <small>Verifique o console para mais detalhes ou entre em contato com o suporte.</small>
+                </div>
+            `;
         }
     }
     
@@ -129,7 +171,7 @@ class MenuManager {
         menuTree.innerHTML = '';
         
         // Verificar se há menus
-        if (this.menus.length === 0) {
+        if (this.state.menus.length === 0) {
             menuTree.innerHTML = `
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i> Nenhum menu encontrado. Clique em "Novo Menu" para criar.
@@ -139,7 +181,7 @@ class MenuManager {
         }
         
         // Filtrar menus de nível superior (sem parentId)
-        const rootMenus = this.menus.filter(menu => !menu.parentId);
+        const rootMenus = this.state.menus.filter(menu => !menu.parentId);
         
         // Mostrar menus inativos?
         const showInactive = document.getElementById('showInactiveMenus')?.checked || false;
@@ -159,13 +201,22 @@ class MenuManager {
     
     renderSubmenus(parentId, parentElement, showInactive) {
         // Filtrar submenus
-        const submenus = this.menus.filter(menu => menu.parentId === parentId);
+        const submenus = this.state.menus.filter(menu => menu.parentId === parentId);
         
         if (submenus.length === 0) return;
         
-        // Criar container para submenus
+        // Criar container para submenus com visual melhorado
         const submenuContainer = document.createElement('div');
-        submenuContainer.className = 'submenu-container';
+        submenuContainer.className = 'submenu-container ml-8 mt-4 border-l-2 border-primary/20 pl-4';
+        
+        // Adicionar cabeçalho do submenu
+        const submenuHeader = document.createElement('div');
+        submenuHeader.className = 'text-sm font-medium text-base-content/70 mb-3 flex items-center gap-2';
+        submenuHeader.innerHTML = `
+            <i class="fas fa-level-down-alt"></i>
+            Submenus (${submenus.length})
+        `;
+        submenuContainer.appendChild(submenuHeader);
         
         // Renderizar submenus
         submenus.forEach(submenu => {
@@ -185,24 +236,36 @@ class MenuManager {
     
     createMenuItemElement(menu) {
         const menuItem = document.createElement('div');
-        menuItem.className = `menu-item ${this.selectedMenuId === menu.id ? 'active' : ''}`;
+        menuItem.className = `menu-item ${this.state.selectedMenuId === menu.id ? 'active' : ''} hover:shadow-md transition-all duration-200`;
         menuItem.dataset.id = menu.id;
+        
+        // Verificar se tem submenus
+        const hasSubmenus = this.state.menus.some(m => m.parentId === menu.id);
         
         // Conteúdo do item
         menuItem.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="icon-preview"><i class="${menu.icon}"></i></span>
-                    <span>${menu.title}</span>
-                    ${menu.isAdminOnly ? '<span class="admin-badge">Admin</span>' : ''}
-                    ${!menu.isActive ? '<span class="inactive-badge">Inativo</span>' : ''}
-                    <div class="menu-path">${menu.path}</div>
+            <div class="flex items-center justify-between p-4 rounded-lg border border-base-300 bg-base-100 hover:bg-base-200 transition-colors">
+                <div class="flex items-center gap-3 flex-1">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
+                        <i class="${menu.icon} text-lg"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="font-semibold text-base-content">${menu.title}</h3>
+                            ${menu.isAdminOnly ? '<span class="badge badge-error badge-sm">Admin</span>' : ''}
+                            ${!menu.isActive ? '<span class="badge badge-neutral badge-sm">Inativo</span>' : ''}
+                            ${hasSubmenus ? '<span class="badge badge-info badge-sm">Pai</span>' : ''}
+                        </div>
+                        <div class="text-sm text-base-content/70 font-mono bg-base-200 px-2 py-1 rounded">
+                            ${menu.path}
+                        </div>
+                    </div>
                 </div>
-                <div class="menu-actions">
-                    <button class="btn btn-sm btn-outline-primary btn-action edit-menu" title="Editar">
+                <div class="flex items-center gap-2">
+                    <button class="btn btn-ghost btn-sm edit-menu" title="Editar menu">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger btn-action delete-menu" title="Excluir">
+                    <button class="btn btn-ghost btn-sm delete-menu text-error hover:text-error" title="Excluir menu">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -212,7 +275,7 @@ class MenuManager {
         // Adicionar event listeners
         menuItem.addEventListener('click', (e) => {
             // Ignorar cliques nos botões
-            if (e.target.closest('.btn-action')) return;
+            if (e.target.closest('.btn')) return;
             
             // Selecionar menu
             this.selectMenu(menu.id);
@@ -233,7 +296,7 @@ class MenuManager {
     
     selectMenu(menuId) {
         // Atualizar menu selecionado
-        this.selectedMenuId = menuId;
+        this.setState({ selectedMenuId: menuId });
         
         // Atualizar classe ativa
         document.querySelectorAll('.menu-item').forEach(item => {
@@ -249,74 +312,107 @@ class MenuManager {
         if (!menuDetails) return;
         
         // Encontrar menu
-        const menu = this.menus.find(m => m.id === menuId);
+        const menu = this.state.menus.find(m => m.id === menuId);
         if (!menu) {
             menuDetails.innerHTML = `
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i> Menu não encontrado
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Menu não encontrado</span>
                 </div>
             `;
             return;
         }
         
         // Encontrar menu pai
-        const parentMenu = menu.parentId ? this.menus.find(m => m.id === menu.parentId) : null;
+        const parentMenu = menu.parentId ? this.state.menus.find(m => m.id === menu.parentId) : null;
         
-        // Renderizar detalhes
+        // Verificar se tem submenus
+        const hasSubmenus = this.state.menus.some(m => m.parentId === menuId);
+        const submenus = this.state.menus.filter(m => m.parentId === menuId);
+        
+        // Renderizar detalhes com visual melhorado
         menuDetails.innerHTML = `
-            <div class="mb-3 text-center">
-                <span class="icon-preview" style="font-size: 2rem;">
-                    <i class="${menu.icon}"></i>
-                </span>
-                <h4 class="mt-2">${menu.title}</h4>
-                <div class="text-muted">${menu.path}</div>
-            </div>
-            
-            <div class="mb-3">
-                <strong>ID:</strong> <span class="text-muted">${menu.id}</span>
-            </div>
-            
-            <div class="mb-3">
-                <strong>Ordem:</strong> ${menu.order}
-            </div>
-            
-            <div class="mb-3">
-                <strong>Menu Pai:</strong> ${parentMenu ? parentMenu.title : 'Nenhum (Menu Principal)'}
-            </div>
-            
-            <div class="mb-3">
-                <strong>Caminho do Recurso:</strong> <span class="text-muted">${menu.resourcePath || menu.path}</span>
-            </div>
-            
-            <div class="mb-3">
-                <strong>Status:</strong> 
-                <span class="badge ${menu.isActive ? 'bg-success' : 'bg-secondary'}">
-                    ${menu.isActive ? 'Ativo' : 'Inativo'}
-                </span>
-            </div>
-            
-            <div class="mb-3">
-                <strong>Acesso:</strong> 
-                <span class="badge ${menu.isAdminOnly ? 'bg-danger' : 'bg-primary'}">
-                    ${menu.isAdminOnly ? 'Apenas Administradores' : 'Todos os Usuários'}
-                </span>
-            </div>
-            
-            <div class="mb-3">
-                <strong>Criado em:</strong> ${new Date(menu.createdAt).toLocaleString()}
-            </div>
-            
-            <div class="mb-3">
-                <strong>Atualizado em:</strong> ${new Date(menu.updatedAt).toLocaleString()}
-            </div>
-            
-            <div class="d-flex justify-content-center gap-2 mt-4">
-                <button class="btn btn-primary" onclick="menuManager.openMenuModal('${menu.id}')">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
-                <button class="btn btn-danger" onclick="menuManager.deleteMenu('${menu.id}')">
-                    <i class="fas fa-trash"></i> Excluir
-                </button>
+            <div class="space-y-4">
+                <!-- Header do menu -->
+                <div class="text-center p-4 bg-base-200 rounded-lg">
+                    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 text-primary mb-3">
+                        <i class="${menu.icon} text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-base-content">${menu.title}</h3>
+                    <p class="text-base-content/70 font-mono text-sm mt-1">${menu.path}</p>
+                </div>
+                
+                <!-- Status badges -->
+                <div class="flex flex-wrap gap-2 justify-center">
+                    ${menu.isAdminOnly ? '<span class="badge badge-error">Apenas Admin</span>' : '<span class="badge badge-success">Todos os Usuários</span>'}
+                    ${menu.isActive ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-neutral">Inativo</span>'}
+                    ${hasSubmenus ? `<span class="badge badge-info">Menu Pai (${submenus.length} submenus)</span>` : '<span class="badge badge-ghost">Menu Simples</span>'}
+                </div>
+                
+                <!-- Informações detalhadas -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
+                        <span class="font-medium">ID:</span>
+                        <span class="text-sm font-mono text-base-content/70">${menu.id}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
+                        <span class="font-medium">Ordem:</span>
+                        <span class="badge badge-outline">${menu.order}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
+                        <span class="font-medium">Menu Pai:</span>
+                        <span class="text-sm">${parentMenu ? parentMenu.title : 'Nenhum (Menu Principal)'}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
+                        <span class="font-medium">Recurso:</span>
+                        <span class="text-sm font-mono text-base-content/70">${menu.resourcePath || menu.path}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
+                        <span class="font-medium">Criado:</span>
+                        <span class="text-sm">${new Date(menu.createdAt).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
+                        <span class="font-medium">Atualizado:</span>
+                        <span class="text-sm">${new Date(menu.updatedAt).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                </div>
+                
+                <!-- Submenus preview -->
+                ${hasSubmenus ? `
+                    <div class="mt-4">
+                        <h4 class="font-medium mb-2 flex items-center gap-2">
+                            <i class="fas fa-level-down-alt"></i>
+                            Submenus (${submenus.length})
+                        </h4>
+                        <div class="space-y-2 max-h-32 overflow-y-auto">
+                            ${submenus.map(submenu => `
+                                <div class="flex items-center gap-2 p-2 bg-base-200 rounded text-sm">
+                                    <i class="${submenu.icon} text-primary"></i>
+                                    <span>${submenu.title}</span>
+                                    ${submenu.isAdminOnly ? '<span class="badge badge-error badge-xs">Admin</span>' : ''}
+                                    ${!submenu.isActive ? '<span class="badge badge-neutral badge-xs">Inativo</span>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Ações -->
+                <div class="flex gap-2 mt-6">
+                    <button class="btn btn-primary btn-sm flex-1" onclick="menuManager.openMenuModal('${menu.id}')">
+                        <i class="fas fa-edit"></i>
+                        Editar
+                    </button>
+                    <button class="btn btn-error btn-sm flex-1" onclick="menuManager.deleteMenu('${menu.id}')">
+                        <i class="fas fa-trash"></i>
+                        Excluir
+                    </button>
+                </div>
             </div>
         `;
     }
@@ -329,9 +425,9 @@ class MenuManager {
         menuParent.innerHTML = '<option value="">Nenhum (Menu Principal)</option>';
         
         // Adicionar opções
-        this.menus.forEach(menu => {
+        this.state.menus.forEach(menu => {
             // Não adicionar o menu atual como opção de pai
-            if (menu.id === this.selectedMenuId) return;
+            if (menu.id === this.state.selectedMenuId) return;
             
             const option = document.createElement('option');
             option.value = menu.id;
@@ -341,150 +437,223 @@ class MenuManager {
     }
     
     openMenuModal(menuId = null) {
-        this.selectedMenuId = menuId;
+        this.setState({ selectedMenuId: menuId });
         
         const modalTitle = document.getElementById('modalTitle');
-        const menuForm = document.getElementById('menuForm');
+        const iconSelector = document.getElementById('iconSelector');
         
         // Atualizar título do modal
         modalTitle.textContent = menuId ? 'Editar Menu' : 'Novo Menu';
         
-        // Limpar formulário
-        menuForm.reset();
-        
         // Ocultar seletor de ícones
-        document.getElementById('iconSelector').style.display = 'none';
+        if (iconSelector) {
+            iconSelector.style.display = 'none';
+        }
         
         // Preencher select de menus pais
         this.populateParentSelect();
         
         if (menuId) {
             // Preencher formulário com dados do menu
-            const menu = this.menus.find(m => m.id === menuId);
+            const menu = this.state.menus.find(m => m.id === menuId);
             if (menu) {
-                document.getElementById('menuId').value = menu.id;
-                document.getElementById('menuTitle').value = menu.title;
-                document.getElementById('menuPath').value = menu.path;
-                document.getElementById('menuIcon').value = menu.icon;
-                document.getElementById('menuOrder').value = menu.order;
-                document.getElementById('menuParent').value = menu.parentId || '';
-                document.getElementById('menuResourcePath').value = menu.resourcePath || '';
-                document.getElementById('menuIsAdminOnly').checked = menu.isAdminOnly;
-                document.getElementById('menuIsActive').checked = menu.isActive;
-                
-                // Atualizar preview do ícone
-                this.updateIconPreview();
+                this.setFormData(menu);
+                this.updatePreviews();
+                this.validateFormFields();
             }
         } else {
             // Valores padrão para novo menu
-            document.getElementById('menuId').value = '';
-            document.getElementById('menuIcon').value = 'fas fa-link';
-            document.getElementById('menuOrder').value = '0';
-            document.getElementById('menuIsAdminOnly').checked = false;
-            document.getElementById('menuIsActive').checked = true;
-            
-            // Atualizar preview do ícone
-            this.updateIconPreview();
+            this.setFormData(this.config.defaultMenu);
+            this.updatePreviews();
+            this.clearFormValidations();
         }
         
         // Abrir modal
-        const modal = new bootstrap.Modal(document.getElementById('menuModal'));
-        modal.show();
+        this.openModal();
+    }
+    
+    updatePreviews() {
+        this.updateIconPreview();
+        this.updateMenuPreview();
+    }
+    
+    validateFormFields() {
+        this.validateField(document.getElementById('menuTitle'), 'title');
+        this.validateField(document.getElementById('menuPath'), 'path');
+    }
+    
+    clearFormValidations() {
+        const titleField = document.getElementById('menuTitle');
+        const pathField = document.getElementById('menuPath');
+        
+        if (titleField) {
+            this.hideFieldError(titleField.closest('.form-control'));
+        }
+        if (pathField) {
+            this.hideFieldError(pathField.closest('.form-control'));
+        }
+    }
+    
+    openModal() {
+        const modal = document.getElementById('menuModal');
+        if (modal) {
+            modal.showModal();
+            
+            // Focar no primeiro campo
+            setTimeout(() => {
+                const titleField = document.getElementById('menuTitle');
+                if (titleField) {
+                    titleField.focus();
+                }
+            }, 100);
+        }
+    }
+    
+    clearMenuForm() {
+        const form = document.getElementById('menuForm');
+        if (!form) return;
+        
+        form.reset();
+        this.clearValidations(form);
+        this.resetPreviews();
+    }
+    
+    clearValidations(form) {
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.classList.remove('input-success', 'input-error');
+            const inputGroup = input.closest('.form-control');
+            if (inputGroup) {
+                this.hideFieldError(inputGroup);
+            }
+        });
+    }
+    
+    resetPreviews() {
+        this.updateIconPreview();
+        this.updateMenuPreview();
+    }
+    
+    getFormData() {
+        return {
+            id: document.getElementById('menuId').value,
+            title: document.getElementById('menuTitle').value,
+            path: document.getElementById('menuPath').value,
+            icon: document.getElementById('menuIcon').value,
+            order: document.getElementById('menuOrder').value,
+            parentId: document.getElementById('menuParent').value || null,
+            resourcePath: document.getElementById('menuResourcePath').value || null,
+            isAdminOnly: document.getElementById('menuIsAdminOnly').checked,
+            isActive: document.getElementById('menuIsActive').checked
+        };
+    }
+    
+    setFormData(data) {
+        const fields = {
+            menuId: data.id || '',
+            menuTitle: data.title || '',
+            menuPath: data.path || '',
+            menuIcon: data.icon || this.config.defaultMenu.icon,
+            menuOrder: data.order || this.config.defaultMenu.order,
+            menuParent: data.parentId || '',
+            menuResourcePath: data.resourcePath || '',
+            menuIsAdminOnly: data.isAdminOnly || this.config.defaultMenu.isAdminOnly,
+            menuIsActive: data.isActive !== undefined ? data.isActive : this.config.defaultMenu.isActive
+        };
+        
+        Object.entries(fields).forEach(([fieldId, value]) => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = value;
+                } else {
+                    element.value = value;
+                }
+            }
+        });
     }
     
     async saveMenu() {
         try {
-            // Obter dados do formulário
-            const menuId = document.getElementById('menuId').value;
-            const title = document.getElementById('menuTitle').value;
-            const path = document.getElementById('menuPath').value;
-            const icon = document.getElementById('menuIcon').value;
-            const order = document.getElementById('menuOrder').value;
-            const parentId = document.getElementById('menuParent').value || null;
-            const resourcePath = document.getElementById('menuResourcePath').value || null;
-            const isAdminOnly = document.getElementById('menuIsAdminOnly').checked;
-            const isActive = document.getElementById('menuIsActive').checked;
+            const formData = this.getFormData();
             
-            // Validação de dados mais rigorosa
-            const validationErrors = [];
+            // Validar dados
+            const validationErrors = this.validateFormData(formData);
             
-            if (!title || title.trim() === '') {
-                validationErrors.push('O título do menu é obrigatório');
-            }
-            
-            if (!path || path.trim() === '') {
-                validationErrors.push('O caminho (path) do menu é obrigatório');
-            }
-            
-            if (parentId === menuId) {
-                validationErrors.push('Um menu não pode ser pai de si mesmo');
-            }
-            
-            // Se houver erros de validação, mostrar e interromper o envio
             if (validationErrors.length > 0) {
-                const errorMessage = validationErrors.join('<br>');
-                this.showToast(errorMessage, 'warning');
-                
-                // Adicionar informações ao diagnóstico se existir
-                const diagArea = document.getElementById('saveMenuDiagnostic');
-                if (diagArea) {
-                    diagArea.innerHTML = `
-                        <div class="alert alert-warning">
-                            <strong>Erros de validação:</strong>
-                            <ul>${validationErrors.map(err => `<li>${err}</li>`).join('')}</ul>
-                        </div>
-                    `;
-                }
-                
+                this.showValidationErrors(validationErrors);
                 return;
             }
             
-            // Preparar dados com tipos de dados corretos
-            const menuData = {
-                title: String(title).trim(),
-                path: String(path).trim(),
-                icon: icon ? String(icon).trim() : 'fas fa-link',
-                order: parseInt(order, 10) || 0,
-                parentId: parentId === '' || parentId === 'null' ? null : parentId,
-                resourcePath: resourcePath ? String(resourcePath).trim() : null,
-                isAdminOnly: Boolean(isAdminOnly),
-                isActive: Boolean(isActive)
-            };
+            // Preparar dados para envio
+            const menuData = this.prepareMenuData(formData);
             
-            console.log('Enviando dados para salvar menu:', menuData);
+            // Salvar menu
+            await this.saveMenuToServer(menuData, formData.id);
             
-            // Determinar método e URL
-            const method = menuId ? 'PUT' : 'POST';
-            const url = menuId ? `/api/menus/${menuId}` : '/api/menus';
-            
-            // Exibir debugging detalhado
-            console.log(`Método HTTP: ${method}`);
-            console.log(`URL da requisição: ${url}`);
-            console.log(`Token de autenticação presente: ${!!localStorage.getItem('auth_token')}`);
-            console.log(`Payload JSON: ${JSON.stringify(menuData, null, 2)}`);
-            
-            // Mostrar indicador de carregamento
-            const saveBtn = document.querySelector('#menuModal .btn-primary');
-            if (saveBtn) {
-                saveBtn.disabled = true;
-                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
-            }
-            
-            // Adicionar informações de diagnóstico na página
-            const diagArea = document.createElement('div');
-            diagArea.id = 'saveMenuDiagnostic';
-            diagArea.className = 'alert alert-info mt-3';
-            diagArea.innerHTML = '<strong>Diagnóstico da requisição:</strong><pre>Enviando requisição...</pre>';
-            document.getElementById('menuForm').appendChild(diagArea);
-            
-            // Acompanhar início da requisição
-            const startTime = Date.now();
-            
-            let responseData;
-            let responseText;
-            
-            try {
-            // Enviar requisição
+        } catch (error) {
+            console.error('Erro ao salvar menu:', error);
+            this.showToast(`Erro ao salvar menu: ${error.message}`, 'danger', 8000);
+        }
+    }
+    
+    validateFormData(data) {
+        const errors = [];
+        
+        if (!data.title || data.title.trim() === '') {
+            errors.push('O título do menu é obrigatório');
+        }
+        
+        if (!data.path || data.path.trim() === '') {
+            errors.push('O caminho (path) do menu é obrigatório');
+        }
+        
+        if (data.parentId === data.id) {
+            errors.push('Um menu não pode ser pai de si mesmo');
+        }
+        
+        return errors;
+    }
+    
+    showValidationErrors(errors) {
+        const errorMessage = errors.join('<br>');
+        this.showToast(errorMessage, 'warning');
+        
+        const diagArea = document.getElementById('saveMenuDiagnostic');
+        if (diagArea) {
+            diagArea.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>Erros de validação:</strong>
+                    <ul>${errors.map(err => `<li>${err}</li>`).join('')}</ul>
+                </div>
+            `;
+        }
+    }
+    
+    prepareMenuData(formData) {
+        return {
+            title: String(formData.title).trim(),
+            path: String(formData.path).trim(),
+            icon: formData.icon ? String(formData.icon).trim() : this.config.defaultMenu.icon,
+            order: parseInt(formData.order, 10) || this.config.defaultMenu.order,
+            parentId: formData.parentId === '' || formData.parentId === 'null' ? null : formData.parentId,
+            resourcePath: formData.resourcePath ? String(formData.resourcePath).trim() : null,
+            isAdminOnly: Boolean(formData.isAdminOnly),
+            isActive: Boolean(formData.isActive)
+        };
+    }
+    
+    async saveMenuToServer(menuData, menuId) {
+        console.log('Enviando dados para salvar menu:', menuData);
+        
+        // Determinar método e URL
+        const method = menuId ? 'PUT' : 'POST';
+        const url = menuId ? `/api/menus/${menuId}` : '/api/menus';
+        
+        // Mostrar indicador de carregamento
+        this.showLoadingState(true);
+        
+        try {
             const response = await fetch(url, {
                 method,
                 headers: {
@@ -493,133 +662,56 @@ class MenuManager {
                 },
                 body: JSON.stringify(menuData)
             });
-                
-                // Calcular tempo de resposta
-                const responseTime = Date.now() - startTime;
-                console.log(`Tempo de resposta: ${responseTime}ms`);
-                
-                // Mostrar informações da resposta
-                document.getElementById('saveMenuDiagnostic').innerHTML = `
-                    <strong>Diagnóstico da requisição:</strong>
-                    <div>Status: ${response.status} ${response.statusText}</div>
-                    <div>Tempo: ${responseTime}ms</div>
-                    <div>Headers:</div>
-                    <pre>${JSON.stringify(Object.fromEntries([...response.headers]), null, 2)}</pre>
-                `;
-                
-                // Processar resposta
-                responseText = await response.text();
-                
-                try {
-                    // Tentar converter para JSON
-                    responseData = JSON.parse(responseText);
-                    console.log('Resposta do servidor (JSON):', responseData);
-                    
-                    // Adicionar ao diagnóstico
-                    document.getElementById('saveMenuDiagnostic').innerHTML += `
-                        <div>Resposta:</div>
-                        <pre>${JSON.stringify(responseData, null, 2)}</pre>
-                    `;
             
             if (!response.ok) {
-                        console.error('Erro na resposta:', response.status, responseData);
-                        
-                        // Verificar códigos de erro específicos
-                        let errorMsg = responseData.error || responseData.details || responseData.message || `Erro ao salvar menu (${response.status})`;
-                        
-                        // Mensagens mais amigáveis para códigos específicos
-                        if (response.status === 400) {
-                            if (errorMsg.includes('pai de si mesmo')) {
-                                errorMsg = 'Um menu não pode ser pai de si mesmo. Por favor, selecione outro menu pai ou nenhum.';
-                            } else if (errorMsg.includes('pai não encontrado')) {
-                                errorMsg = 'O menu pai selecionado não existe mais. Por favor, selecione outro menu pai.';
-                            } else if (errorMsg.includes('título') || errorMsg.includes('caminho')) {
-                                errorMsg = 'O título e o caminho do menu são obrigatórios e não podem estar vazios.';
-                            }
-                        } else if (response.status === 403) {
-                            errorMsg = 'Você não tem permissão para executar esta operação.';
-                        } else if (response.status === 404) {
-                            errorMsg = 'Menu não encontrado. Ele pode ter sido excluído por outro usuário.';
-                        } else if (response.status === 500) {
-                            errorMsg = 'Erro interno do servidor. Por favor, tente novamente mais tarde.';
-                            
-                            if (responseData.details) {
-                                console.error('Detalhes do erro 500:', responseData.details);
-                                
-                                // Mostrar detalhes técnicos do erro para administradores, mas com mensagem amigável para o usuário
-                                errorMsg += ' (Detalhes técnicos foram registrados para análise).';
-                                
-                                // Adicionar informações de depuração na área de diagnóstico
-                                document.getElementById('saveMenuDiagnostic').innerHTML += `
-                                    <div class="error-details" style="margin-top: 10px; padding: 10px; border: 1px solid #ffcccc; background-color: #fff5f5;">
-                                        <strong>Detalhes técnicos do erro (apenas para administradores):</strong><br>
-                                        ${responseData.details}
-                                    </div>
-                                `;
-                            }
-                        }
-                        
-                        throw new Error(errorMsg);
-                    }
-                } catch (jsonError) {
-                    // Resposta não é JSON válido
-                    console.error('Resposta não é JSON válido:', responseText);
-                    document.getElementById('saveMenuDiagnostic').innerHTML += `
-                        <div>Resposta (não é JSON válido):</div>
-                        <pre>${responseText}</pre>
-                    `;
-                    throw new Error('Resposta inválida do servidor');
+                const errorData = await response.json();
+                throw new Error(this.getErrorMessage(response.status, errorData));
             }
             
-            // Fechar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('menuModal'));
-            modal.hide();
-            
-            // Recarregar menus
+            // Fechar modal e recarregar menus
+            this.closeModal();
             await this.loadMenus();
             
             // Mostrar mensagem de sucesso
             this.showToast(`Menu ${menuId ? 'atualizado' : 'criado'} com sucesso`, 'success');
-            } catch (fetchError) {
-                console.error('Erro na requisição fetch:', fetchError);
-                
-                if (document.getElementById('saveMenuDiagnostic')) {
-                    document.getElementById('saveMenuDiagnostic').innerHTML += `
-                        <div class="text-danger">Erro na requisição: ${fetchError.message}</div>
-                    `;
-                }
-                
-                throw fetchError; // Relançar para o tratamento geral
-            }
-        } catch (error) {
-            console.error('Erro ao salvar menu:', error);
-            this.showToast(`Erro ao salvar menu: ${error.message}`, 'danger', 8000);
-        } finally {
-            // Restaurar botão de salvar
-            const saveBtn = document.querySelector('#menuModal .btn-primary');
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar';
-            }
             
-            // Manter a área de diagnóstico para análise
-            setTimeout(() => {
-                const diagArea = document.getElementById('saveMenuDiagnostic');
-                if (diagArea) {
-                    diagArea.classList.remove('alert-info');
-                    diagArea.classList.add('alert-secondary');
-                    diagArea.innerHTML += `<div class="mt-2"><small>Este diagnóstico será removido em 30 segundos</small></div>`;
-                    
-                    setTimeout(() => {
-                        if (diagArea && diagArea.parentNode) {
-                            diagArea.parentNode.removeChild(diagArea);
-                        }
-                    }, 30000);
-                }
-            }, 1000);
+        } catch (error) {
+            throw error;
+        } finally {
+            this.showLoadingState(false);
         }
     }
     
+    showLoadingState(loading) {
+        const saveBtn = document.querySelector('#menuModal .btn-primary');
+        if (saveBtn) {
+            saveBtn.disabled = loading;
+            saveBtn.innerHTML = loading ? 
+                '<span class="loading loading-spinner loading-sm"></span> Salvando...' : 
+                '<i class="fas fa-save"></i> Salvar Menu';
+        }
+    }
+    
+    closeModal() {
+        const modal = document.getElementById('menuModal');
+        if (modal) {
+            modal.close();
+        }
+    }
+    
+    getErrorMessage(status, errorData) {
+        const errorMsg = errorData.error || errorData.details || errorData.message || `Erro ao salvar menu (${status})`;
+        
+        const statusMessages = {
+            400: 'Dados inválidos fornecidos',
+            403: 'Você não tem permissão para executar esta operação',
+            404: 'Menu não encontrado',
+            500: 'Erro interno do servidor'
+        };
+        
+        return statusMessages[status] || errorMsg;
+    }
+
     async deleteMenu(menuId) {
         if (!confirm('Tem certeza que deseja excluir este menu? Esta ação não pode ser desfeita.')) {
             return;
@@ -627,7 +719,7 @@ class MenuManager {
         
         try {
             // Verificar se o menu tem submenus
-            const hasSubmenus = this.menus.some(menu => menu.parentId === menuId);
+            const hasSubmenus = this.state.menus.some(menu => menu.parentId === menuId);
             if (hasSubmenus) {
                 if (!confirm('Este menu possui submenus que também serão excluídos. Deseja continuar?')) {
                     return;
@@ -664,8 +756,8 @@ class MenuManager {
             await this.loadMenus();
             
             // Limpar seleção
-            if (this.selectedMenuId === menuId) {
-                this.selectedMenuId = null;
+            if (this.state.selectedMenuId === menuId) {
+                this.state.selectedMenuId = null;
                 document.getElementById('menuDetails').innerHTML = `
                     <p class="text-muted text-center">Selecione um menu para ver os detalhes</p>
                 `;
@@ -728,32 +820,50 @@ class MenuManager {
         // Limpar seletor
         iconSelector.innerHTML = '';
         
+        // Adicionar cabeçalho
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between mb-3';
+        header.innerHTML = `
+            <h5 class="font-medium">Selecionar Ícone</h5>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="menuManager.toggleIconSelector()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        iconSelector.appendChild(header);
+        
+        // Container para os ícones
+        const iconGrid = document.createElement('div');
+        iconGrid.className = 'grid grid-cols-6 gap-2 max-h-48 overflow-y-auto';
+        
         // Adicionar ícones
-        this.iconList.forEach(icon => {
+        this.config.iconList.forEach(icon => {
             const iconOption = document.createElement('div');
-            iconOption.className = 'icon-option';
-            iconOption.innerHTML = `<i class="${icon}"></i>`;
+            iconOption.className = 'icon-option p-2 rounded-lg border border-base-300 hover:bg-base-200 cursor-pointer transition-colors';
+            iconOption.innerHTML = `<i class="${icon} text-lg"></i>`;
             
             // Marcar como selecionado se for o ícone atual
             const currentIcon = document.getElementById('menuIcon').value;
             if (currentIcon === icon) {
-                iconOption.classList.add('selected');
+                iconOption.classList.add('bg-primary', 'text-primary-content', 'border-primary');
             }
             
             // Adicionar event listener
             iconOption.addEventListener('click', () => {
                 document.getElementById('menuIcon').value = icon;
                 this.updateIconPreview();
+                this.updateMenuPreview();
                 
-                // Atualizar seleção
+                // Atualizar seleção visual
                 document.querySelectorAll('.icon-option').forEach(option => {
-                    option.classList.remove('selected');
+                    option.classList.remove('bg-primary', 'text-primary-content', 'border-primary');
                 });
-                iconOption.classList.add('selected');
+                iconOption.classList.add('bg-primary', 'text-primary-content', 'border-primary');
             });
             
-            iconSelector.appendChild(iconOption);
+            iconGrid.appendChild(iconOption);
         });
+        
+        iconSelector.appendChild(iconGrid);
     }
     
     updateIconPreview() {
@@ -766,6 +876,102 @@ class MenuManager {
             
             // Adicionar nova classe
             iconPreview.className = menuIcon.value;
+        }
+    }
+
+    updateMenuPreview() {
+        const previewIcon = document.getElementById('previewIcon');
+        const previewTitle = document.getElementById('previewTitle');
+        const previewPath = document.getElementById('previewPath');
+        const previewAdminBadge = document.getElementById('previewAdminBadge');
+        const previewInactiveBadge = document.getElementById('previewInactiveBadge');
+        
+        if (!previewIcon || !previewTitle || !previewPath) return;
+        
+        const menuTitle = document.getElementById('menuTitle').value || 'Título do Menu';
+        const menuPath = document.getElementById('menuPath').value || '/caminho/do/menu';
+        const menuIcon = document.getElementById('menuIcon').value || 'fas fa-link';
+        const menuIsAdminOnly = document.getElementById('menuIsAdminOnly').checked;
+        const menuIsActive = document.getElementById('menuIsActive').checked;
+        
+        // Atualizar ícone
+        previewIcon.className = menuIcon;
+        
+        // Atualizar título
+        previewTitle.textContent = menuTitle;
+        
+        // Atualizar caminho
+        previewPath.textContent = menuPath;
+        
+        // Atualizar badges
+        if (previewAdminBadge) {
+            previewAdminBadge.style.display = menuIsAdminOnly ? 'inline-block' : 'none';
+        }
+        
+        if (previewInactiveBadge) {
+            previewInactiveBadge.style.display = !menuIsActive ? 'inline-block' : 'none';
+        }
+    }
+    
+    validateField(field, type) {
+        const value = field.value.trim();
+        const inputGroup = field.closest('.form-control');
+        const rules = this.config.validationRules[type];
+        
+        if (!rules) return;
+        
+        // Remover classes de validação anteriores
+        field.classList.remove('input-success', 'input-error');
+        
+        // Validar campo obrigatório
+        if (rules.required && value.length === 0) {
+            field.classList.add('input-error');
+            this.showFieldError(inputGroup, `${this.getFieldLabel(type)} é obrigatório`);
+            return;
+        }
+        
+        // Validar comprimento mínimo
+        if (rules.minLength && value.length < rules.minLength) {
+            field.classList.add('input-error');
+            this.showFieldError(inputGroup, `${this.getFieldLabel(type)} deve ter pelo menos ${rules.minLength} caracteres`);
+            return;
+        }
+        
+        // Validar formato específico
+        if (rules.mustStartWith && !value.startsWith(rules.mustStartWith)) {
+            field.classList.add('input-error');
+            this.showFieldError(inputGroup, `${this.getFieldLabel(type)} deve começar com ${rules.mustStartWith}`);
+            return;
+        }
+        
+        // Campo válido
+        field.classList.add('input-success');
+        this.hideFieldError(inputGroup);
+    }
+    
+    getFieldLabel(type) {
+        const labels = {
+            title: 'Título',
+            path: 'Caminho'
+        };
+        return labels[type] || type;
+    }
+    
+    showFieldError(inputGroup, message) {
+        // Remover mensagem de erro anterior
+        this.hideFieldError(inputGroup);
+        
+        // Adicionar nova mensagem de erro
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'label-text-alt text-error mt-1';
+        errorDiv.textContent = message;
+        inputGroup.appendChild(errorDiv);
+    }
+    
+    hideFieldError(inputGroup) {
+        const existingError = inputGroup.querySelector('.label-text-alt.text-error');
+        if (existingError) {
+            existingError.remove();
         }
     }
     

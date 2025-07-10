@@ -101,7 +101,7 @@ function updateServicesList(servicesData) {
 
     // Se estiver editando, preencher com os dados do serviço
     if (editIndex !== null && services[editIndex]) {
-                const service = services[editIndex];
+        const service = services[editIndex];
         const nameInput = document.getElementById('service-name');
         const ipInput = document.getElementById('service-ip');
         const portInput = document.getElementById('service-port');
@@ -125,23 +125,23 @@ function updateServicesList(servicesData) {
         if (accessTypeInput) accessTypeInput.value = service.accessType;
 
         currentServiceIndex = editIndex;
-                modalTitle.textContent = 'Editar Glassfish';
-            } else {
+        modalTitle.textContent = 'Editar Glassfish';
+    } else {
         currentServiceIndex = null;
-                modalTitle.textContent = 'Adicionar Glassfish';
-            }
+        modalTitle.textContent = 'Adicionar Glassfish';
+    }
 
     // Abrir o modal
     modal.classList.add('is-active');
-        }
+}
 
-        function closeAddModal() {
+function closeAddModal() {
     const modal = document.getElementById('add-modal');
     if (modal) {
         modal.classList.remove('is-active');
         currentServiceIndex = null;
     }
-        }
+}
 
         // Função para salvar ou editar serviço no MongoDB
         async function saveGlassfish() {
