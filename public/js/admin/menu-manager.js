@@ -3,6 +3,7 @@ class MenuManager {
         // Estado da aplicação
         this.state = {
             menus: [],
+            resources: [], // Adicionar recursos
             selectedMenuId: null,
             isLoading: false
         };
@@ -33,8 +34,8 @@ class MenuManager {
             defaultMenu: {
                 icon: 'fas fa-link',
                 order: 0,
-                isAdminOnly: false,
-                isActive: true
+                is_admin_only: false,
+                is_active: true
             }
         };
         
@@ -44,7 +45,10 @@ class MenuManager {
     async init() {
         try {
             this.setupEventListeners();
-            await this.loadMenus();
+            await Promise.all([
+                this.loadMenus(),
+                this.loadResources() // Carregar recursos também
+            ]);
         } catch (error) {
             console.error('Erro ao inicializar gerenciador de menus:', error);
             this.showToast('Erro ao inicializar gerenciador de menus', 'danger');
@@ -99,6 +103,9 @@ class MenuManager {
         if (elements.modal) {
             elements.modal.addEventListener('close', () => this.clearMenuForm());
         }
+        
+        // Setup do seletor de recursos
+        this.setupResourceSelector();
     }
     
     async loadMenus() {
@@ -128,6 +135,27 @@ class MenuManager {
             this.showErrorMessage(error.message);
         } finally {
             this.setState({ isLoading: false });
+        }
+    }
+    
+    async loadResources() {
+        try {
+            const response = await fetch('/api/resources?is_active=true&type=PAGE,MENU', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erro ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            this.state.resources = result.data || result;
+            
+        } catch (error) {
+            console.error('Erro ao carregar recursos:', error);
+            this.showToast(`Erro ao carregar recursos: ${error.message}`, 'warning');
         }
     }
     
@@ -181,7 +209,7 @@ class MenuManager {
         }
         
         // Filtrar menus de nível superior (sem parentId)
-        const rootMenus = this.state.menus.filter(menu => !menu.parentId);
+        const rootMenus = this.state.menus.filter(menu => !menu.parent_id);
         
         // Mostrar menus inativos?
         const showInactive = document.getElementById('showInactiveMenus')?.checked || false;
@@ -189,7 +217,7 @@ class MenuManager {
         // Renderizar menus de nível superior
         rootMenus.forEach(menu => {
             // Pular menus inativos se não estiver mostrando inativos
-            if (!menu.isActive && !showInactive) return;
+            if (!menu.is_active && !showInactive) return;
             
             const menuItem = this.createMenuItemElement(menu);
             menuTree.appendChild(menuItem);
@@ -201,7 +229,7 @@ class MenuManager {
     
     renderSubmenus(parentId, parentElement, showInactive) {
         // Filtrar submenus
-        const submenus = this.state.menus.filter(menu => menu.parentId === parentId);
+        const submenus = this.state.menus.filter(menu => menu.parent_id === parentId);
         
         if (submenus.length === 0) return;
         
@@ -221,7 +249,7 @@ class MenuManager {
         // Renderizar submenus
         submenus.forEach(submenu => {
             // Pular menus inativos se não estiver mostrando inativos
-            if (!submenu.isActive && !showInactive) return;
+            if (!submenu.is_active && !showInactive) return;
             
             const submenuItem = this.createMenuItemElement(submenu);
             submenuContainer.appendChild(submenuItem);
@@ -240,7 +268,7 @@ class MenuManager {
         menuItem.dataset.id = menu.id;
         
         // Verificar se tem submenus
-        const hasSubmenus = this.state.menus.some(m => m.parentId === menu.id);
+        const hasSubmenus = this.state.menus.some(m => m.parent_id === menu.id);
         
         // Conteúdo do item
         menuItem.innerHTML = `
@@ -252,8 +280,8 @@ class MenuManager {
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
                             <h3 class="font-semibold text-base-content">${menu.title}</h3>
-                            ${menu.isAdminOnly ? '<span class="badge badge-error badge-sm">Admin</span>' : ''}
-                            ${!menu.isActive ? '<span class="badge badge-neutral badge-sm">Inativo</span>' : ''}
+                            ${menu.is_admin_only ? '<span class="badge badge-error badge-sm">Admin</span>' : ''}
+                            ${!menu.is_active ? '<span class="badge badge-neutral badge-sm">Inativo</span>' : ''}
                             ${hasSubmenus ? '<span class="badge badge-info badge-sm">Pai</span>' : ''}
                         </div>
                         <div class="text-sm text-base-content/70 font-mono bg-base-200 px-2 py-1 rounded">
@@ -324,11 +352,11 @@ class MenuManager {
         }
         
         // Encontrar menu pai
-        const parentMenu = menu.parentId ? this.state.menus.find(m => m.id === menu.parentId) : null;
+        const parentMenu = menu.parent_id ? this.state.menus.find(m => m.id === menu.parent_id) : null;
         
         // Verificar se tem submenus
-        const hasSubmenus = this.state.menus.some(m => m.parentId === menuId);
-        const submenus = this.state.menus.filter(m => m.parentId === menuId);
+        const hasSubmenus = this.state.menus.some(m => m.parent_id === menuId);
+        const submenus = this.state.menus.filter(m => m.parent_id === menuId);
         
         // Renderizar detalhes com visual melhorado
         menuDetails.innerHTML = `
@@ -344,8 +372,8 @@ class MenuManager {
                 
                 <!-- Status badges -->
                 <div class="flex flex-wrap gap-2 justify-center">
-                    ${menu.isAdminOnly ? '<span class="badge badge-error">Apenas Admin</span>' : '<span class="badge badge-success">Todos os Usuários</span>'}
-                    ${menu.isActive ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-neutral">Inativo</span>'}
+                    ${menu.is_admin_only ? '<span class="badge badge-error">Apenas Admin</span>' : '<span class="badge badge-success">Todos os Usuários</span>'}
+                    ${menu.is_active ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-neutral">Inativo</span>'}
                     ${hasSubmenus ? `<span class="badge badge-info">Menu Pai (${submenus.length} submenus)</span>` : '<span class="badge badge-ghost">Menu Simples</span>'}
                 </div>
                 
@@ -368,17 +396,17 @@ class MenuManager {
                     
                     <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
                         <span class="font-medium">Recurso:</span>
-                        <span class="text-sm font-mono text-base-content/70">${menu.resourcePath || menu.path}</span>
+                        <span class="text-sm font-mono text-base-content/70">${menu.resource_path || menu.path}</span>
                     </div>
                     
                     <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
                         <span class="font-medium">Criado:</span>
-                        <span class="text-sm">${new Date(menu.createdAt).toLocaleDateString('pt-BR')}</span>
+                        <span class="text-sm">${new Date(menu.created_at).toLocaleDateString('pt-BR')}</span>
                     </div>
                     
                     <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
                         <span class="font-medium">Atualizado:</span>
-                        <span class="text-sm">${new Date(menu.updatedAt).toLocaleDateString('pt-BR')}</span>
+                        <span class="text-sm">${new Date(menu.updated_at).toLocaleDateString('pt-BR')}</span>
                     </div>
                 </div>
                 
@@ -394,8 +422,8 @@ class MenuManager {
                                 <div class="flex items-center gap-2 p-2 bg-base-200 rounded text-sm">
                                     <i class="${submenu.icon} text-primary"></i>
                                     <span>${submenu.title}</span>
-                                    ${submenu.isAdminOnly ? '<span class="badge badge-error badge-xs">Admin</span>' : ''}
-                                    ${!submenu.isActive ? '<span class="badge badge-neutral badge-xs">Inativo</span>' : ''}
+                                    ${submenu.is_admin_only ? '<span class="badge badge-error badge-xs">Admin</span>' : ''}
+                                    ${!submenu.is_active ? '<span class="badge badge-neutral badge-xs">Inativo</span>' : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -541,10 +569,11 @@ class MenuManager {
             path: document.getElementById('menuPath').value,
             icon: document.getElementById('menuIcon').value,
             order: document.getElementById('menuOrder').value,
-            parentId: document.getElementById('menuParent').value || null,
-            resourcePath: document.getElementById('menuResourcePath').value || null,
-            isAdminOnly: document.getElementById('menuIsAdminOnly').checked,
-            isActive: document.getElementById('menuIsActive').checked
+            parent_id: document.getElementById('menuParent').value || null,
+            resource_path: document.getElementById('menuResourcePath').value || null,
+            resource_id: document.getElementById('menuResourceId').value || null,
+            is_admin_only: document.getElementById('menuIsAdminOnly').checked,
+            is_active: document.getElementById('menuIsActive').checked
         };
     }
     
@@ -555,10 +584,11 @@ class MenuManager {
             menuPath: data.path || '',
             menuIcon: data.icon || this.config.defaultMenu.icon,
             menuOrder: data.order || this.config.defaultMenu.order,
-            menuParent: data.parentId || '',
-            menuResourcePath: data.resourcePath || '',
-            menuIsAdminOnly: data.isAdminOnly || this.config.defaultMenu.isAdminOnly,
-            menuIsActive: data.isActive !== undefined ? data.isActive : this.config.defaultMenu.isActive
+            menuParent: data.parent_id || '',
+            menuResourcePath: data.resource_path || '',
+            menuResourceId: data.resource_id || '',
+            menuIsAdminOnly: data.is_admin_only || this.config.defaultMenu.is_admin_only,
+            menuIsActive: data.is_active !== undefined ? data.is_active : this.config.defaultMenu.is_active
         };
         
         Object.entries(fields).forEach(([fieldId, value]) => {
@@ -571,6 +601,13 @@ class MenuManager {
                 }
             }
         });
+        
+        // Atualizar seleção de recurso se houver resource_id
+        if (data.resource_id) {
+            this.selectResource(data.resource_id);
+        } else {
+            this.clearResourceSelection();
+        }
     }
     
     async saveMenu() {
@@ -608,7 +645,7 @@ class MenuManager {
             errors.push('O caminho (path) do menu é obrigatório');
         }
         
-        if (data.parentId === data.id) {
+        if (data.parent_id === data.id) {
             errors.push('Um menu não pode ser pai de si mesmo');
         }
         
@@ -636,10 +673,11 @@ class MenuManager {
             path: String(formData.path).trim(),
             icon: formData.icon ? String(formData.icon).trim() : this.config.defaultMenu.icon,
             order: parseInt(formData.order, 10) || this.config.defaultMenu.order,
-            parentId: formData.parentId === '' || formData.parentId === 'null' ? null : formData.parentId,
-            resourcePath: formData.resourcePath ? String(formData.resourcePath).trim() : null,
-            isAdminOnly: Boolean(formData.isAdminOnly),
-            isActive: Boolean(formData.isActive)
+            parent_id: formData.parent_id === '' || formData.parent_id === 'null' ? null : formData.parent_id,
+            resource_path: formData.resource_path ? String(formData.resource_path).trim() : null,
+            resource_id: formData.resource_id || null,
+            is_admin_only: Boolean(formData.is_admin_only),
+            is_active: Boolean(formData.is_active)
         };
     }
     
@@ -719,7 +757,7 @@ class MenuManager {
         
         try {
             // Verificar se o menu tem submenus
-            const hasSubmenus = this.state.menus.some(menu => menu.parentId === menuId);
+            const hasSubmenus = this.state.menus.some(menu => menu.parent_id === menuId);
             if (hasSubmenus) {
                 if (!confirm('Este menu possui submenus que também serão excluídos. Deseja continuar?')) {
                     return;
@@ -985,6 +1023,139 @@ class MenuManager {
         `;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), duration);
+    }
+    
+    setupResourceSelector() {
+        const resourceSearch = document.getElementById('resourceSearch');
+        const resourceList = document.getElementById('resourceList');
+        const selectedResource = document.getElementById('selectedResource');
+        
+        if (!resourceSearch || !resourceList || !selectedResource) return;
+        
+        // Event listener para busca de recursos
+        resourceSearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            this.filterResources(searchTerm);
+        });
+        
+        // Event listener para seleção de recurso
+        resourceList.addEventListener('click', (e) => {
+            const resourceItem = e.target.closest('.resource-item');
+            if (resourceItem) {
+                const resourceId = resourceItem.dataset.id;
+                this.selectResource(resourceId);
+            }
+        });
+        
+        // Event listener para limpar seleção
+        const clearResourceBtn = document.getElementById('clearResourceBtn');
+        if (clearResourceBtn) {
+            clearResourceBtn.addEventListener('click', () => {
+                this.clearResourceSelection();
+            });
+        }
+    }
+    
+    filterResources(searchTerm) {
+        const resourceList = document.getElementById('resourceList');
+        if (!resourceList) return;
+        
+        const filteredResources = this.state.resources.filter(resource => 
+            resource.name.toLowerCase().includes(searchTerm) ||
+            resource.path.toLowerCase().includes(searchTerm) ||
+            resource.description?.toLowerCase().includes(searchTerm)
+        );
+        
+        this.renderResourceList(filteredResources);
+    }
+    
+    renderResourceList(resources) {
+        const resourceList = document.getElementById('resourceList');
+        if (!resourceList) return;
+        
+        if (resources.length === 0) {
+            resourceList.innerHTML = '<div class="p-4 text-center text-base-content/70">Nenhum recurso encontrado</div>';
+            return;
+        }
+        
+        resourceList.innerHTML = resources.map(resource => `
+            <div class="resource-item p-3 hover:bg-base-200 cursor-pointer border-b border-base-300" data-id="${resource.id}">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
+                        <i class="${resource.icon || 'fas fa-link'}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-medium">${resource.name}</div>
+                        <div class="text-sm text-base-content/70">${resource.path}</div>
+                        ${resource.description ? `<div class="text-xs text-base-content/50">${resource.description}</div>` : ''}
+                    </div>
+                    <div class="badge badge-sm ${resource.is_active ? 'badge-success' : 'badge-error'}">
+                        ${resource.is_active ? 'Ativo' : 'Inativo'}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    selectResource(resourceId) {
+        const resource = this.state.resources.find(r => r.id === resourceId);
+        if (!resource) return;
+        
+        // Atualizar campo de recurso selecionado
+        const selectedResource = document.getElementById('selectedResource');
+        if (selectedResource) {
+            selectedResource.innerHTML = `
+                <div class="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
+                        <i class="${resource.icon || 'fas fa-link'}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-medium">${resource.name}</div>
+                        <div class="text-sm text-base-content/70">${resource.path}</div>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="menuManager.clearResourceSelection()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        }
+        
+        // Preencher campos do formulário
+        document.getElementById('menuResourcePath').value = resource.path;
+        document.getElementById('menuResourceId').value = resource.id;
+        
+        // Atualizar preview
+        this.updateMenuPreview();
+        
+        // Fechar lista de recursos
+        const resourceList = document.getElementById('resourceList');
+        if (resourceList) {
+            resourceList.innerHTML = '';
+        }
+        
+        // Limpar busca
+        const resourceSearch = document.getElementById('resourceSearch');
+        if (resourceSearch) {
+            resourceSearch.value = '';
+        }
+    }
+    
+    clearResourceSelection() {
+        const selectedResource = document.getElementById('selectedResource');
+        if (selectedResource) {
+            selectedResource.innerHTML = `
+                <div class="text-center p-4 text-base-content/70">
+                    <i class="fas fa-search text-2xl mb-2"></i>
+                    <div>Nenhum recurso selecionado</div>
+                    <div class="text-xs">Digite para buscar recursos</div>
+                </div>
+            `;
+        }
+        
+        document.getElementById('menuResourcePath').value = '';
+        document.getElementById('menuResourceId').value = '';
+        
+        this.updateMenuPreview();
     }
 }
 

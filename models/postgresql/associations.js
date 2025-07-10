@@ -162,7 +162,7 @@ function initAssociations() {
     });
 
     // Associações do Menu
-    Menu.associate({ Menu });
+    Menu.associate({ Menu, Resource });
 
     // User - Server
     User.hasMany(Server, {

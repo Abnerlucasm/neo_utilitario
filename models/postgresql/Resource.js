@@ -25,6 +25,12 @@ module.exports = (sequelize) => {
                 otherKey: 'role_id',
                 as: 'roles'
             });
+
+            // Associação com Menu (para recursos que são menus)
+            this.hasOne(models.Menu, {
+                foreignKey: 'resource_id',
+                as: 'menu'
+            });
         }
 
         /**
@@ -43,7 +49,7 @@ module.exports = (sequelize) => {
          */
         async getResourceTree() {
             const children = await Resource.findAll({ 
-                where: { parent_id: this.id },
+                where: { parent_id: this.id, is_active: true },
                 order: [['order', 'ASC'], ['name', 'ASC']]
             });
 
@@ -59,14 +65,91 @@ module.exports = (sequelize) => {
         }
 
         /**
+         * Verifica se o recurso tem permissão para um papel específico
+         * @param {string} roleId - ID do papel
+         * @returns {Promise<boolean>} True se tem permissão
+         */
+        async hasRole(roleId) {
+            const role = await this.getRoles({ where: { id: roleId } });
+            return role.length > 0;
+        }
+
+        /**
+         * Obtém todos os papéis que têm acesso a este recurso
+         * @returns {Promise<Array>} Lista de papéis
+         */
+        async getAccessibleRoles() {
+            return await this.getRoles({
+                attributes: ['id', 'name', 'description'],
+                where: { is_active: true }
+            });
+        }
+
+        /**
          * Retorna uma representação do recurso para API
          * @returns {Object} Representação JSON do recurso
          */
         toJSON() {
             const values = Object.assign({}, this.get());
             
-            // Remove campos sensíveis ou desnecessários se houver
+            // Adicionar informações calculadas
+            values.isAccessible = this.is_active;
+            values.fullPath = this.getFullPath();
+            
             return values;
+        }
+
+        /**
+         * Obtém o caminho completo do recurso (incluindo pais)
+         * @returns {string} Caminho completo
+         */
+        getFullPath() {
+            if (!this.parent) {
+                return this.path;
+            }
+            return `${this.parent.getFullPath()}/${this.path}`.replace(/\/+/g, '/');
+        }
+
+        /**
+         * Verifica se o recurso é um menu
+         * @returns {boolean} True se for um menu
+         */
+        isMenu() {
+            return this.type === 'MENU' || this.type === 'PAGE';
+        }
+
+        /**
+         * Verifica se o recurso é uma API
+         * @returns {boolean} True se for uma API
+         */
+        isAPI() {
+            return this.type === 'API';
+        }
+
+        /**
+         * Obtém o ícone do recurso com fallback
+         * @returns {string} Classe do ícone
+         */
+        getIcon() {
+            return this.icon || this.getDefaultIcon();
+        }
+
+        /**
+         * Obtém o ícone padrão baseado no tipo
+         * @returns {string} Classe do ícone padrão
+         */
+        getDefaultIcon() {
+            const defaultIcons = {
+                'MENU': 'fas fa-bars',
+                'PAGE': 'fas fa-file-alt',
+                'API': 'fas fa-code',
+                'COMPONENT': 'fas fa-puzzle-piece',
+                'REPORT': 'fas fa-chart-bar',
+                'UTILITY': 'fas fa-tools',
+                'ADMIN': 'fas fa-cog',
+                'OTHER': 'fas fa-link'
+            };
+            return defaultIcons[this.type] || 'fas fa-link';
         }
     }
 
@@ -101,12 +184,12 @@ module.exports = (sequelize) => {
             allowNull: true
         },
         type: {
-            type: DataTypes.ENUM('PAGE', 'API', 'COMPONENT', 'REPORT', 'OTHER'),
+            type: DataTypes.ENUM('MENU', 'PAGE', 'API', 'COMPONENT', 'REPORT', 'UTILITY', 'ADMIN', 'OTHER'),
             allowNull: false,
             defaultValue: 'PAGE',
             validate: {
                 isIn: {
-                    args: [['PAGE', 'API', 'COMPONENT', 'REPORT', 'OTHER']],
+                    args: [['MENU', 'PAGE', 'API', 'COMPONENT', 'REPORT', 'UTILITY', 'ADMIN', 'OTHER']],
                     msg: 'Tipo de recurso inválido'
                 }
             }
@@ -125,6 +208,11 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: false
         },
+        is_admin_only: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
         parent_id: {
             type: DataTypes.UUID,
             allowNull: true,
@@ -137,13 +225,36 @@ module.exports = (sequelize) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0
+        },
+        metadata: {
+            type: DataTypes.JSONB,
+            allowNull: true,
+            defaultValue: {}
         }
     }, {
         sequelize,
         modelName: 'Resource',
         tableName: 'resources',
         timestamps: true,
-        underscored: true
+        underscored: true,
+        indexes: [
+            {
+                name: 'idx_resources_path',
+                fields: ['path']
+            },
+            {
+                name: 'idx_resources_type',
+                fields: ['type']
+            },
+            {
+                name: 'idx_resources_active',
+                fields: ['is_active']
+            },
+            {
+                name: 'idx_resources_parent',
+                fields: ['parent_id']
+            }
+        ]
     });
 
     return Resource;

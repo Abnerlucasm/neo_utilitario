@@ -13,7 +13,7 @@ class RolesManager {
                 this.loadPermissions()
             ]);
             this.updateStats();
-            this.setupEventListeners();
+        this.setupEventListeners();
             this.renderPermissionsCheckboxes();
             this.updateRolePreview();
         } catch (error) {
@@ -29,11 +29,11 @@ class RolesManager {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
-
+            
             if (!response.ok) {
                 throw new Error('Erro ao carregar papéis');
             }
-
+            
             this.roles = await response.json();
             this.renderRoles();
             this.updateStats();
@@ -50,7 +50,7 @@ class RolesManager {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
-
+            
             if (!response.ok) {
                 throw new Error('Erro ao carregar permissões');
             }
@@ -294,7 +294,7 @@ class RolesManager {
                 const error = await response.json();
                 throw new Error(error.error || error.message || 'Erro ao salvar papel');
             }
-
+            
             await this.loadRoles();
             
             // Fechar modal
@@ -325,11 +325,11 @@ class RolesManager {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
-
+            
             if (!response.ok) {
                 throw new Error('Erro ao excluir papel');
             }
-
+            
             await this.loadRoles();
             this.showToast('Papel excluído com sucesso', 'success');
         } catch (error) {

@@ -25,7 +25,7 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: 0
         },
-        parentId: {
+        parent_id: {
             type: DataTypes.UUID,
             allowNull: true,
             references: {
@@ -33,51 +33,60 @@ module.exports = (sequelize) => {
                 key: 'id'
             }
         },
-        isAdminOnly: {
+        is_admin_only: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: false
         },
-        isActive: {
+        is_active: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true
         },
-        resourcePath: {
+        resource_path: {
             type: DataTypes.STRING,
             allowNull: true,
             defaultValue: null,
             comment: 'Caminho do recurso para verificação de permissão'
+        },
+        resource_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'resources',
+                key: 'id'
+            }
         }
     }, {
         tableName: 'Menus',
         timestamps: true,
+        underscored: true,
         hooks: {
             beforeCreate: (menu) => {
-                // Garantir que resourcePath tenha um valor padrão se não for fornecido
-                if (menu.resourcePath === undefined || menu.resourcePath === null) {
-                    menu.resourcePath = menu.path;
+                if (menu.resource_path === undefined || menu.resource_path === null) {
+                    menu.resource_path = menu.path;
                 }
             },
             beforeUpdate: (menu) => {
-                // Se path for atualizado e resourcePath for null, atualizar resourcePath também
-                if (menu.changed('path') && (menu.resourcePath === undefined || menu.resourcePath === null)) {
-                    menu.resourcePath = menu.path;
+                if (menu.changed('path') && (menu.resource_path === undefined || menu.resource_path === null)) {
+                    menu.resource_path = menu.path;
                 }
             }
         }
     });
 
     Menu.associate = (models) => {
-        // Auto-relacionamento para menus pai/filho
         Menu.hasMany(models.Menu, {
-            foreignKey: 'parentId',
+            foreignKey: 'parent_id',
             as: 'children'
         });
-        
         Menu.belongsTo(models.Menu, {
-            foreignKey: 'parentId',
+            foreignKey: 'parent_id',
             as: 'parent'
+        });
+        Menu.belongsTo(models.Resource, {
+            foreignKey: 'resource_id',
+            as: 'resource'
         });
     };
     
@@ -97,7 +106,7 @@ module.exports = (sequelize) => {
      */
     Menu.getActiveMenus = async function() {
         return await this.findAll({
-            where: { isActive: true },
+            where: { is_active: true },
             order: [
                 ['order', 'ASC'],
                 ['title', 'ASC']
@@ -105,7 +114,7 @@ module.exports = (sequelize) => {
             include: [{
                 model: this,
                 as: 'children',
-                where: { isActive: true },
+                where: { is_active: true },
                 required: false,
                 order: [
                     ['order', 'ASC'],
@@ -116,12 +125,12 @@ module.exports = (sequelize) => {
     };
     
     /**
-     * Obtém todos os menus de nível superior (sem parentId)
+     * Obtém todos os menus de nível superior (sem parent_id)
      * @returns {Promise<Array>} - Lista de menus de nível superior
      */
     Menu.getRootMenus = async function() {
         const menus = await this.getActiveMenus();
-        return menus.filter(menu => !menu.parentId);
+        return menus.filter(menu => !menu.parent_id);
     };
     
     /**
@@ -139,14 +148,14 @@ module.exports = (sequelize) => {
                 throw new Error('Menu não encontrado');
             }
             
-            // Validar ciclos de parentId
-            if (data.parentId && data.parentId === menuId) {
+            // Validar ciclos de parent_id
+            if (data.parent_id && data.parent_id === menuId) {
                 throw new Error('Um menu não pode ser pai de si mesmo');
             }
             
             // Verificar se parent existe
-            if (data.parentId) {
-                const parentExists = await this.findByPk(data.parentId);
+            if (data.parent_id) {
+                const parentExists = await this.findByPk(data.parent_id);
                 if (!parentExists) {
                     throw new Error('Menu pai não encontrado');
                 }
@@ -164,22 +173,22 @@ module.exports = (sequelize) => {
                 updateData.order = isNaN(orderNum) ? 0 : orderNum;
             }
             
-            // Tratar parentId especificamente
-            if ('parentId' in data) {
-                updateData.parentId = data.parentId === null || data.parentId === '' ? null : data.parentId;
+            // Tratar parent_id especificamente
+            if ('parent_id' in data) {
+                updateData.parent_id = data.parent_id === null || data.parent_id === '' ? null : data.parent_id;
             }
             
             // Tratar campos booleanos
-            if ('isAdminOnly' in data) updateData.isAdminOnly = data.isAdminOnly === true;
-            if ('isActive' in data) updateData.isActive = data.isActive === true;
+            if ('is_admin_only' in data) updateData.is_admin_only = data.is_admin_only === true;
+            if ('is_active' in data) updateData.is_active = data.is_active === true;
             
-            // Tratar resourcePath
-            if ('resourcePath' in data) {
-                // Se resourcePath for nulo ou vazio, usar o path
-                if (data.resourcePath === null || data.resourcePath === '') {
-                    updateData.resourcePath = updateData.path || menu.path;
+            // Tratar resource_path
+            if ('resource_path' in data) {
+                // Se resource_path for nulo ou vazio, usar o path
+                if (data.resource_path === null || data.resource_path === '') {
+                    updateData.resource_path = updateData.path || menu.path;
                 } else {
-                    updateData.resourcePath = String(data.resourcePath);
+                    updateData.resource_path = String(data.resource_path);
                 }
             }
             

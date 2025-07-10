@@ -35,7 +35,7 @@ async function checkMenusTable() {
         logger.info(`Contagem de menus: ${menuCount}`);
         
         // Verificar menus de nível superior
-        const rootMenus = await Menu.findAll({ where: { parentId: null } });
+        const rootMenus = await Menu.findAll({ where: { parent_id: null } });
         logger.info(`Menus de nível superior: ${rootMenus.length}`);
         
         // Verificar colunas importantes
@@ -49,7 +49,7 @@ async function checkMenusTable() {
             const columnNames = columns.map(c => c.column_name);
             logger.info(`Colunas da tabela: ${columnNames.join(', ')}`);
             
-            const requiredColumns = ['id', 'title', 'path', 'icon', 'order', 'parentid', 'isadminonly', 'isactive', 'resourcepath'];
+            const requiredColumns = ['id', 'title', 'path', 'icon', 'order', 'parent_id', 'is_admin_only', 'is_active', 'resource_path', 'resource_id'];
             requiredColumns.forEach(col => {
                 if (!columnNames.includes(col)) {
                     missingColumns.push(col);
@@ -71,12 +71,12 @@ async function checkMenusTable() {
             return true;
         }
         
-        // Reparar menus órfãos (parentId aponta para menu inexistente)
+        // Reparar menus órfãos (parent_id aponta para menu inexistente)
         try {
             const [orphanMenus] = await sequelize.query(`
                 SELECT id, title FROM "Menus" m 
-                WHERE "parentId" IS NOT NULL 
-                AND NOT EXISTS (SELECT 1 FROM "Menus" p WHERE p.id = m."parentId");
+                WHERE "parent_id" IS NOT NULL 
+                AND NOT EXISTS (SELECT 1 FROM "Menus" p WHERE p.id = m."parent_id");
             `);
             
             if (orphanMenus.length > 0) {
@@ -84,7 +84,7 @@ async function checkMenusTable() {
                 
                 for (const menu of orphanMenus) {
                     logger.info(`Corrigindo menu órfão: ${menu.title} (${menu.id})`);
-                    await Menu.update({ parentId: null }, { where: { id: menu.id } });
+                    await Menu.update({ parent_id: null }, { where: { id: menu.id } });
                 }
                 
                 logger.info('Menus órfãos corrigidos');

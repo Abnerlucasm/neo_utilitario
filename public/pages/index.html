@@ -4,8 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeoHub - Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            daisyui: {
+                themes: [
+                    "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", 
+                    "synthwave", "retro", "cyberpunk", "valentine", "halloween", 
+                    "garden", "forest", "aqua", "lofi", "pastel", "fantasy", 
+                    "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", 
+                    "business", "acid", "lemonade", "night", "coffee", "winter",
+                    "dim", "nord", "sunset", "caramellatte", "abyss", "silk"
+                ]
+            }
+        }
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <style>
@@ -101,7 +115,7 @@
         }
     </style>
 </head>
-<body>
+<body class="bg-base-200 min-h-screen">
     <neo-navbar></neo-navbar>
 
     <!-- Hero Section com Gradiente -->
@@ -141,7 +155,7 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="card-title text-xl">Glassfish</h3>
-                                <p class="text-gray-600">Gerenciamento de Aplicações</p>
+                                <p class="text-base-content/70">Gerenciamento de Aplicações</p>
                             </div>
                         </div>
                         <div class="card-actions justify-end">
@@ -162,7 +176,7 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="card-title text-xl">NeoTrack</h3>
-                                <p class="text-gray-600">Monitoramento de Sistemas</p>
+                                <p class="text-base-content/70">Monitoramento de Sistemas</p>
                             </div>
                         </div>
                         <div class="card-actions justify-end">
@@ -183,7 +197,7 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="card-title text-xl">Central de Aprendizado</h3>
-                                <p class="text-gray-600">Materiais e Treinamentos</p>
+                                <p class="text-base-content/70">Materiais e Treinamentos</p>
                             </div>
                         </div>
                         <div class="card-actions justify-end">
@@ -204,7 +218,7 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="card-title text-xl">Consulta Banco de Dados</h3>
-                                <p class="text-gray-600">Gerenciamento de Servidores</p>
+                                <p class="text-base-content/70">Gerenciamento de Servidores</p>
                             </div>
                         </div>
                         <div class="card-actions justify-end">
@@ -225,10 +239,10 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="card-title text-xl">Sugestões</h3>
-                                <p class="text-gray-600">Compartilhe Ideias</p>
+                                <p class="text-base-content/70">Compartilhe Ideias</p>
                             </div>
                         </div>
-                        <p class="text-gray-600 mb-4">Contribua com sugestões para melhorar nossa plataforma.</p>
+                        <p class="text-base-content/70 mb-4">Contribua com sugestões para melhorar nossa plataforma.</p>
                         <div class="card-actions justify-end">
                             <a href="/pages/sugestoes-dev.html" class="btn btn-error btn-sm">
                                 <i class="fas fa-external-link-alt mr-1"></i>
@@ -247,10 +261,10 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="card-title text-xl">Recursos em Desenvolvimento</h3>
-                                <p class="text-gray-600">Veja o que está sendo desenvolvido</p>
+                                <p class="text-base-content/70">Veja o que está sendo desenvolvido</p>
                             </div>
                         </div>
-                        <p class="text-gray-600 mb-4">Veja o que está sendo desenvolvido e contribua com sugestões.</p>
+                        <p class="text-base-content/70 mb-4">Veja o que está sendo desenvolvido e contribua com sugestões.</p>
                         <div class="card-actions justify-end">
                             <a href="/pages/recursos-dev.html" class="btn btn-warning btn-sm">
                                 <i class="fas fa-external-link-alt mr-1"></i>
@@ -269,10 +283,10 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="card-title text-xl">Utilitários</h3>
-                                <p class="text-gray-600">Ferramentas e Utilitários</p>
+                                <p class="text-base-content/70">Ferramentas e Utilitários</p>
                             </div>
                         </div>
-                        <p class="text-gray-600 mb-4">Veja as ferramentas e utilitários disponíveis.</p>
+                        <p class="text-base-content/70 mb-4">Veja as ferramentas e utilitários disponíveis.</p>
                         <div class="card-actions justify-end">
                             <a href="/pages/utilitarios.html" class="btn btn-info btn-sm">
                                 <i class="fas fa-external-link-alt mr-1"></i>
@@ -287,14 +301,14 @@
                     <div class="card-body">
                         <div class="flex items-center mb-4">
                             <div class="flex-shrink-0">
-                                <i class="fas fa-cog text-4xl text-gray-500"></i>
+                                <i class="fas fa-cog text-4xl text-base-content/70"></i>
                             </div>
                             <div class="ml-4">
                                 <h3 class="card-title text-xl">Configurações</h3>
-                                <p class="text-gray-600">Personalize</p>
+                                <p class="text-base-content/70">Personalize</p>
                             </div>
                         </div>
-                        <p class="text-gray-600 mb-4">Ajuste suas preferências e configurações do sistema.</p>
+                        <p class="text-base-content/70 mb-4">Ajuste suas preferências e configurações do sistema.</p>
                         <div class="card-actions justify-end">
                             <a href="/pages/user-settings.html" class="btn btn-ghost btn-sm">
                                 <i class="fas fa-external-link-alt mr-1"></i>
@@ -310,6 +324,7 @@
     <neo-footer></neo-footer>
 
     <!-- Scripts -->
+    <script src="/js/theme-manager.js"></script>
     <script src="/js/auth.js"></script>
     <script type="module" src="/components/navbar/navbar.js"></script>
     <script type="module" src="/components/footer/footer.js"></script>

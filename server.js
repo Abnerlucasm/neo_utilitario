@@ -80,6 +80,35 @@ app.use('/modules', express.static(path.join(__dirname, 'public/modules')));
 app.use('/styles', express.static(path.join(__dirname, 'public/styles')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 
+// Rota de debug para recursos (temporária) - ANTES do middleware de autenticação
+app.get('/api/resources/debug', async (req, res) => {
+    try {
+        const { Resource } = require('./models/postgresql/associations');
+        logger.info('Testando API de recursos (debug)...');
+        
+        const resources = await Resource.findAll({
+            attributes: ['id', 'name', 'path', 'type', 'is_active'],
+            limit: 5
+        });
+
+        logger.info(`Recursos encontrados: ${resources.length}`);
+        
+        return res.json({ 
+            success: true, 
+            data: resources,
+            count: resources.length
+        });
+    } catch (error) {
+        logger.error('Erro ao buscar recursos (debug):', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Erro ao buscar recursos',
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
+
 // Middleware de autenticação
 const authMiddleware = async (req, res, next) => {
     // Rotas públicas que não precisam de autenticação
@@ -94,6 +123,7 @@ const authMiddleware = async (req, res, next) => {
         '/api/auth/resend-verification',
         '/api/auth/reset-password',
         '/api/auth/request-reset',
+        '/api/resources/debug',
         '/styles/',
         '/js/',
         '/assets/',

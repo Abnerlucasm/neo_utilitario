@@ -393,6 +393,65 @@
                     </div>
                 </div>
                 
+                <!-- Seção: Seleção de Recurso -->
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h4 class="card-title text-lg mb-4">
+                            <i class="fas fa-link text-primary"></i>
+                            Vincular Recurso
+                        </h4>
+                        
+                        <div class="space-y-4">
+                            <!-- Campo oculto para resource_id -->
+                            <input type="hidden" id="menuResourceId">
+                            
+                            <!-- Busca de Recursos -->
+                            <div class="form-control">
+                                <label class="label" for="resourceSearch">
+                                    <span class="label-text font-medium">Buscar Recurso</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="input input-bordered flex-1" id="resourceSearch" 
+                                           placeholder="Digite para buscar recursos...">
+                                </div>
+                                <label class="label">
+                                    <span class="label-text-alt">Busque por nome, caminho ou descrição do recurso</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Lista de Recursos -->
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-medium">Recursos Disponíveis</span>
+                                </label>
+                                <div id="resourceList" class="max-h-48 overflow-y-auto border border-base-300 rounded-lg bg-base-100">
+                                    <div class="text-center p-4 text-base-content/70">
+                                        <i class="fas fa-search text-2xl mb-2"></i>
+                                        <div>Digite para buscar recursos</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Recurso Selecionado -->
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-medium">Recurso Selecionado</span>
+                                </label>
+                                <div id="selectedResource" class="border border-base-300 rounded-lg bg-base-100">
+                                    <div class="text-center p-4 text-base-content/70">
+                                        <i class="fas fa-search text-2xl mb-2"></i>
+                                        <div>Nenhum recurso selecionado</div>
+                                        <div class="text-xs">Digite para buscar recursos</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Seção: Configurações Avançadas -->
                 <div class="card bg-base-200">
                     <div class="card-body">
@@ -407,9 +466,9 @@
                                     <span class="label-text font-medium">Caminho do Recurso</span>
                                 </label>
                                 <input type="text" class="input input-bordered" id="menuResourcePath" 
-                                       placeholder="Ex: /admin/users">
+                                       placeholder="Ex: /admin/users" readonly>
                                 <label class="label">
-                                    <span class="label-text-alt">Caminho usado para verificar permissões. Se vazio, será usado o mesmo do caminho (URL).</span>
+                                    <span class="label-text-alt">Preenchido automaticamente ao selecionar um recurso</span>
                                 </label>
                             </div>
                             
@@ -477,6 +536,7 @@
 
     <neo-footer></neo-footer>
 
+    <script src="/js/theme-manager.js"></script>
     <script src="/components/navbar/navbar.js" type="module"></script>
     <script src="/components/footer/footer.js" type="module"></script>
     <script src="/js/auth.js"></script>

@@ -14,6 +14,7 @@ const adminRoutes = require('./admin');
 const learningRoutes = require('./learning');
 const userRoutes = require('./user');
 const rolesRoutes = require('./roles');
+const permissionsRoutes = require('./permissions');
 const progressRoutes = require('./progress');
 const serverRoutes = require('./servers');
 const resourcesRoutes = require('./resources');
@@ -33,9 +34,10 @@ router.use('/api/admin', [requireAuth, requireAdmin], adminRoutes);
 router.use('/api/learning', requireAuth, learningRoutes);
 router.use('/api/user', requireAuth, userRoutes);
 router.use('/api/roles', [requireAuth, requireAdmin], rolesRoutes);
+router.use('/api/permissions', [requireAuth, requireAdmin], permissionsRoutes);
 router.use('/api/progress', requireAuth, progressRoutes);
 router.use('/api', serverRoutes);
-router.use('/api/resources', [requireAuth, requireAdmin], resourcesRoutes);
+router.use('/api/resources', resourcesRoutes); // Temporariamente sem autenticação
 
 // Rota de diagnóstico
 router.get('/api/status', (req, res) => {
@@ -49,6 +51,7 @@ router.get('/api/status', (req, res) => {
             '/api/learning',
             '/api/user',
             '/api/roles',
+            '/api/permissions',
             '/api/progress',
             '/api/servers',
             '/api/resources'

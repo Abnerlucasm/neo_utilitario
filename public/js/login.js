@@ -115,6 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Inicializar o gerenciador de login
     if (typeof LoginManager === 'function') {
-        new LoginManager();
+    new LoginManager();
     }
 }); 

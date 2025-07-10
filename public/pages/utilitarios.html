@@ -3,11 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Utilitários</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <title>Utilitários - NeoHub</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            daisyui: {
+                themes: [
+                    "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", 
+                    "synthwave", "retro", "cyberpunk", "valentine", "halloween", 
+                    "garden", "forest", "aqua", "lofi", "pastel", "fantasy", 
+                    "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", 
+                    "business", "acid", "lemonade", "night", "coffee", "winter",
+                    "dim", "nord", "sunset", "caramellatte", "abyss", "silk"
+                ]
+            }
+        }
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <style>
         .card-hover {
             transition: all 0.3s ease;
@@ -19,14 +33,17 @@
         }
     </style>
 </head>
-<body>
+<body class="bg-base-200 min-h-screen">
     <neo-navbar></neo-navbar>
 
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-bold text-center mb-8">
-            <i class="fas fa-tools mr-3 text-primary"></i>
-            Utilitários
-        </h1>
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-4">
+                <i class="fas fa-tools text-primary mr-3"></i>
+                Utilitários
+            </h1>
+            <p class="text-base-content/70 text-lg">Ferramentas e sistemas disponíveis para uso</p>
+        </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Card Neo Chamados -->
@@ -38,7 +55,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="card-title text-xl">Neo Chamados</h3>
-                            <p class="text-gray-600">Sistema de gerenciamento de chamados e suporte.</p>
+                            <p class="text-base-content/70">Sistema de gerenciamento de chamados e suporte.</p>
                         </div>
                     </div>
                     
@@ -66,7 +83,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="card-title text-xl">Gerenciador Glassfish</h3>
-                            <p class="text-gray-600">Sistema web para gerenciamento corporativo.</p>
+                            <p class="text-base-content/70">Sistema web para gerenciamento corporativo.</p>
                         </div>
                     </div>
                     
@@ -94,11 +111,11 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="card-title text-xl">NeoTrack</h3>
-                            <p class="text-gray-600">Gerenciamento de Serviços</p>
+                            <p class="text-base-content/70">Gerenciamento de Serviços</p>
                         </div>
                     </div>
                     
-                    <p class="text-gray-600 mb-4">
+                    <p class="text-base-content/70 mb-4">
                         Sistema de gerenciamento de serviços com kanban, timer e controle de etapas.
                     </p>
                     
@@ -117,7 +134,7 @@
                 </div>
             </div>
 
-            <!-- Card PostgreSQL -->
+            <!-- Card Central de Aprendizagem -->
             <div class="card bg-base-100 shadow-xl card-hover">
                 <div class="card-body">
                     <div class="flex items-center mb-4">
@@ -126,7 +143,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="card-title text-xl">Central de Aprendizagem</h3>
-                            <p class="text-gray-600">Acesse todos os materiais de aprendizagem, tutoriais e documentações.</p>
+                            <p class="text-base-content/70">Acesse todos os materiais de aprendizagem, tutoriais e documentações.</p>
                         </div>
                     </div>
                     
@@ -154,7 +171,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="card-title text-xl">Consulta de Bancos</h3>
-                            <p class="text-gray-600">Gerencie servidores e execute consultas em múltiplas bases de dados.</p>
+                            <p class="text-base-content/70">Gerencie servidores e execute consultas em múltiplas bases de dados.</p>
                         </div>
                     </div>
                     
@@ -172,13 +189,47 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Card Sugestões -->
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-lightbulb text-3xl text-warning"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="card-title text-xl">Sugestões</h3>
+                            <p class="text-base-content/70">Envie sugestões para melhorias do sistema.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="badge badge-warning">Feedback</span>
+                        <span class="badge badge-info">Melhorias</span>
+                        <span class="badge badge-success">Ideias</span>
+                    </div>
+                    
+                    <div class="card-actions justify-end">
+                        <a href="sugestoes-dev.html" class="btn btn-warning btn-sm">
+                            <i class="fas fa-lightbulb mr-1"></i>
+                            Acessar
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <neo-footer></neo-footer>
 
-    <script src="../components/navbar/navbar.js"></script>
-    <script src="../js/utilitarios.js"></script>
-    <script src="../components/footer/footer.js" type="module"></script>
+    <script src="/js/theme-manager.js"></script>
+    <script src="/components/navbar/navbar.js" type="module"></script>
+    <script src="/components/footer/footer.js" type="module"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            AuthManager.checkAuth();
+        });
+    </script>
 </body>
 </html>

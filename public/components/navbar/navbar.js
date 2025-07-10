@@ -226,10 +226,15 @@ class NeoNavbar extends HTMLElement {
     async checkUserAuth() {
         try {
             const token = localStorage.getItem('auth_token');
-            if (!token) return;
+            if (!token) {
+                console.log('Navbar: Nenhum token encontrado');
+                return;
+            }
 
             const tokenData = JSON.parse(atob(token.split('.')[1]));
             this.state.isAdmin = tokenData.roles && tokenData.roles.includes('admin');
+            console.log('Navbar: Token decodificado:', tokenData);
+            console.log('Navbar: Usuário é admin?', this.state.isAdmin);
             this.updateUserInfo(tokenData);
         } catch (error) {
             console.error('Erro ao verificar autenticação:', error);
@@ -254,9 +259,12 @@ class NeoNavbar extends HTMLElement {
         try {
             const token = localStorage.getItem('auth_token');
             if (!token) {
+                console.log('Navbar: Nenhum token para carregar menus');
                 this.renderEmptyMenu();
                 return;
             }
+            
+            console.log('Navbar: Carregando menus da API...');
             
             // Carregar menus da API
             const response = await fetch('/api/menus', {
@@ -270,7 +278,11 @@ class NeoNavbar extends HTMLElement {
             }
 
             const menus = await response.json();
+            console.log('Navbar: Menus carregados da API:', menus.length, 'menus');
+            
             this.state.menus = this.transformMenus(menus);
+            console.log('Navbar: Menus transformados:', this.state.menus.length, 'menus');
+            
             this.renderMenus();
         } catch (error) {
             console.error('Erro ao carregar menus:', error);
@@ -282,13 +294,13 @@ class NeoNavbar extends HTMLElement {
         if (!Array.isArray(menus)) return [];
         
         return menus.map(menu => ({
-                id: menu.id,
-                titulo: menu.title,
-                url: menu.path,
-                icon: menu.icon,
-                isAdminOnly: menu.isAdminOnly,
-                isActive: menu.isActive,
-            resourcePath: menu.resourcePath || menu.path,
+            id: menu.id,
+            titulo: menu.title,
+            url: menu.path,
+            icon: menu.icon,
+            isAdminOnly: menu.is_admin_only,
+            isActive: menu.is_active,
+            resourcePath: menu.resource_path || menu.path,
             submenu: menu.children ? this.transformMenus(menu.children) : []
         }));
     }
@@ -297,20 +309,34 @@ class NeoNavbar extends HTMLElement {
         const menuList = this.querySelector('.menu-list');
         if (!menuList) return;
 
+        console.log('Navbar: Renderizando menus...');
+        console.log('Navbar: Total de menus:', this.state.menus.length);
+        console.log('Navbar: Usuário é admin?', this.state.isAdmin);
+
         // Filtrar menus baseado em permissões
         const filteredMenus = this.state.menus.filter(menu => {
-            if (menu.isAdminOnly && !this.state.isAdmin) return false;
-            if (!menu.isActive) return false;
+            if (menu.isAdminOnly && !this.state.isAdmin) {
+                console.log('Navbar: Menu filtrado (admin only):', menu.titulo);
+                return false;
+            }
+            if (!menu.isActive) {
+                console.log('Navbar: Menu filtrado (inativo):', menu.titulo);
+                return false;
+            }
             return true;
         });
 
+        console.log('Navbar: Menus após filtro:', filteredMenus.length, 'menus');
+
         if (filteredMenus.length === 0) {
+            console.log('Navbar: Nenhum menu após filtro, renderizando menu vazio');
             this.renderEmptyMenu();
             return;
         }
 
         const menuHtml = filteredMenus.map(menu => this.renderMenuItem(menu)).join('');
         menuList.innerHTML = menuHtml;
+        console.log('Navbar: Menus renderizados com sucesso');
     }
 
     renderMenuItem(menu) {

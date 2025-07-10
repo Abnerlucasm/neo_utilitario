@@ -1,778 +1,654 @@
 /**
- * Classe para gerenciamento de recursos na interface de administração
+ * Gerenciador de Recursos do Sistema
+ * Interface moderna para gerenciar recursos e permissões
  */
 class ResourceManager {
     constructor() {
-        // Elementos da interface
-        this.resourcesList = document.getElementById('resources-list');
-        this.resourceForm = document.getElementById('resource-form');
-        this.searchInput = document.getElementById('resource-search');
-        this.typeFilter = document.getElementById('resource-type-filter');
-        this.addResourceBtn = document.getElementById('add-resource-btn');
-        this.cancelBtn = document.getElementById('cancel-resource-btn');
-        this.saveResourceBtn = document.getElementById('save-resource-btn');
-        this.deleteResourceBtn = document.getElementById('delete-resource-btn');
-        this.resourceModal = new bootstrap.Modal(document.getElementById('resource-modal'));
-
-        // Estado
         this.resources = [];
         this.roles = [];
-        this.currentResource = null;
-        this.isEditing = false;
-        this.isLoading = false;
+        this.currentResourceId = null;
+        this.filters = {
+            search: '',
+            type: '',
+            status: '',
+            showInactive: false
+        };
+        this.icons = [
+            'fas fa-link', 'fas fa-file', 'fas fa-folder', 'fas fa-home',
+            'fas fa-users', 'fas fa-user', 'fas fa-cog', 'fas fa-tools',
+            'fas fa-chart-bar', 'fas fa-chart-line', 'fas fa-chart-pie',
+            'fas fa-database', 'fas fa-server', 'fas fa-network-wired',
+            'fas fa-shield-alt', 'fas fa-lock', 'fas fa-key', 'fas fa-eye',
+            'fas fa-edit', 'fas fa-trash', 'fas fa-plus', 'fas fa-minus',
+            'fas fa-check', 'fas fa-times', 'fas fa-exclamation-triangle',
+            'fas fa-info-circle', 'fas fa-question-circle', 'fas fa-heart',
+            'fas fa-star', 'fas fa-bookmark', 'fas fa-calendar', 'fas fa-clock',
+            'fas fa-map-marker-alt', 'fas fa-phone', 'fas fa-envelope',
+            'fas fa-download', 'fas fa-upload', 'fas fa-sync', 'fas fa-redo',
+            'fas fa-undo', 'fas fa-save', 'fas fa-print', 'fas fa-search',
+            'fas fa-filter', 'fas fa-sort', 'fas fa-list', 'fas fa-th',
+            'fas fa-bars', 'fas fa-ellipsis-h', 'fas fa-ellipsis-v',
+            'fas fa-chevron-left', 'fas fa-chevron-right', 'fas fa-chevron-up',
+            'fas fa-chevron-down', 'fas fa-angle-left', 'fas fa-angle-right',
+            'fas fa-angle-up', 'fas fa-angle-down', 'fas fa-caret-left',
+            'fas fa-caret-right', 'fas fa-caret-up', 'fas fa-caret-down'
+        ];
+        this.init();
     }
 
-    /**
-     * Inicializa o gerenciador de recursos
-     */
     async init() {
         try {
-            // Carregar dados iniciais
-            await this.loadResources();
-            await this.loadRoles();
-
-            // Configurar eventos
+            await Promise.all([
+                this.loadResources(),
+                this.loadRoles()
+            ]);
             this.setupEventListeners();
-            
-            // Mostrar visualização em árvore por padrão
+            this.updateStats();
             this.renderResourceTree();
         } catch (error) {
-            console.error('Erro ao inicializar o gerenciador de recursos:', error);
-            this.showToast('Erro ao carregar recursos. Consulte o console para mais detalhes.', 'error');
+            console.error('Erro ao inicializar gerenciador de recursos:', error);
+            this.showToast('Erro ao carregar dados', 'error');
         }
     }
 
-    /**
-     * Configura os listeners de eventos
-     */
+    async loadResources() {
+        try {
+            const response = await fetch('/api/resources?include_roles=true', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao carregar recursos (${response.status})`);
+            }
+
+            const data = await response.json();
+            this.resources = data.data || [];
+            this.renderResources();
+        } catch (error) {
+            console.error('Erro ao carregar recursos:', error);
+            this.showToast('Erro ao carregar recursos', 'error');
+        }
+    }
+
+    async loadRoles() {
+        try {
+            const response = await fetch('/api/roles', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao carregar papéis (${response.status})`);
+            }
+
+            const data = await response.json();
+            this.roles = data.data || [];
+            this.renderRolesCheckboxes();
+        } catch (error) {
+            console.error('Erro ao carregar papéis:', error);
+            this.showToast('Erro ao carregar papéis', 'error');
+        }
+    }
+
     setupEventListeners() {
-        // Botão para adicionar novo recurso
-        this.addResourceBtn.addEventListener('click', () => this.openResourceForm());
-
-        // Botão para cancelar formulário
-        this.cancelBtn.addEventListener('click', () => this.resourceModal.hide());
-
-        // Botão para salvar recurso
-        this.saveResourceBtn.addEventListener('click', () => this.saveResource());
-
-        // Botão para excluir recurso
-        this.deleteResourceBtn.addEventListener('click', () => this.deleteResource());
-
-        // Campo de pesquisa
-        this.searchInput.addEventListener('input', debounce(() => {
-            this.searchResources(this.searchInput.value);
-        }, 300));
-
-        // Filtro de tipo
-        this.typeFilter.addEventListener('change', () => {
-            this.searchResources(this.searchInput.value);
+        // Filtros
+        document.getElementById('resourceSearch')?.addEventListener('input', (e) => {
+            this.filters.search = e.target.value;
+            this.applyFilters();
         });
 
-        // Alternar entre visualizações (lista/árvore)
-        document.getElementById('view-list').addEventListener('click', () => {
-            document.getElementById('view-tree').classList.remove('active');
-            document.getElementById('view-list').classList.add('active');
-            this.renderResourcesList();
+        document.getElementById('resourceTypeFilter')?.addEventListener('change', (e) => {
+            this.filters.type = e.target.value;
+            this.applyFilters();
         });
 
-        document.getElementById('view-tree').addEventListener('click', () => {
-            document.getElementById('view-list').classList.remove('active');
-            document.getElementById('view-tree').classList.add('active');
-            this.renderResourceTree();
+        document.getElementById('resourceStatusFilter')?.addEventListener('change', (e) => {
+            this.filters.status = e.target.value;
+            this.applyFilters();
+        });
+
+        document.getElementById('showInactiveResources')?.addEventListener('change', (e) => {
+            this.filters.showInactive = e.target.checked;
+            this.applyFilters();
         });
 
         // Formulário
-        document.getElementById('resource-type').addEventListener('change', (e) => {
-            // Mostrar/esconder o campo de ícone apenas para tipos específicos
-            const iconField = document.getElementById('resource-icon-group');
-            if (e.target.value === 'menu' || e.target.value === 'item') {
-                iconField.classList.remove('d-none');
-            } else {
-                iconField.classList.add('d-none');
-            }
+        document.getElementById('resourceForm')?.addEventListener('input', () => {
+            this.updateResourcePreview();
+        });
+
+        // Seletor de ícones
+        document.getElementById('iconSelectorBtn')?.addEventListener('click', () => {
+            this.toggleIconSelector();
+        });
+
+        // Modal
+        document.getElementById('resourceModal')?.addEventListener('close', () => {
+            this.resetForm();
         });
     }
 
-    /**
-     * Carrega a lista de recursos do servidor
-     */
-    async loadResources() {
-        try {
-            this.isLoading = true;
-            this.updateLoadingState();
+    applyFilters() {
+        let filteredResources = [...this.resources];
 
-            const response = await fetch('/api/v1/resources');
-            const data = await response.json();
-
-            if (data.success) {
-                this.resources = data.data;
-            } else {
-                throw new Error(data.message || 'Erro ao carregar recursos');
-            }
-        } catch (error) {
-            console.error('Erro ao carregar recursos:', error);
-            this.showToast('Erro ao carregar recursos do servidor', 'error');
-        } finally {
-            this.isLoading = false;
-            this.updateLoadingState();
+        // Filtro de busca
+        if (this.filters.search) {
+            const searchTerm = this.filters.search.toLowerCase();
+            filteredResources = filteredResources.filter(resource =>
+                resource.name.toLowerCase().includes(searchTerm) ||
+                resource.path.toLowerCase().includes(searchTerm) ||
+                (resource.description && resource.description.toLowerCase().includes(searchTerm))
+            );
         }
+
+        // Filtro de tipo
+        if (this.filters.type) {
+            filteredResources = filteredResources.filter(resource =>
+                resource.type === this.filters.type
+            );
+        }
+
+        // Filtro de status
+        if (this.filters.status !== '') {
+            const isActive = this.filters.status === 'true';
+            filteredResources = filteredResources.filter(resource =>
+                resource.is_active === isActive
+            );
+        }
+
+        // Filtro de inativos
+        if (!this.filters.showInactive) {
+            filteredResources = filteredResources.filter(resource => resource.is_active);
+        }
+
+        this.renderResources(filteredResources);
+        this.updateStats(filteredResources);
     }
 
-    /**
-     * Carrega a árvore de recursos do servidor
-     */
-    async loadResourceTree() {
-        try {
-            this.isLoading = true;
-            this.updateLoadingState();
+    renderResources(resources = null) {
+        const container = document.getElementById('resourcesList');
+        if (!container) return;
 
-            const response = await fetch('/api/v1/resources/tree');
-            const data = await response.json();
+        const resourcesToRender = resources || this.resources;
 
-            if (data.success) {
-                return data.data;
-            } else {
-                throw new Error(data.message || 'Erro ao carregar árvore de recursos');
-            }
-        } catch (error) {
-            console.error('Erro ao carregar árvore de recursos:', error);
-            this.showToast('Erro ao carregar árvore de recursos do servidor', 'error');
-            return [];
-        } finally {
-            this.isLoading = false;
-            this.updateLoadingState();
-        }
-    }
-
-    /**
-     * Carrega a lista de papéis do servidor
-     */
-    async loadRoles() {
-        try {
-            const response = await fetch('/api/v1/roles');
-            const data = await response.json();
-
-            if (data.success) {
-                this.roles = data.data;
-                this.updateRoleCheckboxes();
-            } else {
-                throw new Error(data.message || 'Erro ao carregar papéis');
-            }
-        } catch (error) {
-            console.error('Erro ao carregar papéis:', error);
-            this.showToast('Erro ao carregar papéis do servidor', 'error');
-        }
-    }
-
-    /**
-     * Renderiza a lista de recursos
-     */
-    renderResourcesList() {
-        if (!this.resourcesList) return;
-        
-        this.resourcesList.innerHTML = '';
-        if (this.resources.length === 0) {
-            this.resourcesList.innerHTML = `
-                <div class="text-center py-5">
-                    <p class="text-muted">Nenhum recurso encontrado</p>
+        if (resourcesToRender.length === 0) {
+            container.innerHTML = `
+                <div class="no-resources-container">
+                    <i class="fas fa-file-alt"></i>
+                    <h3 class="text-xl font-bold mb-2">Nenhum recurso encontrado</h3>
+                    <p class="text-base-content/70 mb-4">Nenhum recurso corresponde aos critérios de busca.</p>
+                    <button class="btn btn-primary" onclick="resourceManager.openResourceModal()">
+                        <i class="fas fa-plus"></i> Adicionar Recurso
+                    </button>
                 </div>
             `;
             return;
         }
 
-        // Criar tabela
-        const table = document.createElement('table');
-        table.className = 'table table-hover';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Caminho</th>
-                    <th>Tipo</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        `;
-
-        const tbody = table.querySelector('tbody');
-
-        // Adicionar recursos à tabela
-        this.resources.forEach(resource => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>
-                    <div class="d-flex align-items-center">
-                        ${resource.icon ? `<i class="${resource.icon} me-2"></i>` : ''}
-                        <span>${this.escapeHtml(resource.name)}</span>
-                    </div>
-                </td>
-                <td><code>${this.escapeHtml(resource.path)}</code></td>
-                <td><span class="badge bg-secondary">${this.formatResourceType(resource.type)}</span></td>
-                <td>
-                    ${resource.is_active 
-                        ? '<span class="badge bg-success">Ativo</span>' 
-                        : '<span class="badge bg-danger">Inativo</span>'}
-                    ${resource.is_system 
-                        ? '<span class="badge bg-warning ms-1">Sistema</span>' 
-                        : ''}
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-primary edit-btn" data-id="${resource.id}">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            `;
-            
-            tbody.appendChild(row);
-            
-            // Adicionar evento para edição
-            row.querySelector('.edit-btn').addEventListener('click', () => {
-                this.editResource(resource.id);
-            });
-        });
-
-        this.resourcesList.appendChild(table);
+        container.innerHTML = resourcesToRender.map(resource => this.renderResourceCard(resource)).join('');
+        
+        // Atualizar contador
+        const countElement = document.getElementById('resourcesCount');
+        if (countElement) {
+            countElement.textContent = resourcesToRender.length;
+        }
     }
 
-    /**
-     * Renderiza a visualização em árvore dos recursos
-     */
-    async renderResourceTree() {
-        if (!this.resourcesList) return;
+    renderResourceCard(resource) {
+        const typeClass = `type-${resource.type.toLowerCase()}`;
+        const statusClass = resource.is_active ? 'badge-success' : 'badge-error';
+        const statusText = resource.is_active ? 'Ativo' : 'Inativo';
         
-        this.resourcesList.innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>';
-        
-        try {
-            const treeData = await this.loadResourceTree();
-            
-            if (treeData.length === 0) {
-                this.resourcesList.innerHTML = `
-                    <div class="text-center py-5">
-                        <p class="text-muted">Nenhum recurso encontrado</p>
-                    </div>
-                `;
-                return;
-            }
+        const rolesText = resource.roles && resource.roles.length > 0 
+            ? resource.roles.map(role => role.name).join(', ')
+            : 'Nenhum papel';
 
-            this.resourcesList.innerHTML = '';
-            const treeContainer = document.createElement('div');
-            treeContainer.className = 'resource-tree px-3 py-2';
-            
-            const ul = this.createResourceTreeUl(treeData);
-            treeContainer.appendChild(ul);
-            
-            this.resourcesList.appendChild(treeContainer);
-        } catch (error) {
-            console.error('Erro ao renderizar árvore de recursos:', error);
-            this.resourcesList.innerHTML = `
-                <div class="alert alert-danger">
-                    Erro ao carregar a árvore de recursos. Por favor, tente novamente.
+        return `
+            <div class="card resource-card bg-base-100 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+                 onclick="resourceManager.selectResource('${resource.id}')">
+                <div class="card-body">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start gap-4 flex-1">
+                            <div class="resource-icon bg-primary/10 text-primary">
+                                <i class="${resource.icon || 'fas fa-link'}"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <h3 class="font-bold text-lg">${resource.name}</h3>
+                                    <span class="badge ${typeClass} resource-type-badge">${resource.type}</span>
+                                    <span class="badge ${statusClass} badge-sm">${statusText}</span>
+                                    ${resource.is_admin_only ? '<span class="badge badge-error badge-sm">Admin</span>' : ''}
+                                </div>
+                                <div class="resource-path mb-2">${resource.path}</div>
+                                ${resource.description ? `<div class="resource-description">${resource.description}</div>` : ''}
+                                <div class="text-sm text-base-content/70 mt-2">
+                                    <i class="fas fa-users mr-1"></i> ${rolesText}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn btn-ghost btn-sm" 
+                                    onclick="event.stopPropagation(); resourceManager.editResource('${resource.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-ghost btn-sm text-error" 
+                                    onclick="event.stopPropagation(); resourceManager.deleteResource('${resource.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 </div>
             `;
         }
+
+    renderResourceTree() {
+        const container = document.getElementById('resourceTree');
+        if (!container) return;
+
+        const rootResources = this.resources.filter(r => !r.parent_id);
+        
+        if (rootResources.length === 0) {
+            container.innerHTML = '<p class="text-base-content/70 text-center">Nenhum recurso encontrado</p>';
+            return;
+        }
+
+        const treeHtml = rootResources.map(resource => this.renderTreeNode(resource)).join('');
+        container.innerHTML = treeHtml;
     }
 
-    /**
-     * Cria um elemento UL para a árvore de recursos
-     */
-    createResourceTreeUl(resources) {
-        const ul = document.createElement('ul');
-        ul.className = 'tree-list';
-        
-        resources.forEach(resource => {
-            const li = document.createElement('li');
-            li.className = 'tree-item';
-            
-            // Criar conteúdo do item
-            const itemContent = document.createElement('div');
-            itemContent.className = 'tree-item-content d-flex align-items-center';
-            
-            // Adicionar ícone se existir
-            if (resource.icon) {
-                const icon = document.createElement('i');
-                icon.className = `${resource.icon} me-2`;
-                itemContent.appendChild(icon);
-            }
-            
-            // Nome do recurso
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = resource.name;
-            nameSpan.className = 'me-2';
-            itemContent.appendChild(nameSpan);
-            
-            // Badges para tipo e status
-            const typeBadge = document.createElement('span');
-            typeBadge.className = 'badge bg-secondary me-1';
-            typeBadge.textContent = this.formatResourceType(resource.type);
-            itemContent.appendChild(typeBadge);
-            
-            if (!resource.is_active) {
-                const statusBadge = document.createElement('span');
-                statusBadge.className = 'badge bg-danger me-1';
-                statusBadge.textContent = 'Inativo';
-                itemContent.appendChild(statusBadge);
-            }
-            
-            if (resource.is_system) {
-                const systemBadge = document.createElement('span');
-                systemBadge.className = 'badge bg-warning me-1';
-                systemBadge.textContent = 'Sistema';
-                itemContent.appendChild(systemBadge);
-            }
-            
-            // Botão de edição
-            const editBtn = document.createElement('button');
-            editBtn.className = 'btn btn-sm btn-primary ms-auto';
-            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-            editBtn.addEventListener('click', () => this.editResource(resource.id));
-            itemContent.appendChild(editBtn);
-            
-            li.appendChild(itemContent);
-            
-            // Adicionar filhos se existirem
-            if (resource.children && resource.children.length > 0) {
-                const childUl = this.createResourceTreeUl(resource.children);
-                li.appendChild(childUl);
-            }
-            
-            ul.appendChild(li);
-        });
-        
-        return ul;
+    renderTreeNode(resource, level = 0) {
+        const children = this.resources.filter(r => r.parent_id === resource.id);
+        const hasChildren = children.length > 0;
+        const indent = level * 20;
+
+        let html = `
+            <div class="resource-tree-item" style="margin-left: ${indent}px;">
+                <div class="flex items-center gap-2 py-1">
+                    <i class="fas fa-${hasChildren ? 'folder' : 'file'} text-primary"></i>
+                    <span class="font-medium">${resource.name}</span>
+                    <span class="badge badge-sm ${resource.is_active ? 'badge-success' : 'badge-error'}">${resource.is_active ? 'Ativo' : 'Inativo'}</span>
+                </div>
+            </div>
+        `;
+
+        if (hasChildren) {
+            html += children.map(child => this.renderTreeNode(child, level + 1)).join('');
+        }
+
+        return html;
     }
 
-    /**
-     * Atualiza as checkboxes de papéis no formulário
-     */
-    updateRoleCheckboxes() {
-        const container = document.getElementById('roles-container');
-        if (!container || !this.roles.length) return;
+    renderRolesCheckboxes() {
+        const container = document.getElementById('rolesCheckboxes');
+        if (!container) return;
 
-        container.innerHTML = '';
+        if (this.roles.length === 0) {
+            container.innerHTML = '<p class="text-center text-base-content/70">Nenhum papel encontrado</p>';
+            return;
+        }
+
+        container.innerHTML = this.roles.map(role => `
+            <label class="label cursor-pointer justify-start gap-3">
+                <input type="checkbox" class="checkbox" value="${role.id}" name="resourceRoles">
+                <div>
+                    <span class="label-text font-medium">${role.name}</span>
+                    <div class="label-text-alt">${role.description || 'Sem descrição'}</div>
+                </div>
+            </label>
+        `).join('');
+    }
+
+    updateStats(resources = null) {
+        const resourcesToCount = resources || this.resources;
         
-        this.roles.forEach(role => {
-            const div = document.createElement('div');
-            div.className = 'form-check';
-            div.innerHTML = `
-                <input class="form-check-input role-checkbox" type="checkbox" 
-                    id="role-${role.id}" value="${role.id}" name="roles">
-                <label class="form-check-label" for="role-${role.id}">
-                    ${this.escapeHtml(role.name)}
-                </label>
-            `;
-            container.appendChild(div);
+        const stats = {
+            total: resourcesToCount.length,
+            active: resourcesToCount.filter(r => r.is_active).length,
+            menu: resourcesToCount.filter(r => r.type === 'MENU').length,
+            api: resourcesToCount.filter(r => r.type === 'API').length
+        };
+
+        // Atualizar elementos
+        const elements = {
+            totalResources: stats.total,
+            activeResources: stats.active,
+            menuResources: stats.menu,
+            apiResources: stats.api
+        };
+
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
         });
     }
 
-    /**
-     * Preenche o formulário com os dados do recurso para edição
-     */
-    async editResource(id) {
-        try {
-            this.isLoading = true;
-            this.updateLoadingState();
-            
-            const response = await fetch(`/api/v1/resources/${id}`);
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.message || 'Erro ao carregar recurso');
+    openResourceModal(resourceId = null) {
+        this.currentResourceId = resourceId;
+        const modal = document.getElementById('resourceModal');
+        const title = document.getElementById('modalTitle');
+        const form = document.getElementById('resourceForm');
+
+        title.textContent = resourceId ? 'Editar Recurso' : 'Novo Recurso';
+        form.reset();
+
+        if (resourceId) {
+            const resource = this.resources.find(r => r.id === resourceId);
+            if (resource) {
+                this.fillResourceForm(resource);
             }
-            
-            this.currentResource = data.data;
-            this.isEditing = true;
-            
-            // Preencher o formulário
-            document.getElementById('resource-id').value = this.currentResource.id;
-            document.getElementById('resource-name').value = this.currentResource.name;
-            document.getElementById('resource-path').value = this.currentResource.path;
-            document.getElementById('resource-description').value = this.currentResource.description || '';
-            document.getElementById('resource-type').value = this.currentResource.type;
-            document.getElementById('resource-icon').value = this.currentResource.icon || '';
-            document.getElementById('resource-order').value = this.currentResource.order || 0;
-            document.getElementById('resource-parent').value = this.currentResource.parent_id || '';
-            document.getElementById('resource-active').checked = this.currentResource.is_active;
-            
-            // Atualizar o campo de ícone conforme o tipo
-            const iconField = document.getElementById('resource-icon-group');
-            if (this.currentResource.type === 'menu' || this.currentResource.type === 'item') {
-                iconField.classList.remove('d-none');
             } else {
-                iconField.classList.add('d-none');
-            }
-            
-            // Marcar os papéis associados
-            document.querySelectorAll('.role-checkbox').forEach(checkbox => {
-                checkbox.checked = false;
+            this.resetForm();
+        }
+
+        modal.showModal();
+    }
+
+    fillResourceForm(resource) {
+        document.getElementById('resourceId').value = resource.id;
+        document.getElementById('resourceName').value = resource.name;
+        document.getElementById('resourcePath').value = resource.path;
+        document.getElementById('resourceDescription').value = resource.description || '';
+        document.getElementById('resourceType').value = resource.type;
+        document.getElementById('resourceIcon').value = resource.icon || 'fas fa-link';
+        document.getElementById('resourceOrder').value = resource.order || 0;
+        document.getElementById('resourceIsActive').checked = resource.is_active;
+        document.getElementById('resourceIsAdminOnly').checked = resource.is_admin_only;
+
+        // Selecionar recurso pai
+        const parentSelect = document.getElementById('resourceParent');
+        if (parentSelect) {
+            parentSelect.value = resource.parent_id || '';
+        }
+
+        // Marcar papéis
+        if (resource.roles) {
+            const roleIds = resource.roles.map(role => role.id);
+            document.querySelectorAll('input[name="resourceRoles"]').forEach(checkbox => {
+                checkbox.checked = roleIds.includes(checkbox.value);
             });
-            
-            if (this.currentResource.roles && this.currentResource.roles.length > 0) {
-                this.currentResource.roles.forEach(role => {
-                    const checkbox = document.getElementById(`role-${role.id}`);
-                    if (checkbox) checkbox.checked = true;
-                });
-            }
-            
-            // Atualizar título do modal e estado dos botões
-            document.getElementById('resource-modal-title').textContent = 'Editar Recurso';
-            this.deleteResourceBtn.classList.remove('d-none');
-            
-            // Se for um recurso do sistema, desabilitar alguns campos
-            const isSystem = this.currentResource.is_system;
-            document.getElementById('resource-name').disabled = isSystem;
-            document.getElementById('resource-path').disabled = isSystem;
-            document.getElementById('resource-type').disabled = isSystem;
-            
-            if (isSystem) {
-                this.deleteResourceBtn.disabled = true;
-                this.deleteResourceBtn.title = 'Recursos do sistema não podem ser excluídos';
-            } else {
-                this.deleteResourceBtn.disabled = false;
-                this.deleteResourceBtn.title = 'Excluir recurso';
-            }
-            
-            // Abrir o modal
-            this.resourceModal.show();
-            
-        } catch (error) {
-            console.error('Erro ao editar recurso:', error);
-            this.showToast('Erro ao carregar dados do recurso', 'error');
-        } finally {
-            this.isLoading = false;
-            this.updateLoadingState();
         }
+
+        this.updateResourcePreview();
     }
 
-    /**
-     * Abre o formulário para criação de um novo recurso
-     */
-    openResourceForm() {
-        this.isEditing = false;
-        this.currentResource = null;
+    resetForm() {
+        document.getElementById('resourceId').value = '';
+        document.getElementById('resourceName').value = '';
+        document.getElementById('resourcePath').value = '';
+        document.getElementById('resourceDescription').value = '';
+        document.getElementById('resourceType').value = 'PAGE';
+        document.getElementById('resourceIcon').value = 'fas fa-link';
+        document.getElementById('resourceOrder').value = '0';
+        document.getElementById('resourceIsActive').checked = true;
+        document.getElementById('resourceIsAdminOnly').checked = false;
         
-        // Limpar formulário
-        this.resourceForm.reset();
-        document.getElementById('resource-id').value = '';
-        
-        // Mostrar campo de ícone apenas para tipos específicos
-        const iconField = document.getElementById('resource-icon-group');
-        const type = document.getElementById('resource-type').value;
-        if (type === 'menu' || type === 'item') {
-            iconField.classList.remove('d-none');
-        } else {
-            iconField.classList.add('d-none');
+        const parentSelect = document.getElementById('resourceParent');
+        if (parentSelect) {
+            parentSelect.value = '';
         }
-        
-        // Desmarcar todas as checkboxes de papéis
-        document.querySelectorAll('.role-checkbox').forEach(checkbox => {
+
+        document.querySelectorAll('input[name="resourceRoles"]').forEach(checkbox => {
             checkbox.checked = false;
         });
         
-        // Atualizar título do modal e botões
-        document.getElementById('resource-modal-title').textContent = 'Novo Recurso';
-        this.deleteResourceBtn.classList.add('d-none');
-        
-        // Habilitar todos os campos (novo recurso não é do sistema)
-        document.getElementById('resource-name').disabled = false;
-        document.getElementById('resource-path').disabled = false;
-        document.getElementById('resource-type').disabled = false;
-        
-        // Abrir o modal
-        this.resourceModal.show();
+        this.updateResourcePreview();
     }
 
-    /**
-     * Salva um recurso (cria ou atualiza)
-     */
+    updateResourcePreview() {
+        const name = document.getElementById('resourceName')?.value || 'Nome do Recurso';
+        const path = document.getElementById('resourcePath')?.value || '/caminho/do/recurso';
+        const description = document.getElementById('resourceDescription')?.value || 'Descrição do recurso';
+        const type = document.getElementById('resourceType')?.value || 'PAGE';
+        const icon = document.getElementById('resourceIcon')?.value || 'fas fa-link';
+        const isActive = document.getElementById('resourceIsActive')?.checked;
+        const isAdminOnly = document.getElementById('resourceIsAdminOnly')?.checked;
+
+        // Atualizar preview
+        document.getElementById('previewName').textContent = name;
+        document.getElementById('previewPath').textContent = path;
+        document.getElementById('previewDescription').textContent = description;
+        document.getElementById('previewIcon').innerHTML = `<i class="${icon}"></i>`;
+        document.getElementById('previewTypeBadge').textContent = type;
+        document.getElementById('previewActiveBadge').textContent = isActive ? 'Ativo' : 'Inativo';
+        document.getElementById('previewActiveBadge').className = `badge badge-sm ${isActive ? 'badge-success' : 'badge-error'}`;
+        document.getElementById('previewAdminBadge').style.display = isAdminOnly ? 'inline-block' : 'none';
+
+        // Atualizar ícone de preview no formulário
+        const iconPreview = document.getElementById('iconPreview');
+        if (iconPreview) {
+            iconPreview.className = icon;
+        }
+    }
+
+    toggleIconSelector() {
+        const selector = document.getElementById('iconSelector');
+        const isVisible = selector.style.display !== 'none';
+        
+        if (!isVisible) {
+            this.renderIconSelector();
+        }
+        
+        selector.style.display = isVisible ? 'none' : 'block';
+    }
+
+    renderIconSelector() {
+        const grid = document.querySelector('.icons-grid');
+        if (!grid) return;
+
+        grid.innerHTML = this.icons.map(icon => `
+            <div class="icon-option" onclick="resourceManager.selectIcon('${icon}')">
+                <i class="${icon}"></i>
+            </div>
+        `).join('');
+    }
+
+    selectIcon(icon) {
+        document.getElementById('resourceIcon').value = icon;
+        document.getElementById('iconPreview').className = icon;
+        this.updateResourcePreview();
+        this.toggleIconSelector();
+    }
+
     async saveResource() {
         try {
-            // Validar o formulário
-            if (!this.validateResourceForm()) {
+            const formData = this.getFormData();
+            
+            if (!this.validateForm(formData)) {
                 return;
             }
             
-            this.isLoading = true;
-            this.updateLoadingState();
+            const url = this.currentResourceId 
+                ? `/api/resources/${this.currentResourceId}`
+                : '/api/resources';
             
-            // Coletar dados do formulário
-            const formData = {
-                name: document.getElementById('resource-name').value,
-                path: document.getElementById('resource-path').value,
-                description: document.getElementById('resource-description').value,
-                type: document.getElementById('resource-type').value,
-                icon: document.getElementById('resource-icon').value,
-                order: parseInt(document.getElementById('resource-order').value, 10) || 0,
-                is_active: document.getElementById('resource-active').checked,
-                parent_id: document.getElementById('resource-parent').value || null,
-                roles: Array.from(document.querySelectorAll('.role-checkbox:checked')).map(cb => cb.value)
-            };
-            
-            let url = '/api/v1/resources';
-            let method = 'POST';
-            
-            // Se estiver editando, atualizar ao invés de criar
-            if (this.isEditing && this.currentResource) {
-                url = `/api/v1/resources/${this.currentResource.id}`;
-                method = 'PUT';
-            }
+            const method = this.currentResourceId ? 'PUT' : 'POST';
             
             const response = await fetch(url, {
-                method: method,
+                method,
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(formData)
             });
-            
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.message || 'Erro ao salvar recurso');
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Erro ao salvar recurso (${response.status})`);
             }
+
+            const result = await response.json();
             
-            // Atualizar a lista de recursos
-            await this.loadResources();
-            
-            // Mostrar mensagem de sucesso
             this.showToast(
-                this.isEditing ? 'Recurso atualizado com sucesso' : 'Recurso criado com sucesso', 
+                this.currentResourceId ? 'Recurso atualizado com sucesso' : 'Recurso criado com sucesso',
                 'success'
             );
             
-            // Fechar o modal
-            this.resourceModal.hide();
-            
-            // Atualizar a visualização atual
-            document.getElementById('view-tree').classList.contains('active') 
-                ? this.renderResourceTree() 
-                : this.renderResourcesList();
+            // Fechar modal e recarregar dados
+            document.getElementById('resourceModal').close();
+            await this.loadResources();
+            this.updateStats();
+            this.renderResourceTree();
                 
         } catch (error) {
             console.error('Erro ao salvar recurso:', error);
-            this.showToast(`Erro ao salvar recurso: ${error.message}`, 'error');
-        } finally {
-            this.isLoading = false;
-            this.updateLoadingState();
+            this.showToast(error.message, 'error');
         }
     }
 
-    /**
-     * Valida o formulário de recursos
-     */
-    validateResourceForm() {
-        const name = document.getElementById('resource-name').value;
-        const path = document.getElementById('resource-path').value;
-        const type = document.getElementById('resource-type').value;
-        
-        if (!name || !name.trim()) {
-            this.showToast('Nome é obrigatório', 'error');
+    getFormData() {
+        const selectedRoles = Array.from(document.querySelectorAll('input[name="resourceRoles"]:checked'))
+            .map(checkbox => checkbox.value);
+
+        return {
+            name: document.getElementById('resourceName').value,
+            path: document.getElementById('resourcePath').value,
+            description: document.getElementById('resourceDescription').value,
+            type: document.getElementById('resourceType').value,
+            icon: document.getElementById('resourceIcon').value,
+            order: parseInt(document.getElementById('resourceOrder').value) || 0,
+            is_active: document.getElementById('resourceIsActive').checked,
+            is_admin_only: document.getElementById('resourceIsAdminOnly').checked,
+            parent_id: document.getElementById('resourceParent').value || null,
+            roles: selectedRoles
+        };
+    }
+
+    validateForm(data) {
+        if (!data.name.trim()) {
+            this.showToast('Nome do recurso é obrigatório', 'error');
             return false;
         }
         
-        if (!path || !path.trim()) {
-            this.showToast('Caminho é obrigatório', 'error');
+        if (!data.path.trim()) {
+            this.showToast('Caminho do recurso é obrigatório', 'error');
             return false;
         }
         
-        if (!type) {
-            this.showToast('Tipo é obrigatório', 'error');
+        if (!data.type) {
+            this.showToast('Tipo do recurso é obrigatório', 'error');
             return false;
         }
         
         return true;
     }
 
-    /**
-     * Exclui um recurso
-     */
-    async deleteResource() {
-        if (!this.currentResource) return;
-        
-        // Confirmar exclusão
-        if (!confirm(`Tem certeza que deseja excluir o recurso "${this.currentResource.name}"?`)) {
+    async deleteResource(resourceId) {
+        const resource = this.resources.find(r => r.id === resourceId);
+        if (!resource) return;
+
+        if (!confirm(`Tem certeza que deseja excluir o recurso "${resource.name}"?`)) {
             return;
         }
         
         try {
-            this.isLoading = true;
-            this.updateLoadingState();
-            
-            const response = await fetch(`/api/v1/resources/${this.currentResource.id}`, {
+            const response = await fetch(`/api/resources/${resourceId}`, {
                 method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                }
             });
-            
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.message || 'Erro ao excluir recurso');
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Erro ao excluir recurso (${response.status})`);
             }
-            
-            // Atualizar a lista de recursos
-            await this.loadResources();
-            
-            // Mostrar mensagem de sucesso
+
             this.showToast('Recurso excluído com sucesso', 'success');
-            
-            // Fechar o modal
-            this.resourceModal.hide();
-            
-            // Atualizar a visualização atual
-            document.getElementById('view-tree').classList.contains('active') 
-                ? this.renderResourceTree() 
-                : this.renderResourcesList();
+            await this.loadResources();
+            this.updateStats();
+            this.renderResourceTree();
                 
         } catch (error) {
             console.error('Erro ao excluir recurso:', error);
-            this.showToast(`Erro ao excluir recurso: ${error.message}`, 'error');
-        } finally {
-            this.isLoading = false;
-            this.updateLoadingState();
+            this.showToast(error.message, 'error');
         }
     }
 
-    /**
-     * Pesquisa recursos com base no termo e filtro de tipo
-     */
-    async searchResources(term) {
-        try {
-            this.isLoading = true;
-            this.updateLoadingState();
-            
-            const typeFilter = this.typeFilter.value;
-            let url = '/api/v1/resources';
-            
-            if (term || typeFilter) {
-                // Se tiver termo ou filtro, usa a rota de pesquisa
-                url = '/api/v1/resources/search?';
-                
-                if (term) url += `term=${encodeURIComponent(term)}`;
-                if (typeFilter) {
-                    url += term ? `&type=${encodeURIComponent(typeFilter)}` : `type=${encodeURIComponent(typeFilter)}`;
-                }
-            }
-            
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.message || 'Erro ao pesquisar recursos');
-            }
-            
-            this.resources = data.data;
-            
-            // Renderizar apenas na visualização de lista, a árvore tem sua própria lógica
-            if (document.getElementById('view-list').classList.contains('active')) {
-                this.renderResourcesList();
-            }
-            
-        } catch (error) {
-            console.error('Erro ao pesquisar recursos:', error);
-            this.showToast('Erro ao pesquisar recursos', 'error');
-        } finally {
-            this.isLoading = false;
-            this.updateLoadingState();
-        }
+    selectResource(resourceId) {
+        const resource = this.resources.find(r => r.id === resourceId);
+        if (!resource) return;
+
+        this.renderResourceDetails(resource);
     }
 
-    /**
-     * Atualiza o estado de carregamento na interface
-     */
-    updateLoadingState() {
-        document.querySelectorAll('button').forEach(button => {
-            button.disabled = this.isLoading;
-        });
-        
-        const loader = document.getElementById('loading-indicator');
-        if (loader) {
-            loader.style.display = this.isLoading ? 'block' : 'none';
-        }
-    }
+    renderResourceDetails(resource) {
+        const container = document.getElementById('resourceDetails');
+        if (!container) return;
 
-    /**
-     * Mostra uma notificação toast
-     */
-    showToast(message, type = 'info') {
-        const toastContainer = document.getElementById('toast-container');
-        if (!toastContainer) return;
-        
-        const toast = document.createElement('div');
-        toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
-        toast.setAttribute('role', 'alert');
-        toast.setAttribute('aria-live', 'assertive');
-        toast.setAttribute('aria-atomic', 'true');
-        
-        toast.innerHTML = `
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${this.escapeHtml(message)}
+        const rolesText = resource.roles && resource.roles.length > 0 
+            ? resource.roles.map(role => role.name).join(', ')
+            : 'Nenhum papel';
+
+        container.innerHTML = `
+            <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="resource-icon bg-primary/10 text-primary">
+                        <i class="${resource.icon || 'fas fa-link'}"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">${resource.name}</h3>
+                        <div class="resource-path">${resource.path}</div>
+                    </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+                
+                ${resource.description ? `
+                    <div>
+                        <h4 class="font-medium mb-2">Descrição</h4>
+                        <p class="text-sm text-base-content/70">${resource.description}</p>
+                    </div>
+                ` : ''}
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-medium mb-1">Tipo</h4>
+                        <span class="badge badge-sm">${resource.type}</span>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-1">Status</h4>
+                        <span class="badge badge-sm ${resource.is_active ? 'badge-success' : 'badge-error'}">
+                            ${resource.is_active ? 'Ativo' : 'Inativo'}
+                        </span>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium mb-2">Papéis com Acesso</h4>
+                    <p class="text-sm text-base-content/70">${rolesText}</p>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button class="btn btn-primary btn-sm" onclick="resourceManager.editResource('${resource.id}')">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-error btn-sm" onclick="resourceManager.deleteResource('${resource.id}')">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
             </div>
         `;
-        
-        toastContainer.appendChild(toast);
-        
-        const bsToast = new bootstrap.Toast(toast, {
-            autohide: true,
-            delay: 5000
-        });
-        
-        bsToast.show();
-        
-        // Remover toast do DOM depois que for escondido
-        toast.addEventListener('hidden.bs.toast', () => {
-            toast.remove();
-        });
     }
 
-    /**
-     * Escapa caracteres HTML para prevenção de XSS
-     */
-    escapeHtml(text) {
-        if (!text) return '';
-        
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        
-        return text.toString().replace(/[&<>"']/g, m => map[m]);
+    editResource(resourceId) {
+        this.openResourceModal(resourceId);
     }
 
-    /**
-     * Formata o tipo de recurso para exibição
-     */
-    formatResourceType(type) {
-        const typeMap = {
-            'menu': 'Menu',
-            'item': 'Item',
-            'page': 'Página',
-            'api': 'API',
-            'function': 'Função'
-        };
+    showToast(message, type = 'info') {
+        // Implementar sistema de toast (pode usar DaisyUI toast ou criar um customizado)
+        console.log(`${type.toUpperCase()}: ${message}`);
         
-        return typeMap[type] || type;
+        // Exemplo simples de alerta
+        alert(`${type.toUpperCase()}: ${message}`);
     }
 }
 
-/**
- * Função de debounce para evitar múltiplas chamadas de pesquisa
- */
-function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-}
-
-// Inicializar quando o DOM estiver pronto
+// Inicializar o gerenciador quando a página carregar
 document.addEventListener('DOMContentLoaded', () => {
-    const resourceManager = new ResourceManager();
-    resourceManager.init();
+    window.resourceManager = new ResourceManager();
 }); 

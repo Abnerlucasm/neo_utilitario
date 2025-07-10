@@ -137,10 +137,27 @@ function updateStats(stats) {
         }
     });
 
-    document.getElementById('totalServers').textContent = totalServers;
-    document.getElementById('onlineServers').textContent = onlineCount;
-    document.getElementById('offlineServers').textContent = offlineCount;
-    document.getElementById('errorServers').textContent = errorCount;
+                // Verificar se os elementos existem antes de tentar acessá-los
+    const totalServersElement = document.getElementById('totalServers');
+    const onlineServersElement = document.getElementById('onlineServers');
+    const offlineServersElement = document.getElementById('offlineServers');
+    const errorServersElement = document.getElementById('errorServers');
+
+    if (totalServersElement) {
+        totalServersElement.textContent = totalServers;
+    }
+    
+    if (onlineServersElement) {
+        onlineServersElement.textContent = onlineCount;
+    }
+    
+    if (offlineServersElement) {
+        offlineServersElement.textContent = offlineCount;
+    }
+    
+    if (errorServersElement) {
+        errorServersElement.textContent = errorCount;
+    }
 }
 
 // Renderizar lista de servidores
@@ -172,13 +189,13 @@ function renderServersList() {
                     </div>
                     <div class="flex space-x-2">
                         <button class="btn btn-info btn-sm" onclick="testServerConnection(${server.id})" title="Testar Conexão">
-                            <i class="fas fa-plug"></i>
+                                <i class="fas fa-plug"></i>
                         </button>
                         <button class="btn btn-warning btn-sm" onclick="editServer(${server.id})" title="Editar">
-                            <i class="fas fa-edit"></i>
+                                <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-error btn-sm" onclick="deleteServer(${server.id})" title="Excluir">
-                            <i class="fas fa-trash"></i>
+                                <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
@@ -211,7 +228,7 @@ function renderServerCheckboxes() {
                         ${server.name}
                     </span>
                     <input type="checkbox" class="checkbox" value="${server.id}" data-server-name="${server.name}">
-                </label>
+                    </label>
             `).join('')}
         </div>
     `;
@@ -611,18 +628,36 @@ function renderDatabasesPagination(totalPages) {
         pagination.style.display = 'none';
         return;
     }
-    let html = '';
-    html += `<button class="join-item btn" ${currentPage === 1 ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage - 1})">Anterior</button>`;
-    html += `<button class="join-item btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage + 1})">Próxima</button>`;
+    
+    let html = '<div class="join">';
+    
+    // Botão Anterior
+    html += `<button class="join-item btn btn-outline" ${currentPage === 1 ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage - 1})">
+        <i class="fas fa-chevron-left"></i>
+        Anterior
+    </button>`;
+    
+    // Números das páginas
     for (let i = 1; i <= totalPages; i++) {
         if (i === currentPage) {
             html += `<button class="join-item btn btn-active">${i}</button>`;
         } else {
-            html += `<button class="join-item btn" onclick="filterAndPaginateDatabases(${i})">${i}</button>`;
+            html += `<button class="join-item btn btn-outline" onclick="filterAndPaginateDatabases(${i})">${i}</button>`;
         }
     }
+    
+    // Botão Próxima
+    html += `<button class="join-item btn btn-outline" ${currentPage === totalPages ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage + 1})">
+        Próxima
+        <i class="fas fa-chevron-right"></i>
+    </button>`;
+    
+    html += '</div>';
+    
     pagination.innerHTML = html;
     pagination.style.display = 'flex';
+    pagination.style.justifyContent = 'center';
+    pagination.style.marginTop = '1rem';
 }
 
 // Função principal para exibir databases (chamada pelo backend)

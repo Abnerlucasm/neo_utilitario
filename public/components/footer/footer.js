@@ -11,7 +11,7 @@ class NeoFooter extends HTMLElement {
         // Carregar template
         const templatePromise = import('./footer.template.js')
             .then(module => module.getFooterTemplate);
-
+        
         // Renderizar com o template
         this.render(await templatePromise);
         

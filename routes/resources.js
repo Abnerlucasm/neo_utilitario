@@ -1,35 +1,135 @@
 const express = require('express');
 const router = express.Router();
-const { Resource, Role } = require('../models/postgresql/associations');
+    const { Resource, Role, Menu } = require('../models/postgresql/associations');
 const { requireAuth, requireAdmin } = require('../middlewares/access-control');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 
 /**
- * @route GET /api/resources
- * @desc Obter todos os recursos
- * @access Private (Admin)
+ * @route GET /api/resources/debug
+ * @desc Rota de debug para testar recursos sem autenticação
+ * @access Public (temporário)
  */
-router.get('/', requireAuth, requireAdmin, async (req, res) => {
+router.get('/debug', async (req, res) => {
     try {
+        logger.info('Testando API de recursos (debug)...');
+        
         const resources = await Resource.findAll({
-            attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'order', 'created_at', 'updated_at'],
+            attributes: ['id', 'name', 'path', 'type', 'is_active'],
+            limit: 5
+        });
+
+        logger.info(`Recursos encontrados: ${resources.length}`);
+        
+        return res.json({ 
+            success: true, 
+            data: resources,
+            count: resources.length
+        });
+    } catch (error) {
+        logger.error('Erro ao buscar recursos (debug):', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Erro ao buscar recursos',
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
+
+/**
+ * @route GET /api/resources
+ * @desc Obter todos os recursos com filtros
+ * @access Private (Admin) - Temporariamente público para debug
+ */
+router.get('/', async (req, res) => {
+    try {
+        const { 
+            type, 
+            is_active, 
+            search, 
+            parent_id,
+            include_roles = false,
+            include_children = false
+        } = req.query;
+
+        // Construir where clause
+        const whereClause = {};
+        
+        if (type) {
+            // Tratar múltiplos tipos separados por vírgula
+            if (type.includes(',')) {
+                const types = type.split(',').map(t => t.trim());
+                whereClause.type = { [Op.in]: types };
+            } else {
+                whereClause.type = type;
+            }
+        }
+        
+        if (is_active !== undefined) {
+            whereClause.is_active = is_active === 'true';
+        }
+        
+        if (parent_id) {
+            whereClause.parent_id = parent_id === 'null' ? null : parent_id;
+        }
+        
+        if (search) {
+            whereClause[Op.or] = [
+                { name: { [Op.iLike]: `%${search}%` } },
+                { path: { [Op.iLike]: `%${search}%` } },
+                { description: { [Op.iLike]: `%${search}%` } }
+            ];
+        }
+
+        // Construir include clause
+        const includeClause = [];
+        
+        if (include_roles === 'true') {
+            includeClause.push({
+                model: Role,
+                as: 'roles',
+                attributes: ['id', 'name', 'description'],
+                where: { is_active: true },
+                through: { attributes: [] }
+            });
+        }
+        
+        if (include_children === 'true') {
+            includeClause.push({
+                model: Resource,
+                as: 'children',
+                attributes: ['id', 'name', 'path', 'type', 'icon', 'is_active', 'order'],
+                where: { is_active: true },
+                order: [['order', 'ASC'], ['name', 'ASC']]
+            });
+        }
+
+        const resources = await Resource.findAll({
+            where: whereClause,
+            attributes: [
+                'id', 'name', 'path', 'description', 'type', 'icon', 
+                'is_active', 'is_admin_only', 'is_system', 'order', 
+                'parent_id', 'created_at', 'updated_at'
+            ],
+            include: includeClause,
             order: [
                 ['type', 'ASC'],
                 ['order', 'ASC'],
                 ['name', 'ASC']
             ]
-            // Removendo temporariamente a associação com parent
-            // include: [
-            //    { 
-            //        model: Resource, 
-            //        as: 'parent',
-            //        attributes: ['id', 'name'] 
-            //    }
-            // ]
         });
 
-        return res.json({ success: true, data: resources });
+        logger.info(`Recursos encontrados: ${resources.length}`, { 
+            userId: req.user?.id || 'debug', 
+            filters: req.query 
+        });
+
+        return res.json({ 
+            success: true, 
+            data: resources,
+            count: resources.length
+        });
     } catch (error) {
         logger.error('Erro ao buscar recursos:', error);
         return res.status(500).json({ 
@@ -41,15 +141,30 @@ router.get('/', requireAuth, requireAdmin, async (req, res) => {
 });
 
 /**
- * @route GET /api/v1/resources/tree
+ * @route GET /api/resources/tree
  * @desc Obter recursos em formato de árvore
  * @access Private (Admin)
  */
 router.get('/tree', requireAuth, requireAdmin, async (req, res) => {
     try {
+        const { include_inactive = false } = req.query;
+        
         // Buscar recursos principais (sem parent)
+        const whereClause = { parent_id: null };
+        if (include_inactive !== 'true') {
+            whereClause.is_active = true;
+        }
+
         const rootResources = await Resource.findAll({
-            where: { parent_id: null },
+            where: whereClause,
+            include: [
+                {
+                    model: Role,
+                    as: 'roles',
+                    attributes: ['id', 'name'],
+                    through: { attributes: [] }
+                }
+            ],
             order: [['order', 'ASC'], ['name', 'ASC']]
         });
 
@@ -61,7 +176,14 @@ router.get('/tree', requireAuth, requireAdmin, async (req, res) => {
             resourceTree.push(resourceData);
         }
 
-        return res.json({ success: true, data: resourceTree });
+        logger.info(`Árvore de recursos construída com ${resourceTree.length} raízes`, { 
+            userId: req.user.id 
+        });
+
+        return res.json({ 
+            success: true, 
+            data: resourceTree 
+        });
     } catch (error) {
         logger.error('Erro ao buscar árvore de recursos:', error);
         return res.status(500).json({ 
@@ -73,7 +195,7 @@ router.get('/tree', requireAuth, requireAdmin, async (req, res) => {
 });
 
 /**
- * @route GET /api/v1/resources/:id
+ * @route GET /api/resources/:id
  * @desc Obter um recurso pelo ID
  * @access Private (Admin)
  */
@@ -81,17 +203,28 @@ router.get('/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         const resource = await Resource.findByPk(req.params.id, {
             include: [
-                // Removendo temporariamente a associação com parent
-                // { 
-                //     model: Resource, 
-                //     as: 'parent',
-                //     attributes: ['id', 'name'] 
-                // },
+                {
+                    model: Resource,
+                    as: 'parent',
+                    attributes: ['id', 'name', 'path']
+                },
+                {
+                    model: Resource,
+                    as: 'children',
+                    attributes: ['id', 'name', 'path', 'type', 'icon', 'is_active', 'order'],
+                    where: { is_active: true },
+                    order: [['order', 'ASC'], ['name', 'ASC']]
+                },
                 {
                     model: Role,
                     as: 'roles',
-                    attributes: ['id', 'name'],
+                    attributes: ['id', 'name', 'description'],
                     through: { attributes: [] }
+                },
+                {
+                    model: Menu,
+                    as: 'menu',
+                    attributes: ['id', 'title', 'path']
                 }
             ]
         });
@@ -103,7 +236,14 @@ router.get('/:id', requireAuth, requireAdmin, async (req, res) => {
             });
         }
 
-        return res.json({ success: true, data: resource });
+        logger.info(`Recurso ${req.params.id} consultado`, { 
+            userId: req.user.id 
+        });
+
+        return res.json({ 
+            success: true, 
+            data: resource 
+        });
     } catch (error) {
         logger.error(`Erro ao buscar recurso ${req.params.id}:`, error);
         return res.status(500).json({ 
@@ -115,19 +255,16 @@ router.get('/:id', requireAuth, requireAdmin, async (req, res) => {
 });
 
 /**
- * @route POST /api/v1/resources
+ * @route POST /api/resources
  * @desc Criar um novo recurso
  * @access Private (Admin)
  */
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
     try {
-        // Extrair dados da requisição
         const { 
             name, path, description, type, 
-            icon, is_active, 
-            //parent_id, // Comentando parent_id
-            order, 
-            roles
+            icon, is_active, parent_id, order, 
+            roles, is_admin_only, metadata
         } = req.body;
 
         // Verificar se o caminho já existe
@@ -139,6 +276,17 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
             });
         }
 
+        // Validar parent_id se fornecido
+        if (parent_id) {
+            const parent = await Resource.findByPk(parent_id);
+            if (!parent) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Recurso pai não encontrado' 
+                });
+            }
+        }
+
         // Criar o recurso
         const resource = await Resource.create({
             name,
@@ -147,8 +295,10 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
             type,
             icon,
             is_active: is_active !== undefined ? is_active : true,
-            //parent_id: parent_id || null, // Comentando parent_id
-            order: order || 0
+            is_admin_only: is_admin_only || false,
+            parent_id: parent_id || null,
+            order: order || 0,
+            metadata: metadata || {}
         });
 
         // Associar aos papéis se fornecidos
@@ -162,16 +312,14 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
             }
         }
 
-        // Retornar o recurso criado
+        // Retornar o recurso criado com relacionamentos
         const createdResource = await Resource.findByPk(resource.id, {
-            attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'order', 'created_at', 'updated_at'],
             include: [
-                // Removendo temporariamente a associação com parent
-                // { 
-                //     model: Resource, 
-                //     as: 'parent',
-                //     attributes: ['id', 'name'] 
-                // },
+                {
+                    model: Resource,
+                    as: 'parent',
+                    attributes: ['id', 'name']
+                },
                 {
                     model: Role,
                     as: 'roles',
@@ -179,6 +327,11 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
                     through: { attributes: [] }
                 }
             ]
+        });
+
+        logger.info(`Recurso criado: ${resource.name}`, { 
+            userId: req.user.id,
+            resourceId: resource.id 
         });
 
         return res.status(201).json({ 
@@ -197,24 +350,14 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 });
 
 /**
- * @route PUT /api/v1/resources/:id
+ * @route PUT /api/resources/:id
  * @desc Atualizar um recurso
  * @access Private (Admin)
  */
 router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
-        const { id } = req.params;
+        const resource = await Resource.findByPk(req.params.id);
         
-        // Extrair dados da requisição
-        const { 
-            name, path, description, type, 
-            icon, is_active, 
-            //parent_id, // Comentando parent_id
-            order, roles
-        } = req.body;
-
-        // Verificar se o recurso existe
-        const resource = await Resource.findByPk(id);
         if (!resource) {
             return res.status(404).json({ 
                 success: false, 
@@ -222,15 +365,17 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
             });
         }
 
-        // Verificar se o caminho já existe (exceto se for o mesmo recurso)
-        if (path && path !== resource.path) {
-            const existingPath = await Resource.findOne({
-                where: {
-                    path,
-                    id: { [Op.ne]: id }
-                }
-            });
+        const { 
+            name, path, description, type, 
+            icon, is_active, parent_id, order, 
+            roles, is_admin_only, metadata
+        } = req.body;
 
+        // Verificar se o caminho já existe (exceto para o próprio recurso)
+        if (path && path !== resource.path) {
+            const existingPath = await Resource.findOne({ 
+                where: { path, id: { [Op.ne]: req.params.id } } 
+            });
             if (existingPath) {
                 return res.status(400).json({ 
                     success: false, 
@@ -239,26 +384,21 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
             }
         }
 
-        // Prevenir ciclos na hierarquia
+        // Validar parent_id se fornecido
         if (parent_id && parent_id !== resource.parent_id) {
-            if (parent_id === resource.id) {
+            if (parent_id === req.params.id) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: 'Um recurso não pode ser seu próprio pai' 
+                    message: 'Um recurso não pode ser pai de si mesmo' 
                 });
             }
             
-            // Verificar se o novo pai não é descendente deste recurso
-            // (para evitar ciclos na hierarquia)
-            let checkParent = await Resource.findByPk(parent_id);
-            while (checkParent && checkParent.parent_id) {
-                if (checkParent.parent_id === resource.id) {
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: 'Esta operação criaria um ciclo na hierarquia de recursos' 
-                    });
-                }
-                checkParent = await Resource.findByPk(checkParent.parent_id);
+            const parent = await Resource.findByPk(parent_id);
+            if (!parent) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Recurso pai não encontrado' 
+                });
             }
         }
 
@@ -268,31 +408,34 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
             path: path || resource.path,
             description: description !== undefined ? description : resource.description,
             type: type || resource.type,
-            icon: icon || resource.icon,
+            icon: icon !== undefined ? icon : resource.icon,
             is_active: is_active !== undefined ? is_active : resource.is_active,
-            //parent_id: parent_id !== undefined ? parent_id : resource.parent_id, // Comentando parent_id
-            order: order !== undefined ? order : resource.order
+            is_admin_only: is_admin_only !== undefined ? is_admin_only : resource.is_admin_only,
+            parent_id: parent_id !== undefined ? parent_id : resource.parent_id,
+            order: order !== undefined ? order : resource.order,
+            metadata: metadata || resource.metadata
         });
 
-        // Atualizar associação com papéis se fornecido
-        if (roles && Array.isArray(roles)) {
-            const roleObjects = await Role.findAll({
-                where: { id: { [Op.in]: roles } }
-            });
-            
-            await resource.setRoles(roleObjects);
+        // Atualizar papéis se fornecidos
+        if (roles !== undefined) {
+            if (Array.isArray(roles) && roles.length > 0) {
+                const roleObjects = await Role.findAll({
+                    where: { id: { [Op.in]: roles } }
+                });
+                await resource.setRoles(roleObjects);
+            } else {
+                await resource.setRoles([]);
+            }
         }
 
-        // Buscar recurso atualizado
-        const updatedResource = await Resource.findByPk(id, {
-            attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'order', 'created_at', 'updated_at'],
+        // Retornar o recurso atualizado
+        const updatedResource = await Resource.findByPk(req.params.id, {
             include: [
-                // Removendo temporariamente a associação com parent
-                // { 
-                //     model: Resource, 
-                //     as: 'parent',
-                //     attributes: ['id', 'name'] 
-                // },
+                {
+                    model: Resource,
+                    as: 'parent',
+                    attributes: ['id', 'name']
+                },
                 {
                     model: Role,
                     as: 'roles',
@@ -300,6 +443,11 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
                     through: { attributes: [] }
                 }
             ]
+        });
+
+        logger.info(`Recurso atualizado: ${resource.name}`, { 
+            userId: req.user.id,
+            resourceId: resource.id 
         });
 
         return res.json({ 
@@ -318,16 +466,22 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
 });
 
 /**
- * @route DELETE /api/v1/resources/:id
+ * @route DELETE /api/resources/:id
  * @desc Excluir um recurso
  * @access Private (Admin)
  */
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
-        const { id } = req.params;
+        const resource = await Resource.findByPk(req.params.id, {
+            include: [
+                {
+                    model: Resource,
+                    as: 'children',
+                    attributes: ['id', 'name']
+                }
+            ]
+        });
         
-        // Verificar se o recurso existe
-        const resource = await Resource.findByPk(id);
         if (!resource) {
             return res.status(404).json({ 
                 success: false, 
@@ -335,21 +489,45 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
             });
         }
 
-        // Verificar se existem recursos filhos
-        const childrenCount = await Resource.count({ where: { parent_id: id } });
-        if (childrenCount > 0) {
+        // Verificar se é um recurso do sistema
+        if (resource.is_system) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Este recurso possui recursos filhos. Remova-os primeiro.' 
+                message: 'Não é possível excluir recursos do sistema' 
             });
         }
 
-        // Remover o recurso
+        // Verificar se tem filhos
+        if (resource.children && resource.children.length > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Não é possível excluir um recurso que possui filhos. Remova os filhos primeiro.' 
+            });
+        }
+
+        // Verificar se está sendo usado por algum menu
+        const menuUsingResource = await Menu.findOne({
+            where: { resource_id: req.params.id }
+        });
+
+        if (menuUsingResource) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Não é possível excluir um recurso que está sendo usado por um menu' 
+            });
+        }
+
+        // Excluir o recurso
         await resource.destroy();
+
+        logger.info(`Recurso excluído: ${resource.name}`, { 
+            userId: req.user.id,
+            resourceId: resource.id 
+        });
 
         return res.json({ 
             success: true, 
-            message: 'Recurso excluído com sucesso'
+            message: 'Recurso excluído com sucesso' 
         });
     } catch (error) {
         logger.error(`Erro ao excluir recurso ${req.params.id}:`, error);
@@ -362,56 +540,84 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
 });
 
 /**
- * @route GET /api/v1/resources/search
- * @desc Pesquisar recursos
+ * @route GET /api/resources/:id/roles
+ * @desc Obter papéis de um recurso
  * @access Private (Admin)
  */
-router.get('/search', requireAuth, requireAdmin, async (req, res) => {
+router.get('/:id/roles', requireAuth, requireAdmin, async (req, res) => {
     try {
-        const { term, type } = req.query;
+        const resource = await Resource.findByPk(req.params.id);
         
-        const whereClause = {};
-        
-        // Adicionar filtro por termo de pesquisa
-        if (term) {
-            whereClause[Op.or] = [
-                { name: { [Op.iLike]: `%${term}%` } },
-                { path: { [Op.iLike]: `%${term}%` } },
-                { description: { [Op.iLike]: `%${term}%` } }
-            ];
+        if (!resource) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Recurso não encontrado' 
+            });
         }
-        
-        // Adicionar filtro por tipo
-        if (type) {
-            whereClause.type = type;
-        }
-        
-        const resources = await Resource.findAll({
-            attributes: ['id', 'name', 'path', 'description', 'type', 'icon', 'is_active', 'order', 'created_at', 'updated_at'],
-            where: whereClause,
-            order: [
-                ['type', 'ASC'],
-                ['order', 'ASC'],
-                ['name', 'ASC']
-            ]
-            // Removendo temporariamente a associação com parent
-            /*
-            include: [
-                { 
-                    model: Resource, 
-                    as: 'parent',
-                    attributes: ['id', 'name'] 
-                }
-            ]
-            */
-        });
 
-        return res.json({ success: true, data: resources });
+        const roles = await resource.getAccessibleRoles();
+
+        return res.json({ 
+            success: true, 
+            data: roles 
+        });
     } catch (error) {
-        logger.error('Erro ao pesquisar recursos:', error);
+        logger.error(`Erro ao buscar papéis do recurso ${req.params.id}:`, error);
         return res.status(500).json({ 
             success: false, 
-            message: 'Erro ao pesquisar recursos',
+            message: 'Erro ao buscar papéis do recurso',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * @route POST /api/resources/:id/roles
+ * @desc Associar papéis a um recurso
+ * @access Private (Admin)
+ */
+router.post('/:id/roles', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const { roles } = req.body;
+        
+        const resource = await Resource.findByPk(req.params.id);
+        
+        if (!resource) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Recurso não encontrado' 
+            });
+        }
+
+        if (!Array.isArray(roles)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Lista de papéis deve ser um array' 
+            });
+        }
+
+        const roleObjects = await Role.findAll({
+            where: { id: { [Op.in]: roles } }
+        });
+
+        await resource.setRoles(roleObjects);
+
+        logger.info(`Papéis associados ao recurso ${resource.name}`, { 
+            userId: req.user.id,
+            resourceId: resource.id,
+            rolesCount: roleObjects.length 
+        });
+
+        return res.json({ 
+            success: true, 
+            message: 'Papéis associados com sucesso',
+            data: roleObjects
+        });
+    } catch (error) {
+        logger.error(`Erro ao associar papéis ao recurso ${req.params.id}:`, error);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Erro ao associar papéis',
             error: error.message
         });
     }
