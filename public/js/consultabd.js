@@ -826,21 +826,107 @@ function renderDatabasesTable(pageData, total, totalPages) {
                         <th>Nome</th>
                         <th>Tamanho</th>
                         <th>Dono</th>
+                        <th>Comentário</th>
                         <th style="width: 90px;">Ação</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
-    pageData.forEach(db => {
+    pageData.forEach((db, index) => {
         if (db.error) {
-            html += `<tr><td colspan="5"><span class="text-error"><strong>${db.serverName}:</strong> ${db.errorMsg || 'Erro ao conectar com o servidor'}</span></td></tr>`;
+            html += `<tr><td colspan="6"><span class="text-error"><strong>${db.serverName}:</strong> ${db.errorMsg || 'Erro ao conectar com o servidor'}</span></td></tr>`;
         } else {
-            html += `<tr><td>${db.serverName}</td><td class="break-all">${db.name}</td><td>${formatSize(db.size)}</td><td>${db.owner || 'N/A'}</td><td><button class="btn btn-info btn-sm" onclick="copyDatabaseInfo('${db.serverHost}', '${db.name}')" title="Copiar"><i class="fas fa-copy"></i></button></td></tr>`;
+            const comment = db.comment || '';
+            const commentDisplay = comment.length > 50 ? comment.substring(0, 50) + '...' : comment;
+            const hasLongComment = comment.length > 50;
+            
+            html += `<tr>
+                <td>${db.serverName}</td>
+                <td class="break-all">${db.name}</td>
+                <td>${formatSize(db.size)}</td>
+                <td>${db.owner || 'N/A'}</td>
+                <td class="max-w-xs">
+                    ${comment ? 
+                        `<span class="${hasLongComment ? 'cursor-pointer text-primary hover:text-primary-focus' : ''}" 
+                              ${hasLongComment ? `onclick="showCommentModal('${db.name}', '${comment.replace(/'/g, "\\'")}', '${db.serverName}')"` : ''}
+                              title="${hasLongComment ? 'Clique para ver completo' : comment}">
+                            ${commentDisplay}
+                        </span>` : 
+                        '<span class="text-gray-400">-</span>'
+                    }
+                </td>
+                <td><button class="btn btn-info btn-sm" onclick="copyDatabaseInfo('${db.serverHost}', '${db.name}')" title="Copiar"><i class="fas fa-copy"></i></button></td>
+            </tr>`;
         }
     });
     html += `</tbody></table></div>`;
     databasesGrid.innerHTML = html;
     databasesSection.style.display = 'block';
+}
+
+// Função para mostrar modal com comentário completo
+function showCommentModal(databaseName, comment, serverName) {
+    // Remover modal existente se houver
+    const existingModal = document.getElementById('commentModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Criar modal
+    const modal = document.createElement('div');
+    modal.id = 'commentModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-semibold">Comentário da Database</h3>
+                <button onclick="closeCommentModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Servidor:</span>
+                        </label>
+                        <p class="text-base-content/70">${serverName}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Database:</span>
+                        </label>
+                        <p class="text-base-content/70 font-mono">${databaseName}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Comentário:</span>
+                        </label>
+                        <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                            <p class="whitespace-pre-wrap text-base-content/80">${comment}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end p-6 border-t bg-gray-50">
+                <button onclick="closeCommentModal()" class="btn btn-primary">Fechar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Função para fechar modal de comentário
+function closeCommentModal() {
+    const modal = document.getElementById('commentModal');
+    if (modal) {
+        modal.remove();
+    }
 }
 
 // Função para exibir paginação

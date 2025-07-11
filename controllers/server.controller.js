@@ -591,9 +591,11 @@ class ServerController {
                                 SELECT 
                                     d.datname as name,
                                     pg_size_pretty(pg_database_size(d.datname)) as size,
-                                    u.usename as owner
+                                    u.usename as owner,
+                                    COALESCE(sd.description, '') as comment
                                 FROM pg_database d
                                 LEFT JOIN pg_user u ON d.datdba = u.usesysid
+                                LEFT JOIN pg_shdescription sd ON sd.objoid = d.oid
                                 WHERE d.datistemplate = false
                                 ORDER BY d.datname
                             `, {
@@ -604,6 +606,11 @@ class ServerController {
                             clearTimeout(timeout);
                             
                             logger.info(`[${index + 1}/${servers.length}] ${server.name}: ${databases.length} databases encontradas`);
+                            
+                            // Log de debug para verificar os dados retornados
+                            if (databases.length > 0) {
+                                logger.info(`[${index + 1}/${servers.length}] Exemplo de database: ${JSON.stringify(databases[0])}`);
+                            }
                             
                             resolve({
                                 serverId: server.id,

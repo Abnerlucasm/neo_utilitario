@@ -273,16 +273,27 @@ O sistema suporta autenticação de dois fatores usando TOTP (Time-based One-Tim
 
 ### Logs
 
-O sistema usa Winston para logging estruturado:
+O sistema usa Winston para logging estruturado com rotação automática:
 
 ```bash
 # Ver logs da aplicação
 pm2 logs neohub
 
-# Ver logs específicos
-tail -f logs/combined.log
-tail -f logs/error.log
+# Ver logs específicos (rotativos por data)
+tail -f logs/combined-2025-07-11.log
+tail -f logs/error-2025-07-11.log
+
+# Listar todos os arquivos de log
+ls -la logs/
 ```
+
+**Configuração dos Logs:**
+- **Localização**: `/logs/`
+- **Rotação**: Diária (novo arquivo por dia)
+- **Retenção**: 14 dias
+- **Tamanho máximo**: 20MB por arquivo
+- **Compressão**: Automática para arquivos antigos
+- **Formato**: JSON estruturado com timestamp
 
 ### Métricas
 
