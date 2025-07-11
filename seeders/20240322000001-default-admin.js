@@ -1,5 +1,6 @@
 'use strict';
 const bcrypt = require('bcryptjs');
+const { getDefaultAdminConfig } = require('../utils/admin-config');
 
 module.exports = {
     up: async (queryInterface, Sequelize) => {
@@ -31,10 +32,11 @@ module.exports = {
         }
 
         // 2. Verificar se o usuário admin já existe
+        const adminConfig = getDefaultAdminConfig();
         const [existingUser] = await queryInterface.sequelize.query(
             'SELECT id FROM users WHERE email = :email',
             {
-                replacements: { email: 'abner.freitas@neosistemas.com.br' },
+                replacements: { email: adminConfig.email },
                 type: Sequelize.QueryTypes.SELECT
             }
         );
@@ -43,14 +45,14 @@ module.exports = {
 
         if (!existingUser) {
             // Criar usuário admin se não existir
-            const hashedPassword = await bcrypt.hash('admin@123', 10);
+            const hashedPassword = await bcrypt.hash(adminConfig.password, 10);
             const [adminUser] = await queryInterface.bulkInsert('users', [{
                 id: Sequelize.literal('uuid_generate_v4()'),
-                name: 'Abner Freitas',
-                email: 'abner.freitas@neosistemas.com.br',
+                name: adminConfig.name,
+                email: adminConfig.email,
                 password: hashedPassword,
-                is_active: true,
-                email_verified: true,
+                is_active: adminConfig.isActive,
+                email_verified: adminConfig.emailVerified,
                 two_factor_enabled: false,
                 created_at: now,
                 updated_at: now
@@ -71,10 +73,11 @@ module.exports = {
 
     down: async (queryInterface, Sequelize) => {
         // Remover na ordem inversa para evitar problemas de chave estrangeira
+        const adminConfig = getDefaultAdminConfig();
         await queryInterface.bulkDelete('role_permissions', null, {});
         await queryInterface.bulkDelete('user_roles', null, {});
         await queryInterface.bulkDelete('users', {
-            email: 'abner.freitas@neosistemas.com.br'
+            email: adminConfig.email
         }, {});
         await queryInterface.bulkDelete('roles', {
             name: 'Administrador'

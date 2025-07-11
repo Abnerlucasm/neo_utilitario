@@ -12,6 +12,13 @@ const API_BASE = '/api';
 // Inicialização da página
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM carregado, inicializando...');
+    
+    // Verificar autenticação antes de carregar dados
+    if (!getAuthToken()) {
+        console.log('Usuário não autenticado, redirecionando...');
+        return; // A função getAuthToken já redireciona
+    }
+    
     loadServers();
     loadServerStats();
     setupEventListeners();
@@ -19,51 +26,75 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Configurar event listeners
 function setupEventListeners() {
-    console.log('Configurando event listeners...');
+    // Event listener para pesquisa de databases
+    const searchInput = document.getElementById('databaseSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(() => {
+            filterAndPaginateDatabases();
+        }, 300));
+    }
     
-    // Form do servidor
-    const serverForm = document.getElementById('serverForm');
-    console.log('Form encontrado:', serverForm);
-    
-    if (serverForm) {
-        // Adicionar listener para o evento submit
-        serverForm.addEventListener('submit', function(e) {
-            console.log('Form submit disparado');
-            e.preventDefault(); // Prevenir comportamento padrão
-            handleServerSubmit(e);
+    // Event listener para mudança no número de itens por página
+    const perPageSelect = document.getElementById('databasesPerPage');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', () => {
+            filterAndPaginateDatabases();
         });
-        console.log('Event listener do form adicionado');
-        
-        // Adicionar também um listener no botão para debug
-        const submitButton = serverForm.querySelector('button[type="submit"]');
-        console.log('Botão submit encontrado:', submitButton);
-        if (submitButton) {
-            submitButton.addEventListener('click', function(e) {
-                console.log('Botão submit clicado');
-                // Não prevenir o comportamento padrão aqui para permitir que o submit seja disparado
-            });
+    }
+}
+
+// Função debounce para otimizar pesquisa
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Função para obter token de autenticação
+function getAuthToken() {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        // Redirecionar para login se não houver token
+        window.location.href = '/pages/login.html';
+        return null;
+    }
+    return token;
+}
+
+// Função para mostrar notificações
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info'} fixed top-4 right-4 z-50 max-w-sm`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <span class="flex-shrink-0">
+                <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-circle' : 'info-circle'}"></i>
+            </span>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button onclick="this.parentElement.parentElement.remove()" class="btn btn-ghost btn-xs">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remover automaticamente após 5 segundos
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
         }
-        
-        // Adicionar listener para mudanças nos campos para debug
-        const formFields = serverForm.querySelectorAll('input, textarea, select');
-        formFields.forEach(field => {
-            field.addEventListener('change', function(e) {
-                console.log('Campo alterado:', e.target.id, 'Valor:', e.target.value);
-            });
-        });
-    } else {
-        console.error('Form serverForm não encontrado!');
-    }
-    
-    // Modal
-    const modal = document.getElementById('serverModal');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal-backdrop') || e.target.classList.contains('delete')) {
-                closeServerModal();
-            }
-        });
-    }
+    }, 5000);
 }
 
 // Carregar servidores
@@ -108,56 +139,54 @@ async function loadServerStats() {
             throw new Error('Erro ao carregar estatísticas');
         }
 
-        const data = await response.json();
-        updateStats(data.data);
+        const stats = await response.json();
+        renderServerStats(stats);
         
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
     }
 }
 
-// Atualizar estatísticas na interface
-function updateStats(stats) {
-    const totalServers = stats.totalServers || 0;
-    let onlineCount = 0;
-    let offlineCount = 0;
-    let errorCount = 0;
-
-    stats.stats.forEach(stat => {
-        switch (stat.connectionStatus) {
-            case 'online':
-                onlineCount = parseInt(stat.count);
-                break;
-            case 'offline':
-                offlineCount = parseInt(stat.count);
-                break;
-            case 'error':
-                errorCount = parseInt(stat.count);
-                break;
-        }
-    });
-
-                // Verificar se os elementos existem antes de tentar acessá-los
-    const totalServersElement = document.getElementById('totalServers');
-    const onlineServersElement = document.getElementById('onlineServers');
-    const offlineServersElement = document.getElementById('offlineServers');
-    const errorServersElement = document.getElementById('errorServers');
-
-    if (totalServersElement) {
-        totalServersElement.textContent = totalServers;
-    }
+// Renderizar estatísticas dos servidores
+function renderServerStats(stats) {
+    const statsContainer = document.getElementById('serverStats');
+    if (!statsContainer) return;
     
-    if (onlineServersElement) {
-        onlineServersElement.textContent = onlineCount;
-    }
-    
-    if (offlineServersElement) {
-        offlineServersElement.textContent = offlineCount;
-    }
-    
-    if (errorServersElement) {
-        errorServersElement.textContent = errorCount;
-    }
+    statsContainer.innerHTML = `
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-server text-3xl"></i>
+                </div>
+                <div class="stat-title">Total de Servidores</div>
+                <div class="stat-value text-primary">${stats.totalServers || 0}</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-figure text-success">
+                    <i class="fas fa-check-circle text-3xl"></i>
+                </div>
+                <div class="stat-title">Ativos</div>
+                <div class="stat-value text-success">${stats.activeServers || 0}</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-figure text-warning">
+                    <i class="fas fa-database text-3xl"></i>
+                </div>
+                <div class="stat-title">Média de RAM</div>
+                <div class="stat-value text-warning">${Math.round(stats.averageMemory || 0)}%</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-figure text-info">
+                    <i class="fas fa-microchip text-3xl"></i>
+                </div>
+                <div class="stat-title">Média de CPU</div>
+                <div class="stat-value text-info">${Math.round(stats.averageCpu || 0)}%</div>
+            </div>
+        </div>
+    `;
 }
 
 // Renderizar lista de servidores
@@ -180,7 +209,7 @@ function renderServersList() {
             <div class="card-body p-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
-                        <span class="status-indicator status-${server.connectionStatus}"></span>
+                        <div class="status-circle status-${server.connectionStatus || 'unknown'}"></div>
                         <div>
                             <h3 class="font-semibold text-base">${server.name}</h3>
                             <p class="text-sm text-gray-600">${server.host}:${server.port}</p>
@@ -224,7 +253,7 @@ function renderServerCheckboxes() {
             ${servers.map(server => `
                 <label class="label cursor-pointer">
                     <span class="label-text flex items-center">
-                        <span class="status-indicator status-${server.connectionStatus}"></span>
+                        <div class="status-circle status-${server.connectionStatus || 'unknown'} mr-2"></div>
                         ${server.name}
                     </span>
                     <input type="checkbox" class="checkbox" value="${server.id}" data-server-name="${server.name}">
@@ -234,145 +263,23 @@ function renderServerCheckboxes() {
     `;
 }
 
-// Selecionar/Desselecionar todos os servidores
+// Função para alternar todos os servidores
 function toggleAllServers() {
-    const selectAll = document.getElementById('selectAllServers');
-    const checkboxes = document.querySelectorAll('input[value]');
+    const selectAllCheckbox = document.getElementById('selectAllServers');
+    const serverCheckboxes = document.querySelectorAll('input[type="checkbox"][value]');
     
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
+    serverCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
     });
 }
 
-// Abrir modal para novo servidor
-function openServerModal(serverId = null) {
-    currentServerId = serverId;
-    const modal = document.getElementById('serverModal');
-    const title = document.getElementById('modalTitle');
-    
-    if (serverId) {
-        title.textContent = 'Editar Servidor';
-        loadServerData(serverId);
-    } else {
-        title.textContent = 'Novo Servidor';
-        resetServerForm();
-    }
-    
-    modal.showModal();
+// Função para obter servidores selecionados
+function getSelectedServers() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][value]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
 }
 
-// Fechar modal
-function closeServerModal() {
-    const modal = document.getElementById('serverModal');
-    modal.close();
-    currentServerId = null;
-    resetServerForm();
-}
-
-// Resetar formulário
-function resetServerForm() {
-    document.getElementById('serverForm').reset();
-    document.getElementById('serverPort').value = '5432';
-    document.getElementById('serverType').value = 'postgresql';
-}
-
-// Carregar dados do servidor para edição
-async function loadServerData(serverId) {
-    try {
-        const response = await fetch(`${API_BASE}/servers/${serverId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Erro ao carregar dados do servidor');
-        }
-
-        const data = await response.json();
-        const server = data.data;
-        
-        document.getElementById('serverName').value = server.name;
-        document.getElementById('serverHost').value = server.host;
-        document.getElementById('serverPort').value = server.port;
-        document.getElementById('serverUsername').value = server.username;
-        document.getElementById('serverPassword').value = ''; // Não carregar senha por segurança
-        document.getElementById('serverType').value = server.type;
-        document.getElementById('serverDescription').value = server.description || '';
-        
-    } catch (error) {
-        console.error('Erro ao carregar dados do servidor:', error);
-        showNotification('Erro ao carregar dados do servidor', 'error');
-    }
-}
-
-// Função para lidar com o submit do formulário
-function handleServerSubmit(e) {
-    console.log('handleServerSubmit chamada');
-    e.preventDefault();
-    
-    // Obter dados do formulário
-    const formData = {
-        name: document.getElementById('serverName').value,
-        host: document.getElementById('serverHost').value,
-        port: document.getElementById('serverPort').value,
-        username: document.getElementById('serverUsername').value,
-        password: document.getElementById('serverPassword').value,
-        type: document.getElementById('serverType').value,
-        description: document.getElementById('serverDescription').value
-    };
-    
-    console.log('Dados do formulário:', formData);
-    
-    // Validar campos obrigatórios
-    if (!formData.name || !formData.host || !formData.username || !formData.password) {
-        console.error('Campos obrigatórios não preenchidos');
-        showNotification('Por favor, preencha todos os campos obrigatórios.', 'error');
-        return;
-    }
-    
-    console.log('Dados validados, enviando para API...');
-    
-    // Determinar se é criação ou edição
-    const isEditing = currentServerId !== null;
-    const url = isEditing ? `/api/servers/${currentServerId}` : '/api/servers';
-    const method = isEditing ? 'PUT' : 'POST';
-    
-    console.log('URL:', url, 'Método:', method);
-    
-    // Fazer requisição para a API
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAuthToken()}`
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => {
-        console.log('Response status:', response.status);
-        return response.json();
-    })
-    .then(data => {
-        console.log('Response data:', data);
-        if (data.success) {
-            showNotification('Servidor salvo com sucesso!', 'success');
-            closeServerModal();
-            loadServers();
-        } else {
-            console.error('Erro ao salvar servidor:', data.message);
-            showNotification(data.message || 'Erro ao salvar servidor.', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Erro na requisição:', error);
-        showNotification('Erro ao conectar com o servidor.', 'error');
-    });
-}
-
-// Testar conexão do servidor
+// Função para testar conexão do servidor
 async function testServerConnection(serverId) {
     try {
         const response = await fetch(`${API_BASE}/servers/${serverId}/test-connection`, {
@@ -383,89 +290,364 @@ async function testServerConnection(serverId) {
             }
         });
 
-        if (!response.ok) {
-            throw new Error('Erro ao testar conexão');
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Conexão testada com sucesso!', 'success');
+            // Atualizar status do servidor na lista
+            updateServerStatus(serverId, 'connected');
+        } else {
+            showNotification(result.message || 'Erro ao testar conexão', 'error');
+            updateServerStatus(serverId, 'disconnected');
         }
-
-        const data = await response.json();
-        const status = data.data.success ? 'success' : 'error';
-        showNotification(data.data.message, status);
-        
-        // Recarregar servidores para atualizar status
-        loadServers();
-        loadServerStats();
-        
     } catch (error) {
         console.error('Erro ao testar conexão:', error);
         showNotification('Erro ao testar conexão', 'error');
+        updateServerStatus(serverId, 'disconnected');
     }
 }
 
-// Editar servidor
-function editServer(serverId) {
-    openServerModal(serverId);
+// Função para atualizar status do servidor
+function updateServerStatus(serverId, status) {
+    const serverCard = document.querySelector(`[data-server-id="${serverId}"]`);
+    if (serverCard) {
+        const statusIndicator = serverCard.querySelector('.status-circle');
+        if (statusIndicator) {
+            statusIndicator.className = `status-circle status-${status}`;
+        }
+    }
+    
+    // Atualizar também nos checkboxes
+    const checkbox = document.querySelector(`input[value="${serverId}"]`);
+    if (checkbox) {
+        const checkboxStatusIndicator = checkbox.closest('label').querySelector('.status-circle');
+        if (checkboxStatusIndicator) {
+            checkboxStatusIndicator.className = `status-circle status-${status}`;
+        }
+    }
 }
 
-// Deletar servidor
-async function deleteServer(serverId) {
-    if (!confirm('Tem certeza que deseja excluir este servidor?')) {
-        return;
-    }
+// Função para abrir modal de servidor
+function openServerModal() {
+    // Criar modal de criação
+    const modal = document.createElement('div');
+    modal.id = 'createServerModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-semibold">Novo Servidor</h3>
+                <button onclick="closeCreateModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="createServerForm" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <div>
+                    <label class="label">
+                        <span class="label-text">Nome do Servidor</span>
+                    </label>
+                    <input type="text" id="createServerName" class="input input-bordered w-full" required>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Host</span>
+                    </label>
+                    <input type="text" id="createServerHost" class="input input-bordered w-full" required>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Porta</span>
+                    </label>
+                    <input type="number" id="createServerPort" value="5432" class="input input-bordered w-full" required>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Tipo de Banco</span>
+                    </label>
+                    <select id="createServerType" class="select select-bordered w-full" required>
+                        <option value="postgresql" selected>PostgreSQL</option>
+                        <option value="mysql">MySQL</option>
+                        <option value="sqlserver">SQL Server</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Usuário</span>
+                    </label>
+                    <input type="text" id="createServerUsername" class="input input-bordered w-full" required>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Senha</span>
+                    </label>
+                    <input type="password" id="createServerPassword" class="input input-bordered w-full" required>
+                </div>
+            </form>
+            
+            <div class="flex justify-end space-x-2 p-6 border-t bg-gray-50">
+                <button type="button" onclick="closeCreateModal()" class="btn btn-ghost">Cancelar</button>
+                <button type="submit" form="createServerForm" class="btn btn-primary">Criar Servidor</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Adicionar evento de submit
+    document.getElementById('createServerForm').addEventListener('submit', handleCreateServerSubmit);
+}
 
+// Função para fechar modal de criação
+function closeCreateModal() {
+    const modal = document.getElementById('createServerModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Função para lidar com o submit do formulário de criação
+async function handleCreateServerSubmit(event) {
+    event.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('createServerName').value,
+        host: document.getElementById('createServerHost').value,
+        port: parseInt(document.getElementById('createServerPort').value),
+        type: document.getElementById('createServerType').value,
+        username: document.getElementById('createServerUsername').value,
+        password: document.getElementById('createServerPassword').value
+    };
+    
     try {
-        const response = await fetch(`${API_BASE}/servers/${serverId}`, {
-            method: 'DELETE',
+        const response = await fetch(`${API_BASE}/servers`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getAuthToken()}`
-            }
+            },
+            body: JSON.stringify(formData)
         });
-
-        if (!response.ok) {
-            throw new Error('Erro ao excluir servidor');
-        }
-
-        const data = await response.json();
-        showNotification(data.message, 'success');
-        loadServers();
-        loadServerStats();
         
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Servidor criado com sucesso!', 'success');
+            closeCreateModal();
+            loadServers(); // Recarregar lista de servidores
+        } else {
+            showNotification(result.message || 'Erro ao criar servidor', 'error');
+        }
     } catch (error) {
-        console.error('Erro ao excluir servidor:', error);
-        showNotification('Erro ao excluir servidor', 'error');
+        console.error('Erro ao criar servidor:', error);
+        showNotification('Erro ao conectar com o servidor', 'error');
     }
 }
 
-// Função para atualizar estatísticas em tempo real
-function updateLoadingStats(progress, currentStep, totalSteps) {
-    const currentServer = document.getElementById('currentServer');
-    const progressBar = document.getElementById('progressBar');
-    
-    if (progressBar) {
-        progressBar.style.width = `${progress}%`;
+// Função para editar servidor
+function editServer(serverId) {
+    const server = servers.find(s => s.id === serverId);
+    if (!server) {
+        showNotification('Servidor não encontrado', 'error');
+        return;
     }
     
-    if (currentServer) {
-        const steps = [
-            'Iniciando conexões...',
-            'Verificando servidores...',
-            'Estabelecendo conexões...',
-            'Listando databases...',
-            'Processando resultados...'
-        ];
+    // Criar modal de edição
+    const modal = document.createElement('div');
+    modal.id = 'editServerModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-semibold">Editar Servidor</h3>
+                <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="editServerForm" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <input type="hidden" id="editServerId" value="${server.id}">
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Nome do Servidor</span>
+                    </label>
+                    <input type="text" id="editServerName" value="${server.name}" class="input input-bordered w-full" required>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Host</span>
+                    </label>
+                    <input type="text" id="editServerHost" value="${server.host}" class="input input-bordered w-full" required>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Porta</span>
+                    </label>
+                    <input type="number" id="editServerPort" value="${server.port}" class="input input-bordered w-full" required>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Tipo de Banco</span>
+                    </label>
+                    <select id="editServerType" class="select select-bordered w-full" required>
+                        <option value="postgresql" ${server.type === 'postgresql' ? 'selected' : ''}>PostgreSQL</option>
+                        <option value="mysql" ${server.type === 'mysql' ? 'selected' : ''}>MySQL</option>
+                        <option value="sqlserver" ${server.type === 'sqlserver' ? 'selected' : ''}>SQL Server</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Usuário</span>
+                    </label>
+                    <input type="text" id="editServerUsername" value="${server.username}" class="input input-bordered w-full" required>
+                </div>
+                
+                <div>
+                    <label class="label">
+                        <span class="label-text">Senha</span>
+                    </label>
+                    <input type="password" id="editServerPassword" placeholder="Digite a nova senha" class="input input-bordered w-full">
+                    <div class="text-xs text-gray-500 mt-1">Deixe em branco para manter a senha atual</div>
+                </div>
+            </form>
+            
+            <div class="flex justify-end space-x-2 p-6 border-t bg-gray-50">
+                <button type="button" onclick="closeEditModal()" class="btn btn-ghost">Cancelar</button>
+                <button type="submit" form="editServerForm" class="btn btn-primary">Salvar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Adicionar evento de submit
+    document.getElementById('editServerForm').addEventListener('submit', handleEditServerSubmit);
+}
+
+// Função para fechar modal de edição
+function closeEditModal() {
+    const modal = document.getElementById('editServerModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Função para lidar com o submit do formulário de edição
+async function handleEditServerSubmit(event) {
+    event.preventDefault();
+    
+    const serverId = document.getElementById('editServerId').value;
+    const formData = {
+        name: document.getElementById('editServerName').value,
+        host: document.getElementById('editServerHost').value,
+        port: parseInt(document.getElementById('editServerPort').value),
+        type: document.getElementById('editServerType').value,
+        username: document.getElementById('editServerUsername').value,
+        password: document.getElementById('editServerPassword').value || null
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE}/servers/${serverId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify(formData)
+        });
         
-        const stepIndex = Math.floor((progress / 100) * steps.length);
-        const currentStepText = steps[Math.min(stepIndex, steps.length - 1)];
+        const result = await response.json();
         
-        currentServer.textContent = currentStepText;
-        
-        if (progress >= 100) {
-            currentServer.innerHTML = `
-                <div class="text-green-600 font-semibold">✓ Concluído!</div>
-                <div class="text-xs mt-1">Processamento finalizado</div>
-            `;
+        if (result.success) {
+            showNotification('Servidor atualizado com sucesso!', 'success');
+            closeEditModal();
+            loadServers(); // Recarregar lista de servidores
+        } else {
+            showNotification(result.message || 'Erro ao atualizar servidor', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar servidor:', error);
+        showNotification('Erro ao conectar com o servidor', 'error');
+    }
+}
+
+// Função para deletar servidor
+async function deleteServer(serverId) {
+    const server = servers.find(s => s.id === serverId);
+    if (!server) {
+        showNotification('Servidor não encontrado', 'error');
+        return;
+    }
+    
+    if (confirm(`Tem certeza que deseja excluir o servidor "${server.name}"?`)) {
+        try {
+            const response = await fetch(`${API_BASE}/servers/${serverId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAuthToken()}`
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification('Servidor removido com sucesso!', 'success');
+                loadServers(); // Recarregar lista de servidores
+            } else {
+                showNotification(result.message || 'Erro ao remover servidor', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao remover servidor:', error);
+            showNotification('Erro ao conectar com o servidor', 'error');
         }
     }
+}
+
+// Função para formatar tamanho
+function formatSize(size) {
+    if (!size) return 'N/A';
+    
+    // Se já está formatado, retornar como está
+    if (typeof size === 'string' && size.includes(' ')) {
+        return size;
+    }
+    
+    // Converter bytes para formato legível
+    const bytes = parseInt(size);
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) return '0 B';
+    
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Função para copiar informações da database
+function copyDatabaseInfo(host, databaseName) {
+    const connectionString = `Host: ${host}\nDatabase: ${databaseName}`;
+    
+    navigator.clipboard.writeText(connectionString).then(() => {
+        showNotification('Informações copiadas para a área de transferência!', 'success');
+    }).catch(() => {
+        // Fallback para navegadores que não suportam clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = connectionString;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('Informações copiadas para a área de transferência!', 'success');
+    });
 }
 
 // Função para carregar databases dos servidores selecionados
@@ -477,22 +659,7 @@ async function loadDatabases() {
         return;
     }
     
-    // Mostrar loading no botão
-    const loadButton = document.querySelector('button[onclick="loadDatabases()"]');
-    const originalButtonText = loadButton.innerHTML;
-    loadButton.disabled = true;
-    loadButton.innerHTML = `
-        <span class="loading loading-spinner loading-md"></span>
-        <span class="ml-2">Carregando databases...</span>
-    `;
-    
-    // Mostrar loading no spinner
-    const loadingSpinner = document.getElementById('databaseLoading');
-    if (loadingSpinner) {
-        loadingSpinner.style.display = 'inline-block';
-    }
-    
-    // Adicionar overlay de loading com progresso
+    // Mostrar overlay de loading com progresso
     const overlay = document.createElement('div');
     overlay.id = 'loadingOverlay';
     overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
@@ -569,15 +736,6 @@ async function loadDatabases() {
         console.error('Erro ao carregar databases:', error);
         showNotification('Erro ao conectar com o servidor.', 'error');
     } finally {
-        // Restaurar botão
-        loadButton.disabled = false;
-        loadButton.innerHTML = originalButtonText;
-        
-        // Remover loading do spinner
-        if (loadingSpinner) {
-            loadingSpinner.style.display = 'none';
-        }
-        
         // Remover overlay de loading
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) {
@@ -586,21 +744,12 @@ async function loadDatabases() {
     }
 }
 
-// Função utilitária para padronizar tamanho
-function formatSize(sizeStr) {
-    if (!sizeStr) return 'N/A';
-    // Extrai número e unidade
-    const match = sizeStr.match(/([\d,.]+)\s*(\w+)/);
-    if (!match) return sizeStr;
-    let value = parseFloat(match[1].replace(',', '.'));
-    let unit = match[2].toLowerCase();
-    if (unit.startsWith('g')) return value.toFixed(2) + ' GB';
-    if (unit.startsWith('m')) {
-        if (value >= 1024) return (value / 1024).toFixed(2) + ' GB';
-        return value.toFixed(0) + ' MB';
+// Função para atualizar estatísticas de loading
+function updateLoadingStats(progress) {
+    const progressBar = document.getElementById('progressBar');
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
     }
-    if (unit.startsWith('k')) return (value / 1024).toFixed(2) + ' MB';
-    return sizeStr;
 }
 
 // Função para filtrar e paginar databases
@@ -789,22 +938,13 @@ function showResultsSummary(databasesData) {
     if (failedServersList.length > 0) {
         summaryHtml += `
             <div class="alert alert-warning mb-4">
-                <h4 class="font-bold">Servidores com Problemas:</h4>
-                <div class="text-sm space-y-1 mt-2">
-        `;
-        
-        failedServersList.forEach(server => {
-            summaryHtml += `
-                <div class="flex items-center space-x-2">
-                    <span class="text-error">•</span>
-                    <span class="font-medium">${server.serverName}</span>
-                    <span class="text-gray-500">(${server.serverHost})</span>
-                    <span class="text-xs text-error">${server.error}</span>
-                </div>
-            `;
-        });
-        
-        summaryHtml += `
+                <div>
+                    <h4 class="font-bold">Servidores com Erro:</h4>
+                    <ul class="list-disc list-inside mt-2 text-sm">
+                        ${failedServersList.map(server => `
+                            <li><strong>${server.serverName}:</strong> ${server.error}</li>
+                        `).join('')}
+                    </ul>
                 </div>
             </div>
         `;
@@ -812,19 +952,17 @@ function showResultsSummary(databasesData) {
     
     // Inserir o resumo antes da seção de databases
     const databasesSection = document.getElementById('databasesSection');
-    const existingSummary = document.getElementById('resultsSummary');
-    
-    if (existingSummary) {
-        existingSummary.remove();
+    if (databasesSection) {
+        const existingSummary = document.getElementById('resultsSummary');
+        if (existingSummary) {
+            existingSummary.remove();
+        }
+        
+        const summaryDiv = document.createElement('div');
+        summaryDiv.id = 'resultsSummary';
+        summaryDiv.innerHTML = summaryHtml;
+        databasesSection.parentNode.insertBefore(summaryDiv, databasesSection);
     }
-    
-    const summaryDiv = document.createElement('div');
-    summaryDiv.id = 'resultsSummary';
-    summaryDiv.innerHTML = summaryHtml;
-    
-    // Inserir antes da seção de databases
-    const parentElement = databasesSection.parentElement;
-    parentElement.insertBefore(summaryDiv, databasesSection);
 }
 
 // Função para atualizar a lista de databases
@@ -843,100 +981,4 @@ function refreshDatabases() {
     currentPage = 1;
     
     loadDatabases();
-}
-
-// Função para obter servidores selecionados
-function getSelectedServers() {
-    const checkboxes = document.querySelectorAll('input[value]:checked');
-    return Array.from(checkboxes).map(cb => cb.value);
-}
-
-// Função para copiar informações da database
-function copyDatabaseInfo(serverHost, databaseName) {
-    const databaseInfo = `${serverHost}/${databaseName}`;
-    
-    // Usar a API de clipboard moderna
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(databaseInfo).then(() => {
-            showNotification(`Copiado: ${databaseInfo}`, 'success');
-        }).catch(err => {
-            console.error('Erro ao copiar:', err);
-            fallbackCopyTextToClipboard(databaseInfo);
-        });
-    } else {
-        // Fallback para navegadores mais antigos
-        fallbackCopyTextToClipboard(databaseInfo);
-    }
-}
-
-// Função fallback para copiar texto
-function fallbackCopyTextToClipboard(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    try {
-        document.execCommand('copy');
-        showNotification(`Copiado: ${text}`, 'success');
-    } catch (err) {
-        console.error('Erro ao copiar:', err);
-        showNotification('Erro ao copiar para a área de transferência', 'error');
-    }
-    
-    document.body.removeChild(textArea);
-}
-
-// Recarregar servidores
-function refreshServers() {
-    loadServers();
-    loadServerStats();
-    showNotification('Servidores atualizados', 'info');
-}
-
-// Mostrar notificação
-function showNotification(message, type = 'info') {
-    // Criar notificação usando DaisyUI
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} mb-4`;
-    notification.innerHTML = `
-        <button class="btn btn-sm btn-circle" onclick="this.parentElement.remove()">✕</button>
-        <span>${message}</span>
-    `;
-    
-    // Adicionar ao topo da página
-    const container = document.querySelector('.container');
-    container.insertBefore(notification, container.firstChild);
-    
-    // Remover automaticamente após 5 segundos
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 5000);
-}
-
-// Verificar autenticação
-function checkAuth() {
-    // Aceita tanto 'auth_token' quanto 'token' para compatibilidade
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/login.html';
-        return false;
-    }
-    return true;
-}
-
-// Verificar autenticação na inicialização
-if (!checkAuth()) {
-    // Redirecionamento será feito pela função checkAuth
-} 
-
-// Atualizar todos os fetch para usar o token correto
-function getAuthToken() {
-    return localStorage.getItem('auth_token') || localStorage.getItem('token');
 } 

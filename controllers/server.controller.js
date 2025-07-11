@@ -449,25 +449,26 @@ class ServerController {
     // Obter estatísticas dos servidores
     async getServerStats(req, res) {
         try {
-            const stats = await Server.findAll({
-                attributes: [
-                    'connectionStatus',
-                    [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
-                ],
-                where: { isActive: true },
-                group: ['connectionStatus']
-            });
-            
             const totalServers = await Server.count({
                 where: { isActive: true }
             });
             
-            res.json({
-                success: true,
-                data: {
-                    stats,
-                    totalServers
+            const activeServers = await Server.count({
+                where: { 
+                    isActive: true,
+                    connectionStatus: 'online'
                 }
+            });
+            
+            // Calcular médias de RAM e CPU (placeholder - implementar conforme necessário)
+            const averageMemory = 0;
+            const averageCpu = 0;
+            
+            res.json({
+                totalServers,
+                activeServers,
+                averageMemory,
+                averageCpu
             });
         } catch (error) {
             console.error('Erro ao obter estatísticas:', error);

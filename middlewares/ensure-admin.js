@@ -2,6 +2,7 @@ const { User, Role } = require('../models/postgresql/associations');
 const logger = require('../utils/logger');
 const jwt = require('jsonwebtoken');
 const { sequelize } = require('../config/database');
+const { getDefaultAdminConfig } = require('../utils/admin-config');
 
 // Middleware para verificar se o usuário é admin
 const requireAdmin = async (req, res, next) => {
@@ -154,6 +155,9 @@ const requireAdmin = async (req, res, next) => {
 // Função para criar usuário admin inicial
 async function ensureAdmin() {
     try {
+        // Obter configurações do admin do .env
+        const adminConfig = getDefaultAdminConfig();
+        
         // Criar role admin se não existir
         const [adminRole] = await Role.findOrCreate({
             where: { name: 'admin' },
@@ -164,24 +168,24 @@ async function ensureAdmin() {
 
         // Criar ou atualizar usuário admin
         const [adminUser, created] = await User.findOrCreate({
-            where: { email: 'abner.freitas@neosistemas.com.br' },
+            where: { email: adminConfig.email },
             defaults: {
-                username: 'admin',
-                name: 'Administrador',
-                password: 'admin', // O hook beforeSave irá criptografar automaticamente
-                is_admin: true,
-                email_verified: true,
-                is_active: true
+                username: adminConfig.username,
+                name: adminConfig.name,
+                password: adminConfig.password, // O hook beforeSave irá criptografar automaticamente
+                is_admin: adminConfig.isAdmin,
+                email_verified: adminConfig.emailVerified,
+                is_active: adminConfig.isActive
             }
         });
 
-        // Se o usuário já existia, atualizar a senha
+        // Se o usuário já existia, atualizar as configurações
         if (!created) {
             await adminUser.update({
-                password: 'admin', // O hook beforeSave irá criptografar automaticamente
-                is_admin: true,
-                email_verified: true,
-                is_active: true
+                password: adminConfig.password, // O hook beforeSave irá criptografar automaticamente
+                is_admin: adminConfig.isAdmin,
+                email_verified: adminConfig.emailVerified,
+                is_active: adminConfig.isActive
             });
         }
 

@@ -3,15 +3,23 @@
  * Este script executa verificações iniciais antes de iniciar o servidor
  */
 const logger = require('../utils/logger');
-const checkMenusTable = require('./check-menus-table');
 
 async function initServer() {
     try {
         logger.info('Iniciando verificações do servidor...');
         
-        // Verificar e reparar a tabela de menus
-        logger.info('Verificando tabela de menus...');
-        await checkMenusTable();
+        // Verificações básicas do servidor
+        logger.info('Verificando configurações básicas...');
+        
+        // Verificar se as variáveis de ambiente essenciais estão definidas
+        const requiredEnvVars = ['DB_HOST', 'DB_NAME', 'JWT_SECRET'];
+        const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+        
+        if (missingVars.length > 0) {
+            logger.warn('Variáveis de ambiente faltando:', missingVars);
+        } else {
+            logger.info('Todas as variáveis de ambiente essenciais estão configuradas');
+        }
         
         logger.info('Verificações concluídas com sucesso! O servidor está pronto para iniciar.');
         return true;

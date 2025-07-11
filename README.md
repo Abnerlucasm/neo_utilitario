@@ -4,167 +4,363 @@
 
 ## 🚀 Funcionalidades
 
-- **Gerenciamento de Serviços**: Utilize o NeoTrack para gerenciar suas tarefas e serviços com uma interface de kanban.
-- **Sistema de Sugestões**: Envie e visualize sugestões de desenvolvimento para melhorias no sistema.
-- **Utilitários Integrados**: Acesse uma variedade de ferramentas úteis para facilitar o trabalho da equipe.
-- **Tema Claro/Escuro**: Alternar entre temas claro e escuro para uma melhor experiência do usuário.
-- **Interface Responsiva**: Acesse a plataforma em dispositivos móveis e desktops.
+- **Gerenciamento de Serviços Glassfish**: Controle completo de servidores Glassfish via SSH
+- **Sistema de Sugestões**: Envie e visualize sugestões de desenvolvimento
+- **Módulos de Aprendizado**: Sistema de aprendizado com progresso e certificados
+- **Gerenciamento de Usuários**: Controle de usuários, roles e permissões
+- **Sistema de Menus Dinâmicos**: Menus configuráveis via banco de dados
+- **Autenticação 2FA**: Segurança reforçada com autenticação de dois fatores
+- **Tema Claro/Escuro**: Interface responsiva com suporte a temas
+- **WebSockets**: Logs em tempo real e comunicação bidirecional
 
 ## 🛠️ Tecnologias
 
-- **Backend**: Node.js, Express, MongoDB
+- **Backend**: Node.js, Express, PostgreSQL
 - **Frontend**: HTML, CSS, JavaScript, Web Components
-- **Estilos**: Bulma CSS, Font Awesome
+- **Estilos**: DaisyUI, TailwindCSS (via CDN)
+- **Banco de Dados**: PostgreSQL com Sequelize ORM
+- **Autenticação**: JWT, Passport.js, 2FA com Speakeasy
+- **Process Manager**: PM2 para produção
+- **Logs**: Winston
+- **Uploads**: Multer
+- **SSH**: NodeSSH para conexões remotas
 
 ## ⚙️ Instalação
 
-1. **Clone o repositório**:
-   ```bash
-   git clone https://github.com/seu-usuario/neo_utilitario.git
-   cd neo_utilitario
-   ```
+### Pré-requisitos
 
-2. **Instale as dependências**:
-   ```bash
-   npm install
-   ```
+- Node.js 18+ 
+- PostgreSQL 12+
+- PM2 (para produção)
 
-3. **Configure as variáveis de ambiente**:
-   ```bash
-   cp .env.example .env
-   ```
-   Edite o arquivo `.env` com suas configurações, especialmente a senha do MongoDB.
+### 1. Clone o repositório
+```bash
+git clone https://github.com/seu-usuario/neo_utilitario.git
+cd neo_utilitario
+```
 
-4. **Crie os diretórios necessários**:
-   ```bash
-   mkdir uploads
-   mkdir public/assets
-   ```
+### 2. Instale as dependências
+```bash
+npm install
+```
 
-5. **Inicie o servidor**:
-   ```bash
-   npm start
-   ```
+### 3. Configure as variáveis de ambiente
+```bash
+cp .env.example .env
+```
+
+Edite o arquivo `.env` com suas configurações:
+
+```bash
+# Configurações do Servidor
+PORT=3020
+NODE_ENV=production
+APP_URL=http://localhost:3020
+
+# Configurações do Banco de Dados
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=neohub
+DB_USER=postgres
+DB_PASS=sua_senha_aqui
+
+# Configurações de Segurança
+JWT_SECRET=sua_chave_jwt_super_secreta_aqui
+JWT_EXPIRES_IN=24h
+ENCRYPTION_KEY=sua_chave_criptografia_32_caracteres
+
+# Configurações do Admin Padrão
+ADMIN_EMAIL=admin@neosistemas.com.br
+ADMIN_USERNAME=admin
+ADMIN_NAME=Administrador
+ADMIN_PASSWORD=admin@123
+
+# Configurações de Email
+EMAIL_HOST=smtp.office365.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_TLS=true
+EMAIL_USER=seu_email@dominio.com
+EMAIL_PASS=sua_senha_email
+EMAIL_FROM=seu_email@dominio.com
+EMAIL_FROM_NAME=NeoHub
+EMAIL_SECRET=chave_secreta_para_verificacao_email
+EMAIL_DEBUG=true
+
+# Configurações de 2FA
+TWO_FACTOR_APP_NAME=NeoHub
+
+# Configurações de Log
+LOG_LEVEL=info
+```
+
+### 4. Configure o banco de dados
+```bash
+# Criar banco de dados
+createdb neohub
+
+# Executar migrações
+npm run migrate
+
+# Executar seeds (opcional)
+npm run run-migrations
+```
+
+### 5. Iniciar a aplicação
+
+#### Desenvolvimento
+```bash
+npm run dev
+```
+
+#### Produção com PM2
+```bash
+# Instalar PM2 globalmente
+npm install -g pm2
+
+# Iniciar aplicação (lê automaticamente o .env)
+pm2 start server.js --name neohub
+
+# Verificar status
+pm2 status
+
+# Ver logs
+pm2 logs neohub
+```
 
 ## 📁 Estrutura do Projeto
 
-``` bash
+```
 neo_utilitario/
-├── public/
-│ ├── assets/
-│ ├── components/
-│ ├── js/
-│ ├── pages/
-│ └── styles/
-├── models/
-├── routes/
-├── uploads/
-├── .env
-├── .env.example
-├── package.json
-└── server.js
+├── config/                 # Configurações do sistema
+│   ├── database.js        # Configuração do PostgreSQL
+│   ├── email.config.js    # Configuração de email
+│   └── passport.js        # Configuração de autenticação
+├── controllers/           # Controladores da aplicação
+├── middlewares/          # Middlewares customizados
+│   ├── auth.js           # Autenticação
+│   ├── access-control.js # Controle de acesso
+│   └── ensure-admin.js   # Verificação de admin
+├── models/               # Modelos do banco de dados
+│   └── postgresql/       # Modelos PostgreSQL
+├── routes/               # Rotas da API
+│   ├── auth.js           # Autenticação
+│   ├── glassfish.js      # Gerenciamento Glassfish
+│   ├── learning.js       # Módulos de aprendizado
+│   └── admin.js          # Administração
+├── scripts/              # Scripts utilitários
+├── services/             # Serviços da aplicação
+│   ├── email.service.js  # Serviço de email
+│   └── twoFactor.js      # Autenticação 2FA
+├── utils/                # Utilitários
+│   ├── logger.js         # Sistema de logs
+│   └── admin-config.js   # Configurações do admin
+├── public/               # Arquivos estáticos
+│   ├── components/       # Componentes web
+│   ├── js/              # JavaScript do frontend
+│   ├── pages/           # Páginas HTML
+│   └── modules/         # Módulos de aprendizado
+├── uploads/             # Arquivos enviados
+├── migrations/          # Migrações do banco
+├── seeders/             # Seeds do banco
+├── .env                 # Variáveis de ambiente
+├── .env.example         # Exemplo de configuração
+├── package.json         # Dependências
+└── server.js           # Servidor principal
 ```
 
 ## 🔧 Configuração
 
-As seguintes variáveis de ambiente são necessárias:
+### Variáveis de Ambiente Principais
 
-- `PORT`: Porta do servidor (default: 3000)
-- `HOST`: Host do servidor (default: localhost)
-- `MONGODB_URI`: URI de conexão com MongoDB (incluindo usuário e senha)
-- `UPLOAD_DIR`: Diretório para uploads
-- `NODE_ENV`: Ambiente de execução (development/production)
+| Variável | Descrição | Padrão |
+|----------|-----------|---------|
+| `PORT` | Porta do servidor | 3020 |
+| `NODE_ENV` | Ambiente (development/production) | production |
+| `DB_HOST` | Host do PostgreSQL | localhost |
+| `DB_NAME` | Nome do banco de dados | neohub |
+| `JWT_SECRET` | Chave secreta para JWT | - |
+| `ADMIN_EMAIL` | Email do admin padrão | admin@neosistemas.com.br |
+| `ADMIN_PASSWORD` | Senha do admin padrão | admin@123 |
 
-## Gerenciamento de Menus
+### Configuração do Admin Padrão
 
-O sistema agora suporta menus dinâmicos armazenados no banco de dados. Isso permite que os menus sejam gerenciados sem alterar o código-fonte.
-
-### Criação da Tabela de Menus
-
-A tabela de menus é criada automaticamente na inicialização do sistema. Se você precisar criar a tabela manualmente, execute:
-
-```bash
-npm run create-menu-table
-```
-
-### Populando Menus Padrão
-
-O sistema verifica automaticamente se existem menus na inicialização e, se não houver, cria os menus padrão. Para executar este processo manualmente:
+O sistema cria automaticamente um usuário admin padrão na primeira execução. As configurações podem ser alteradas via variáveis de ambiente:
 
 ```bash
-npm run seed-menus
+ADMIN_EMAIL=seu_email@dominio.com
+ADMIN_USERNAME=admin
+ADMIN_NAME=Administrador
+ADMIN_PASSWORD=sua_senha_segura
 ```
 
-### Interface de Administração de Menus
+## 🚀 Deploy com PM2
 
-Os administradores podem gerenciar os menus do sistema através da interface em:
+### Configuração de Produção
 
+O PM2 lê automaticamente as variáveis do arquivo `.env`. Para produção, certifique-se de que:
+
+```bash
+NODE_ENV=production
+PORT=3020
+# ... outras variáveis de produção
 ```
-/pages/admin/menus.html
+
+### Comandos PM2 Úteis
+
+```bash
+# Iniciar aplicação
+pm2 start ecosystem.config.js
+
+# Verificar status
+pm2 status
+
+# Ver logs em tempo real
+pm2 logs neohub
+
+# Reiniciar aplicação
+pm2 restart neohub
+
+# Parar aplicação
+pm2 stop neohub
+
+# Remover aplicação
+pm2 delete neohub
+
+# Salvar configuração para auto-start
+pm2 save
+pm2 startup
+
+# Monitoramento web (opcional)
+pm2 web
 ```
 
-Esta interface permite:
-- Criar novos menus e submenus
-- Editar menus existentes
-- Excluir menus
-- Ativar/desativar menus
-- Definir ícones e ordem de exibição
-- Configurar permissões de acesso
+## 📊 Scripts Disponíveis
 
-### Estrutura de Menus
+```bash
+# Desenvolvimento
+npm run dev              # Iniciar com nodemon
 
-Cada menu possui os seguintes atributos:
-- **Título**: Nome exibido no menu
-- **Caminho (URL)**: Link para onde o menu direciona
-- **Ícone**: Ícone do FontAwesome
-- **Ordem**: Posição do menu na lista
-- **Menu Pai**: Para criar submenus
-- **Caminho do Recurso**: Usado para verificação de permissões
-- **Apenas para Administradores**: Se o menu deve ser visível apenas para admins
-- **Ativo**: Se o menu está ativo e visível
+# Produção
+npm start               # Iniciar servidor
 
-## Migração MongoDB para PostgreSQL
+# Banco de Dados
+npm run migrate         # Executar migrações
+npm run migrate:undo    # Reverter migração
+npm run migrate:undo:all # Reverter todas as migrações
+npm run migrate:create  # Criar nova migração
+npm run run-migrations  # Executar migrações customizadas
+```
 
-**IMPORTANTE:** Este projeto foi originalmente desenvolvido com MongoDB, mas está em processo de migração para usar apenas PostgreSQL. Atualmente, o MongoDB não é mais necessário para executar a aplicação, pois implementamos um mock para compatibilidade com código legado.
+## 🔐 Segurança
 
-As seguintes ações devem ser tomadas para concluir a migração:
+### Autenticação 2FA
 
-1. Remover as dependências do MongoDB do package.json:
+O sistema suporta autenticação de dois fatores usando TOTP (Time-based One-Time Password):
+
+- Geração de QR Code para apps como Google Authenticator
+- Verificação de tokens TOTP
+- Backup codes para recuperação
+
+### Controle de Acesso
+
+- **Roles**: Sistema de roles (admin, user)
+- **Permissions**: Permissões granulares por recurso
+- **JWT**: Tokens seguros com expiração configurável
+- **Session Management**: Sessões persistentes com PostgreSQL
+
+## 📈 Monitoramento
+
+### Logs
+
+O sistema usa Winston para logging estruturado:
+
+```bash
+# Ver logs da aplicação
+pm2 logs neohub
+
+# Ver logs específicos
+tail -f logs/combined.log
+tail -f logs/error.log
+```
+
+### Métricas
+
+- Status dos servidores Glassfish
+- Uso de CPU e memória
+- Logs em tempo real via WebSocket
+- Estatísticas de usuários e atividades
+
+## 🛠️ Desenvolvimento
+
+### Estrutura de Código
+
+- **MVC Pattern**: Modelos, Views, Controladores
+- **Middleware Pattern**: Middlewares reutilizáveis
+- **Service Layer**: Lógica de negócio em serviços
+- **Repository Pattern**: Acesso a dados via modelos
+
+### Convenções
+
+- **Rotas**: `/api/[recurso]/[ação]`
+- **Modelos**: PascalCase (ex: `User`, `LearningModule`)
+- **Arquivos**: kebab-case (ex: `user-settings.js`)
+- **Variáveis**: camelCase (ex: `userName`, `isActive`)
+
+## 🐛 Troubleshooting
+
+### Problemas Comuns
+
+1. **Erro de conexão com banco**:
    ```bash
-   npm uninstall mongoose mongodb
+   # Verificar se PostgreSQL está rodando
+   sudo systemctl status postgresql
+   
+   # Verificar conexão
+   psql -h localhost -U postgres -d neohub
    ```
 
-2. Remover qualquer configuração de MongoDB do arquivo .env (como MONGODB_URI)
-
-3. Eliminar qualquer código remanescente que faça referência ao MongoDB, como:
-   - Modelos legados na pasta "legacy/"
-   - Qualquer lógica de fallback para MongoDB em rotas existentes
-   - Remover o arquivo db.js da raiz (que atualmente serve como mock para compatibilidade)
-
-4. Executar o script de verificação para garantir que não há mais referências ao MongoDB:
+2. **Erro de permissões**:
    ```bash
-   node scripts/remove-mongodb.js
+   # Verificar logs
+   pm2 logs neohub
+   
+   # Verificar configurações
+   node scripts/test-admin-config.js
    ```
 
-5. Atualizar a documentação para refletir que o projeto agora usa apenas PostgreSQL
+3. **Problemas com PM2**:
+   ```bash
+   # Reiniciar PM2
+   pm2 kill
+   pm2 start server.js --name neohub
+   ```
 
 ## 👥 Contribuição
 
 1. **Faça um Fork do projeto**
 2. **Crie uma branch para sua feature**:
    ```bash
-   git checkout -b feature/featureIncrivel
+   git checkout -b feature/nova-funcionalidade
    ```
 3. **Commit suas mudanças**:
    ```bash
-   git commit -m 'Add some featureIncrivel'
+   git commit -m 'Adiciona nova funcionalidade'
    ```
 4. **Push para a branch**:
    ```bash
-   git push origin feature/featureIncrivel
+   git push origin feature/nova-funcionalidade
    ```
 5. **Abra um Pull Request**
 
 ## 📝 Licença
 
 Este projeto está sob a licença [MIT](LICENSE).
+
+## 🤝 Suporte
+
+Para suporte técnico ou dúvidas:
+
+- **Email**: suporte@neosistemas.com.br
+- **Documentação**: [Wiki do projeto](link-para-wiki)
+- **Issues**: [GitHub Issues](link-para-issues)

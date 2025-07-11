@@ -183,8 +183,8 @@ async function loginAsAdmin() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                email: 'abner.freitas@neosistemas.com.br',
-                password: 'admin'
+                email: 'admin@neosistemas.com.br', // Será substituído pelo valor do .env
+                password: 'admin@123' // Será substituído pelo valor do .env
             })
         });
         

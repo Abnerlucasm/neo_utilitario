@@ -1,30 +1,56 @@
 <!DOCTYPE html>
-<html lang="pt-br" data-theme="light">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consulta de Bancos de Dados - Neo Utilitário</title>
+    
+    <!-- DaisyUI CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS Customizado -->
+    <link rel="stylesheet" href="/styles/consultabd.css">
+    
+    <!-- Configuração do Tailwind -->
     <script>
         tailwind.config = {
-            daisyui: {
-                themes: [
-                    "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", 
-                    "synthwave", "retro", "cyberpunk", "valentine", "halloween", 
-                    "garden", "forest", "aqua", "lofi", "pastel", "fantasy", 
-                    "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", 
-                    "business", "acid", "lemonade", "night", "coffee", "winter",
-                    "dim", "nord", "sunset", "caramellatte", "abyss", "silk"
-                ]
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#00d1b2',
+                        secondary: '#f14668',
+                        accent: '#ffdd57'
+                    }
+                }
             }
         }
     </script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="manifest" href="../manifest.json">
 </head>
 <body class="bg-base-200 min-h-screen">
-    <neo-navbar></neo-navbar>
+    <!-- Navbar -->
+    <div class="navbar bg-base-100 shadow-lg">
+        <div class="navbar-start">
+            <a href="/" class="btn btn-ghost normal-case text-xl">
+                <i class="fas fa-database mr-2"></i>
+                Neo Utilitário
+            </a>
+        </div>
+        <div class="navbar-center">
+            <h1 class="text-xl font-semibold">Consulta de Bancos de Dados</h1>
+        </div>
+        <div class="navbar-end">
+            <a href="/" class="btn btn-ghost">
+                <i class="fas fa-home mr-2"></i>
+                Voltar
+            </a>
+        </div>
+    </div>
 
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
@@ -48,51 +74,21 @@
             </div>
         </div>
 
-        <!-- Estatísticas -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-figure text-primary">
-                        <i class="fas fa-server text-3xl"></i>
-                    </div>
-                    <div class="stat-title">Servidores</div>
-                    <div class="stat-value text-primary" id="totalServers">0</div>
-                </div>
-            </div>
-            
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-figure text-success">
-                        <i class="fas fa-database text-3xl"></i>
-                    </div>
-                    <div class="stat-title">Bancos</div>
-                    <div class="stat-value text-success" id="totalDatabases">0</div>
-                </div>
-            </div>
-            
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-figure text-info">
-                        <i class="fas fa-check-circle text-3xl"></i>
-                    </div>
-                    <div class="stat-title">Online</div>
-                    <div class="stat-value text-info" id="onlineServers">0</div>
-                </div>
-            </div>
-            
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-figure text-warning">
-                        <i class="fas fa-clock text-3xl"></i>
-                    </div>
-                    <div class="stat-title">Consultas</div>
-                    <div class="stat-value text-warning" id="totalQueries">0</div>
+        <!-- Estatísticas dos Servidores -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    Estatísticas dos Servidores
+                </h2>
+                <div id="serverStats">
+                    <!-- Estatísticas serão carregadas aqui -->
                 </div>
             </div>
         </div>
 
-        <!-- Servidores -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Grid Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Lista de Servidores -->
             <div class="lg:col-span-1">
                 <div class="card bg-base-100 shadow-xl">
@@ -100,12 +96,13 @@
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="card-title">
                                 <i class="fas fa-server mr-2"></i>
-                                Servidores
+                                Servidores Cadastrados
                             </h2>
-                            <button class="btn btn-ghost btn-sm" onclick="refreshServers()">
+                            <button class="btn btn-ghost btn-sm" onclick="loadServers()">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
+                        
                         <div id="serversList">
                             <!-- Lista de servidores será carregada aqui -->
                         </div>
@@ -140,7 +137,6 @@
                             <button class="btn btn-primary" onclick="loadDatabases()">
                                 <i class="fas fa-search mr-2"></i>
                                 Listar Databases
-                                <span class="loading loading-spinner loading-md ml-2" id="databaseLoading"></span>
                             </button>
                         </div>
                     </div>
@@ -159,7 +155,7 @@
                             <input id="databaseSearch" class="input input-bordered" type="search" placeholder="Pesquisar database..." oninput="filterAndPaginateDatabases()">
                         </div>
                         <div class="form-control w-full sm:w-auto">
-                            <select id="databasesPerPage" class="select select-bordered" onchange="filterAndPaginateDatabases()">
+                            <select id="databasesPerPage" class="select select-bordered select-sm" onchange="filterAndPaginateDatabases()">
                                 <option value="5">5 por página</option>
                                 <option value="10" selected>10 por página</option>
                                 <option value="25">25 por página</option>
@@ -176,107 +172,80 @@
                 </div>
             </div>
         </div>
-
-        <!-- Créditos -->
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-                <div class="text-center text-base-content/70 text-sm space-y-1">
-                    <p>Idealizadores: <strong>Eder, Renato, Guilherme, Patrick</strong></p>
-                    <p>Desenvolvido por <strong>Abner</strong></p>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Modal para adicionar/editar servidor -->
+    <!-- Modal para Novo/Editar Servidor -->
     <dialog id="serverModal" class="modal">
         <div class="modal-box">
-            <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="closeServerModal()">✕</button>
-            </form>
-            <h3 class="font-bold text-lg mb-4" id="modalTitle">Novo Servidor</h3>
-            
-            <form id="serverForm">
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Nome do Servidor *</span>
-                    </label>
-                    <input class="input input-bordered" type="text" id="serverName" required>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <h3 class="font-bold text-lg" id="modalTitle">Novo Servidor</h3>
+            <form id="serverForm" class="form-control gap-4 mt-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Nome do Servidor *</span>
+                        </label>
+                        <input type="text" id="serverName" class="input input-bordered" required>
+                    </div>
+                    
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Host/IP *</span>
                         </label>
-                        <input class="input input-bordered" type="text" id="serverHost" required>
+                        <input type="text" id="serverHost" class="input input-bordered" required>
                     </div>
                     
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Porta</span>
                         </label>
-                        <input class="input input-bordered" type="number" id="serverPort" value="5432">
+                        <input type="number" id="serverPort" class="input input-bordered" value="5432">
                     </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tipo de Banco</span>
+                        </label>
+                        <select id="serverType" class="select select-bordered">
+                            <option value="postgresql" selected>PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="sqlserver">SQL Server</option>
+                        </select>
+                    </div>
+                    
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Usuário *</span>
                         </label>
-                        <input class="input input-bordered" type="text" id="serverUsername" required>
+                        <input type="text" id="serverUsername" class="input input-bordered" required>
                     </div>
                     
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Senha *</span>
                         </label>
-                        <input class="input input-bordered" type="password" id="serverPassword" required>
+                        <input type="password" id="serverPassword" class="input input-bordered" required>
                     </div>
                 </div>
-
-                <div class="form-control mt-4">
-                    <label class="label">
-                        <span class="label-text">Tipo</span>
-                    </label>
-                    <select id="serverType" class="select select-bordered">
-                        <option value="postgresql">PostgreSQL</option>
-                        <option value="mysql">MySQL</option>
-                        <option value="sqlserver">SQL Server</option>
-                        <option value="oracle">Oracle</option>
-                    </select>
-                </div>
-
-                <div class="form-control mt-4">
+                
+                <div class="form-control">
                     <label class="label">
                         <span class="label-text">Descrição</span>
                     </label>
-                    <textarea class="textarea textarea-bordered" id="serverDescription" rows="3"></textarea>
+                    <textarea id="serverDescription" class="textarea textarea-bordered" rows="3"></textarea>
                 </div>
-
+                
                 <div class="modal-action">
-                    <button class="btn btn-success" type="submit">Salvar</button>
-                    <button class="btn" type="button" onclick="closeServerModal()">Cancelar</button>
+                    <button type="button" class="btn" onclick="closeServerModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
                 </div>
             </form>
         </div>
         <form method="dialog" class="modal-backdrop">
-            <button onclick="closeServerModal()">close</button>
+            <button>close</button>
         </form>
     </dialog>
 
-    <neo-footer></neo-footer>
-
-    <script src="/js/theme-manager.js"></script>
-    <script src="/components/navbar/navbar.js" type="module"></script>
-    <script src="/components/footer/footer.js" type="module"></script>
-    <script src="/js/auth.js"></script>
+    <!-- Scripts -->
     <script src="/js/consultabd.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            AuthManager.checkAuth();
-        });
-    </script>
 </body>
 </html> 

@@ -1,0 +1,290 @@
+/* Estilos para Consulta de Bancos de Dados */
+
+/* Indicadores de Status em formato de círculo */
+.status-circle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+.status-circle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+/* Status de conexão */
+.status-connected {
+    background-color: #10b981;
+    animation: pulse-green 2s infinite;
+}
+
+.status-disconnected {
+    background-color: #ef4444;
+    animation: pulse-red 2s infinite;
+}
+
+.status-unknown {
+    background-color: #6b7280;
+}
+
+.status-online {
+    background-color: #10b981;
+    animation: pulse-green 2s infinite;
+}
+
+.status-offline {
+    background-color: #ef4444;
+    animation: pulse-red 2s infinite;
+}
+
+.status-error {
+    background-color: #f59e0b;
+    animation: pulse-yellow 2s infinite;
+}
+
+/* Animações de pulso */
+@keyframes pulse-green {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0);
+    }
+}
+
+@keyframes pulse-red {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
+    }
+}
+
+@keyframes pulse-yellow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0);
+    }
+}
+
+/* Ajustes no seletor de páginas */
+.select-sm {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    padding-left: 0.75rem;
+    padding-right: 2.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+/* Melhorias na paginação */
+.join .btn {
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.join .btn:first-child {
+    border-top-left-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+}
+
+.join .btn:last-child {
+    border-top-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+/* Melhorias nos cards de servidor */
+.server-card {
+    transition: all 0.2s ease-in-out;
+}
+
+.server-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Melhorias na tabela de databases */
+.table th {
+    background-color: #f8fafc;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 0.75rem 1rem;
+}
+
+.break-all {
+    word-break: break-all;
+}
+
+/* Melhorias nos checkboxes */
+.checkbox {
+    transition: all 0.2s ease-in-out;
+}
+
+.checkbox:checked {
+    animation: checkbox-pop 0.2s ease-in-out;
+}
+
+@keyframes checkbox-pop {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Melhorias nas notificações */
+.alert {
+    animation: slide-in 0.3s ease-out;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Melhorias no overlay de loading */
+#loadingOverlay {
+    backdrop-filter: blur(4px);
+}
+
+#loadingOverlay .bg-white {
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Melhorias nos botões */
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Melhorias nos inputs */
+.input, .select, .textarea {
+    transition: all 0.2s ease-in-out;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+    transform: scale(1.02);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .status-circle {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .status-circle::after {
+        width: 4px;
+        height: 4px;
+    }
+    
+    .join .btn {
+        min-width: 2rem;
+        height: 2rem;
+        font-size: 0.75rem;
+        padding: 0.25rem;
+    }
+}
+
+/* Tema escuro */
+[data-theme="dark"] .status-circle {
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="dark"] .status-circle::after {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+[data-theme="dark"] .table th {
+    background-color: #1f2937;
+}
+
+/* Melhorias na acessibilidade */
+.status-circle:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.btn:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Animações suaves para transições de estado */
+.server-card .status-circle {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Melhorias no resumo de resultados */
+#resultsSummary .alert {
+    border-left: 4px solid;
+}
+
+#resultsSummary .alert-info {
+    border-left-color: #3b82f6;
+}
+
+#resultsSummary .alert-warning {
+    border-left-color: #f59e0b;
+}
+
+/* Melhorias na pesquisa */
+#databaseSearch {
+    background-image: url("data:image/svg+xml,%3csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z' fill='%236b7280'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: 0.75rem center;
+    background-size: 1rem;
+    padding-left: 2.5rem;
+}
+
+/* Melhorias na paginação responsiva */
+@media (max-width: 640px) {
+    .join {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .join .btn {
+        flex: 1;
+        min-width: auto;
+    }
+} 
