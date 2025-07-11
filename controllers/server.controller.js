@@ -504,89 +504,129 @@ class ServerController {
                 });
             }
             
-            const results = [];
-            
-            for (const server of servers) {
-                try {
-                    const decryptedPassword = decryptPassword(server.password);
-                    if (!decryptedPassword) {
-                        results.push({
-                            serverId: server.id,
-                            serverName: server.name,
-                            serverHost: server.host,
-                            success: false,
-                            error: 'Erro ao descriptografar senha'
-                        });
-                        continue;
-                    }
-                    
-                    let sequelize;
-                    
-                    switch (server.type) {
-                        case 'postgresql':
-                            const { Sequelize } = require('sequelize');
-                            sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
-                                host: server.host,
-                                port: server.port,
-                                dialect: 'postgres',
-                                logging: false,
-                                pool: {
-                                    max: 1,
-                                    min: 0,
-                                    acquire: 30000,
-                                    idle: 10000
-                                }
-                            });
-                            break;
-                            
-                        default:
-                            results.push({
+            // Processar servidores em paralelo com timeout
+            const results = await Promise.allSettled(
+                servers.map(async (server) => {
+                    return new Promise(async (resolve) => {
+                        // Timeout de 30 segundos por servidor
+                        const timeout = setTimeout(() => {
+                            resolve({
                                 serverId: server.id,
                                 serverName: server.name,
+                                serverHost: server.host,
                                 success: false,
-                                error: 'Tipo de banco não suportado'
+                                error: 'Timeout: Conexão excedeu 30 segundos'
                             });
-                            continue;
-                    }
-                    
-                    await sequelize.authenticate();
-                    
-                    // Query para listar databases (PostgreSQL)
-                    const [databases] = await sequelize.query(`
-                        SELECT 
-                            d.datname as name,
-                            pg_size_pretty(pg_database_size(d.datname)) as size,
-                            u.usename as owner
-                        FROM pg_database d
-                        LEFT JOIN pg_user u ON d.datdba = u.usesysid
-                        WHERE d.datistemplate = false
-                        ORDER BY d.datname
-                    `);
-                    
-                    await sequelize.close();
-                    
-                    results.push({
-                        serverId: server.id,
-                        serverName: server.name,
-                        serverHost: server.host,
-                        success: true,
-                        databases: databases
+                        }, 30000);
+                        
+                        try {
+                            const decryptedPassword = decryptPassword(server.password);
+                            if (!decryptedPassword) {
+                                clearTimeout(timeout);
+                                resolve({
+                                    serverId: server.id,
+                                    serverName: server.name,
+                                    serverHost: server.host,
+                                    success: false,
+                                    error: 'Erro ao descriptografar senha'
+                                });
+                                return;
+                            }
+                            
+                            let sequelize;
+                            
+                            switch (server.type) {
+                                case 'postgresql':
+                                    const { Sequelize } = require('sequelize');
+                                    sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                                        host: server.host,
+                                        port: server.port,
+                                        dialect: 'postgres',
+                                        logging: false,
+                                        pool: {
+                                            max: 1,
+                                            min: 0,
+                                            acquire: 25000, // Reduzido para 25s
+                                            idle: 10000
+                                        },
+                                        retry: {
+                                            max: 1, // Reduzir tentativas
+                                            timeout: 20000 // Timeout de 20s
+                                        }
+                                    });
+                                    break;
+                                    
+                                default:
+                                    clearTimeout(timeout);
+                                    resolve({
+                                        serverId: server.id,
+                                        serverName: server.name,
+                                        serverHost: server.host,
+                                        success: false,
+                                        error: 'Tipo de banco não suportado'
+                                    });
+                                    return;
+                            }
+                            
+                            await sequelize.authenticate();
+                            
+                            // Query para listar databases (PostgreSQL) com timeout
+                            const [databases] = await sequelize.query(`
+                                SELECT 
+                                    d.datname as name,
+                                    pg_size_pretty(pg_database_size(d.datname)) as size,
+                                    u.usename as owner
+                                FROM pg_database d
+                                LEFT JOIN pg_user u ON d.datdba = u.usesysid
+                                WHERE d.datistemplate = false
+                                ORDER BY d.datname
+                            `, {
+                                timeout: 15000 // Timeout de 15s para a query
+                            });
+                            
+                            await sequelize.close();
+                            clearTimeout(timeout);
+                            
+                            resolve({
+                                serverId: server.id,
+                                serverName: server.name,
+                                serverHost: server.host,
+                                success: true,
+                                databases: databases
+                            });
+                            
+                        } catch (error) {
+                            clearTimeout(timeout);
+                            resolve({
+                                serverId: server.id,
+                                serverName: server.name,
+                                serverHost: server.host,
+                                success: false,
+                                error: error.message
+                            });
+                        }
                     });
-                    
-                } catch (error) {
-                    results.push({
-                        serverId: server.id,
-                        serverName: server.name,
-                        serverHost: server.host,
+                })
+            );
+            
+            // Converter resultados do Promise.allSettled para o formato esperado
+            const processedResults = results.map(result => {
+                if (result.status === 'fulfilled') {
+                    return result.value;
+                } else {
+                    return {
+                        serverId: 'unknown',
+                        serverName: 'Unknown',
+                        serverHost: 'unknown',
                         success: false,
-                        error: error.message
-                    });
+                        error: result.reason?.message || 'Erro desconhecido'
+                    };
                 }
-            }
+            });
             
             res.json({
                 success: true,
-                data: results
+                data: processedResults
             });
             
         } catch (error) {
