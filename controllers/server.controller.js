@@ -716,7 +716,8 @@ class ServerController {
                                         const [versionResult] = await dbSequelize.query(`
                                             SELECT versaover as version 
                                             FROM public.versao 
-                                            WHERE dataver IS NOT NULL 
+                                            WHERE dataver IS NOT NULL
+                                            AND sistemaver = 1
                                             LIMIT 1
                                         `, {
                                             timeout: 2000 // Timeout de apenas 2s
