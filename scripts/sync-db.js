@@ -27,7 +27,7 @@ const initialContent = {
 async function syncDatabase() {
     try {
         // Sincronizar modelos
-        await sequelize.sync({ alter: true });
+        // await sequelize.sync({ alter: true });
         logger.info('Modelos sincronizados com sucesso');
 
         // Inserir conteúdo inicial se não existir

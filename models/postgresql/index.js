@@ -112,7 +112,7 @@ async function initDatabase() {
         // Modificar a estratégia de sincronização para evitar problemas com o campo keywords
         try {
             // Primeiro, tentar sincronizar sem alterar a estrutura
-            await sequelize.sync({ alter: false });
+            // await sequelize.sync({ alter: false });
             logger.info('Sincronização inicial concluída sem alterações na estrutura');
             
             // Em seguida, executar queries personalizadas para garantir que o campo keywords seja JSONB
@@ -147,7 +147,7 @@ async function initDatabase() {
             logger.warn('Erro na sincronização sem alterações, tentando com força bruta:', error);
             
             // Se falhar, tentar com force
-            await sequelize.sync({ force: false });
+            // await sequelize.sync({ force: false });
         }
         
         logger.info('Banco de dados inicializado com sucesso');
@@ -189,5 +189,6 @@ module.exports = {
     Suggestion,
     Glassfish,
     Menu,
-    Server
+    Server,
+    DatabaseCache: require('./associations').DatabaseCache,
 }; 

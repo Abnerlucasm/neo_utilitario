@@ -20,6 +20,7 @@ const defineUserRole = require('./UserRole');
 const defineRoleResource = require('./RoleResource');
 const defineComponent = require('./Component');
 const Server = require('./Server');
+const defineDatabaseCache = require('./DatabaseCache');
 
 // Inicializar modelos
 const User = defineUser(sequelize);
@@ -37,6 +38,7 @@ const RolePermission = defineRolePermission(sequelize);
 const UserRole = defineUserRole(sequelize);
 const RoleResource = defineRoleResource(sequelize);
 const Component = defineComponent(sequelize);
+const DatabaseCache = defineDatabaseCache(sequelize);
 
 // Definir as associações
 function initAssociations() {
@@ -184,6 +186,17 @@ function initAssociations() {
         foreignKey: 'updatedBy',
         as: 'updater'
     });
+
+    // Server - DatabaseCache
+    Server.hasMany(DatabaseCache, {
+        foreignKey: 'serverId',
+        as: 'databaseCaches'
+    });
+
+    DatabaseCache.belongsTo(Server, {
+        foreignKey: 'serverId',
+        as: 'server'
+    });
 }
 
 // Aplicar as associações imediatamente
@@ -208,5 +221,6 @@ module.exports = {
     RoleResource,
     Component,
     Server,
+    DatabaseCache,
     initAssociations
 }; 

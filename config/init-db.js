@@ -15,8 +15,8 @@ async function initializeDatabase() {
         logger.info('Associações dos modelos inicializadas com sucesso.');
 
         // Sincronizar modelos com o banco
-        await sequelize.sync();
-        logger.info('Modelos sincronizados com o banco de dados.');
+        // await sequelize.sync();
+        // logger.info('Modelos sincronizados com o banco de dados.');
 
         return true;
     } catch (error) {

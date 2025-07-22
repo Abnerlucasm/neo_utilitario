@@ -17,6 +17,7 @@ router.delete('/servers/:id', serverController.deleteServer);
 router.post('/servers/:id/test-connection', serverController.testConnection);
 router.post('/servers/execute-query', serverController.executeQuery);
 router.post('/servers/list-databases', serverController.listDatabases);
+router.post('/servers/force-cache-update', serverController.forceCacheUpdate);
 router.get('/servers/stats/overview', serverController.getServerStats);
 
 module.exports = router; 

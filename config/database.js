@@ -60,7 +60,7 @@ async function testConnection() {
 // Sincronizar modelos com o banco
 async function syncModels(force = false) {
     try {
-        await sequelize.sync({ force });
+        // await sequelize.sync({ force });
         logger.info('Modelos sincronizados com o banco de dados PostgreSQL');
     } catch (error) {
         logger.error('Erro ao sincronizar modelos com PostgreSQL:', error);
@@ -72,7 +72,7 @@ async function initDatabase() {
     try {
         await sequelize.authenticate();
         // Força a sincronização do modelo com o banco
-        await sequelize.sync({ alter: true });
+        // await sequelize.sync({ alter: true });
         logger.info('Banco de dados PostgreSQL sincronizado com sucesso');
     } catch (error) {
         logger.error('Erro ao sincronizar banco de dados PostgreSQL:', error);

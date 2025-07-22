@@ -1,4 +1,4 @@
-const { Server, User } = require('../models/postgresql');
+const { Server, User, DatabaseCache } = require('../models/postgresql');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { Sequelize } = require('sequelize');
@@ -32,6 +32,67 @@ function decryptPassword(encryptedPassword) {
         return decrypted;
     } catch (error) {
         console.error('Erro ao descriptografar senha:', error);
+        return null;
+    }
+}
+
+// Função para verificar se o cache está válido (menos de 1 hora)
+function isCacheValid(lastUpdated) {
+    const oneHour = 60 * 60 * 1000; // 1 hora em millisegundos
+    return Date.now() - new Date(lastUpdated).getTime() < oneHour;
+}
+
+// Função para salvar cache de databases
+async function saveDatabaseCache(serverId, serverName, serverHost, databases, status, errorMessage = null) {
+    try {
+        const cacheData = {
+            serverId,
+            serverName,
+            serverHost,
+            databases: databases || [],
+            status,
+            errorMessage,
+            totalDatabases: databases ? databases.length : 0,
+            lastUpdated: new Date()
+        };
+
+        await DatabaseCache.upsert(cacheData, {
+            where: { serverId }
+        });
+
+        logger.info(`Cache salvo para servidor ${serverName} (${databases ? databases.length : 0} databases)`);
+    } catch (error) {
+        logger.error(`Erro ao salvar cache para servidor ${serverName}:`, error);
+    }
+}
+
+// Função para buscar cache de databases
+async function getDatabaseCache(serverId) {
+    try {
+        const cache = await DatabaseCache.findOne({
+            where: { serverId },
+            order: [['lastUpdated', 'DESC']]
+        });
+
+        if (cache && isCacheValid(cache.lastUpdated)) {
+            logger.info(`Cache válido encontrado para servidor ${cache.serverName}`);
+            return {
+                success: true,
+                data: {
+                    serverId: cache.serverId,
+                    serverName: cache.serverName,
+                    serverHost: cache.serverHost,
+                    success: cache.status === 'success',
+                    databases: cache.databases,
+                    error: cache.status === 'error' ? cache.errorMessage : null,
+                    fromCache: true
+                }
+            };
+        }
+
+        return null;
+    } catch (error) {
+        logger.error(`Erro ao buscar cache para servidor ${serverId}:`, error);
         return null;
     }
 }
@@ -511,23 +572,37 @@ class ServerController {
             
             logger.info(`Processando ${servers.length} servidores: ${servers.map(s => s.name).join(', ')}`);
             
-            // Processar servidores em paralelo com timeout
+            // Processar servidores em paralelo com cache
             const results = await Promise.allSettled(
                 servers.map(async (server, index) => {
                     return new Promise(async (resolve) => {
-                        logger.info(`[${index + 1}/${servers.length}] Conectando ao servidor: ${server.name} (${server.host})`);
+                        logger.info(`[${index + 1}/${servers.length}] Verificando cache para servidor: ${server.name} (${server.host})`);
                         
-                        // Timeout de 30 segundos por servidor
+                        // Verificar cache primeiro
+                        const cachedResult = await getDatabaseCache(server.id);
+                        if (cachedResult) {
+                            logger.info(`[${index + 1}/${servers.length}] Usando cache para ${server.name}`);
+                            resolve(cachedResult.data);
+                            return;
+                        }
+                        
+                        logger.info(`[${index + 1}/${servers.length}] Cache não encontrado, conectando ao servidor: ${server.name} (${server.host})`);
+                        
+                        // Timeout de 45 segundos por servidor (aumentado para dar tempo das databases)
                         const timeout = setTimeout(() => {
                             logger.warn(`[${index + 1}/${servers.length}] Timeout ao conectar com ${server.name}`);
-                            resolve({
+                            const errorResult = {
                                 serverId: server.id,
                                 serverName: server.name,
                                 serverHost: server.host,
                                 success: false,
-                                error: 'Timeout: Conexão excedeu 30 segundos'
-                            });
-                        }, 30000);
+                                error: 'Timeout: Conexão excedeu 45 segundos'
+                            };
+                            
+                            // Salvar erro no cache
+                            saveDatabaseCache(server.id, server.name, server.host, null, 'error', errorResult.error);
+                            resolve(errorResult);
+                        }, 45000);
                         
                         try {
                             const decryptedPassword = decryptPassword(server.password);
@@ -585,7 +660,7 @@ class ServerController {
                             await sequelize.authenticate();
                             logger.info(`[${index + 1}/${servers.length}] Conexão estabelecida com ${server.name}`);
                             
-                            // Query para listar databases (PostgreSQL) com timeout
+                            // Query para listar databases (PostgreSQL) com timeout reduzido
                             logger.info(`[${index + 1}/${servers.length}] Executando query para listar databases em ${server.name}`);
                             const [databases] = await sequelize.query(`
                                 SELECT 
@@ -599,8 +674,68 @@ class ServerController {
                                 WHERE d.datistemplate = false
                                 ORDER BY d.datname
                             `, {
-                                timeout: 15000 // Timeout de 15s para a query
+                                timeout: 10000 // Timeout reduzido para 10s
                             });
+                            
+                            // Buscar versão de cada database em paralelo (máximo 10 conexões simultâneas)
+                            logger.info(`[${index + 1}/${servers.length}] Buscando versões das ${databases.length} databases em ${server.name} (paralelo)`);
+                            
+                            // Processar databases em lotes para evitar sobrecarga
+                            const batchSize = 10;
+                            const batches = [];
+                            for (let i = 0; i < databases.length; i += batchSize) {
+                                batches.push(databases.slice(i, i + batchSize));
+                            }
+                            
+                            for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+                                const batch = batches[batchIndex];
+                                logger.info(`[${index + 1}/${servers.length}] Processando lote ${batchIndex + 1}/${batches.length} (${batch.length} databases)`);
+                                
+                                // Processar lote em paralelo
+                                const batchPromises = batch.map(async (db) => {
+                                    try {
+                                        // Conectar na database específica com timeout reduzido
+                                        const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
+                                            host: server.host,
+                                            port: server.port,
+                                            dialect: 'postgres',
+                                            logging: false,
+                                            pool: {
+                                                max: 1,
+                                                min: 0,
+                                                acquire: 3000, // Reduzido para 3s
+                                                idle: 2000
+                                            },
+                                            retry: {
+                                                max: 1,
+                                                timeout: 2000
+                                            }
+                                        });
+                                        
+                                        // Buscar versão da database com timeout muito reduzido
+                                        const [versionResult] = await dbSequelize.query(`
+                                            SELECT versaover as version 
+                                            FROM public.versao 
+                                            WHERE dataver IS NOT NULL 
+                                            LIMIT 1
+                                        `, {
+                                            timeout: 2000 // Timeout de apenas 2s
+                                        });
+                                        
+                                        await dbSequelize.close();
+                                        
+                                        // Adicionar versão ao resultado
+                                        db.version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
+                                        
+                                    } catch (versionError) {
+                                        logger.warn(`[${index + 1}/${servers.length}] Erro ao buscar versão da database ${db.name}: ${versionError.message}`);
+                                        db.version = 'N/A';
+                                    }
+                                });
+                                
+                                // Aguardar lote atual com timeout
+                                await Promise.allSettled(batchPromises);
+                            }
                             
                             await sequelize.close();
                             clearTimeout(timeout);
@@ -612,24 +747,32 @@ class ServerController {
                                 logger.info(`[${index + 1}/${servers.length}] Exemplo de database: ${JSON.stringify(databases[0])}`);
                             }
                             
-                            resolve({
+                            const successResult = {
                                 serverId: server.id,
                                 serverName: server.name,
                                 serverHost: server.host,
                                 success: true,
                                 databases: databases
-                            });
+                            };
+                            
+                            // Salvar sucesso no cache
+                            await saveDatabaseCache(server.id, server.name, server.host, databases, 'success');
+                            resolve(successResult);
                             
                         } catch (error) {
                             clearTimeout(timeout);
                             logger.error(`[${index + 1}/${servers.length}] Erro ao conectar com ${server.name}: ${error.message}`);
-                            resolve({
+                            const errorResult = {
                                 serverId: server.id,
                                 serverName: server.name,
                                 serverHost: server.host,
                                 success: false,
                                 error: error.message
-                            });
+                            };
+                            
+                            // Salvar erro no cache
+                            await saveDatabaseCache(server.id, server.name, server.host, null, 'error', error.message);
+                            resolve(errorResult);
                         }
                     });
                 })
@@ -672,6 +815,38 @@ class ServerController {
             
         } catch (error) {
             logger.error('Erro ao listar databases:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erro interno do servidor'
+            });
+        }
+    }
+
+    // Forçar atualização do cache de databases
+    async forceCacheUpdate(req, res) {
+        try {
+            const { serverIds } = req.body;
+            
+            if (!serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'IDs dos servidores são obrigatórios'
+                });
+            }
+            
+            logger.info(`Forçando atualização de cache para ${serverIds.length} servidores`);
+            
+            // Limpar cache existente
+            await DatabaseCache.destroy({
+                where: { serverId: serverIds }
+            });
+            
+            res.json({
+                success: true,
+                message: 'Cache limpo com sucesso. Execute a consulta novamente para atualizar.'
+            });
+        } catch (error) {
+            logger.error('Erro ao forçar atualização de cache:', error);
             res.status(500).json({
                 success: false,
                 message: 'Erro interno do servidor'

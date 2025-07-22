@@ -169,22 +169,6 @@ function renderServerStats(stats) {
                 <div class="stat-title">Ativos</div>
                 <div class="stat-value text-success">${stats.activeServers || 0}</div>
             </div>
-            
-            <div class="stat">
-                <div class="stat-figure text-warning">
-                    <i class="fas fa-database text-3xl"></i>
-                </div>
-                <div class="stat-title">Média de RAM</div>
-                <div class="stat-value text-warning">${Math.round(stats.averageMemory || 0)}%</div>
-            </div>
-            
-            <div class="stat">
-                <div class="stat-figure text-info">
-                    <i class="fas fa-microchip text-3xl"></i>
-                </div>
-                <div class="stat-title">Média de CPU</div>
-                <div class="stat-value text-info">${Math.round(stats.averageCpu || 0)}%</div>
-            </div>
         </div>
     `;
 }
@@ -634,7 +618,7 @@ function formatSize(size) {
 
 // Função para copiar informações da database
 function copyDatabaseInfo(host, databaseName) {
-    const connectionString = `Host: ${host}\nDatabase: ${databaseName}`;
+    const connectionString = `${host}/${databaseName}`;
     
     navigator.clipboard.writeText(connectionString).then(() => {
         showNotification('Informações copiadas para a área de transferência!', 'success');
@@ -824,6 +808,7 @@ function renderDatabasesTable(pageData, total, totalPages) {
                     <tr>
                         <th>Servidor</th>
                         <th>Nome</th>
+                        <th>Versão</th>
                         <th>Tamanho</th>
                         <th>Dono</th>
                         <th>Comentário</th>
@@ -843,6 +828,7 @@ function renderDatabasesTable(pageData, total, totalPages) {
             html += `<tr>
                 <td>${db.serverName}</td>
                 <td class="break-all">${db.name}</td>
+                <td>${db.version ? `<span class="badge badge-info">${db.version}</span>` : '<span class="text-gray-400">N/A</span>'}</td>
                 <td>${formatSize(db.size)}</td>
                 <td>${db.owner || 'N/A'}</td>
                 <td class="max-w-xs">
@@ -988,12 +974,16 @@ function showResultsSummary(databasesData) {
         return total + (server.success && server.databases ? server.databases.length : 0);
     }, 0);
     
+    // Verificar se há dados do cache
+    const fromCache = databasesData.some(server => server.fromCache);
+    const cacheIndicator = fromCache ? '<span class="badge badge-warning ml-2">Cache</span>' : '';
+    
     // Criar ou atualizar o resumo
     let summaryHtml = `
         <div class="alert alert-info mb-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h4 class="font-bold">Resumo da Busca</h4>
+                    <h4 class="font-bold">Resumo da Busca ${cacheIndicator}</h4>
                     <div class="text-sm space-y-1 mt-2">
                         <div class="flex items-center space-x-2">
                             <span class="badge badge-success">${successfulServers}</span>
@@ -1009,12 +999,22 @@ function showResultsSummary(databasesData) {
                             <span class="badge badge-primary">${totalDatabases}</span>
                             <span>databases encontradas</span>
                         </div>
+                        ${fromCache ? `
+                        <div class="flex items-center space-x-2 mt-2">
+                            <span class="badge badge-warning">Cache</span>
+                            <span>Dados carregados do cache (atualizado há menos de 1 hora)</span>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
-                <div class="text-right">
-                    <div class="text-2xl font-bold text-primary">${totalDatabases}</div>
-                    <div class="text-xs text-gray-500">databases</div>
+                ${fromCache ? `
+                <div>
+                    <button onclick="forceCacheUpdate()" class="btn btn-warning btn-sm">
+                        <i class="fas fa-sync-alt"></i>
+                        Atualizar Cache
+                    </button>
                 </div>
+                ` : ''}
             </div>
         </div>
     `;
@@ -1048,6 +1048,46 @@ function showResultsSummary(databasesData) {
         summaryDiv.id = 'resultsSummary';
         summaryDiv.innerHTML = summaryHtml;
         databasesSection.parentNode.insertBefore(summaryDiv, databasesSection);
+    }
+}
+
+// Função para forçar atualização do cache
+async function forceCacheUpdate() {
+    const selectedServers = getSelectedServers();
+    
+    if (selectedServers.length === 0) {
+        showNotification('Selecione pelo menos um servidor.', 'warning');
+        return;
+    }
+    
+    try {
+        showNotification('Limpando cache...', 'info');
+        
+        const response = await fetch(`${API_BASE}/servers/force-cache-update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify({
+                serverIds: selectedServers
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Cache limpo com sucesso! Carregando dados atualizados...', 'success');
+            // Recarregar databases após limpar cache
+            setTimeout(() => {
+                refreshDatabases();
+            }, 1000);
+        } else {
+            showNotification(result.message || 'Erro ao limpar cache', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao forçar atualização de cache:', error);
+        showNotification('Erro ao conectar com o servidor', 'error');
     }
 }
 

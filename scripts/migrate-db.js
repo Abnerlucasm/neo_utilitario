@@ -24,7 +24,7 @@ const initialContent = {
 async function migrate() {
     try {
         // Sincronizar tabelas
-        await sequelize.sync({ alter: true });
+        // await sequelize.sync({ alter: true });
         logger.info('Tabelas sincronizadas com sucesso');
 
         // Criar módulo PostgreSQL inicial se não existir

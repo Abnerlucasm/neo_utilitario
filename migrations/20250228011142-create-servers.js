@@ -6,9 +6,9 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('servers', {
       id: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
+        primaryKey: true
       },
       name: {
         type: Sequelize.STRING(100),
@@ -47,24 +47,24 @@ module.exports = {
         allowNull: true,
         comment: 'Descrição do servidor'
       },
-      isActive: {
+      is_active: {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: true,
         comment: 'Status ativo/inativo'
       },
-      lastConnection: {
+      last_connection: {
         type: Sequelize.DATE,
         allowNull: true,
         comment: 'Última tentativa de conexão'
       },
-      connectionStatus: {
+      connection_status: {
         type: Sequelize.ENUM('online', 'offline', 'error'),
         allowNull: false,
         defaultValue: 'offline',
         comment: 'Status da conexão'
       },
-      createdBy: {
+      created_by: {
         type: Sequelize.UUID,
         allowNull: false,
         references: {
@@ -75,7 +75,7 @@ module.exports = {
         onDelete: 'RESTRICT',
         comment: 'ID do usuário que criou o servidor'
       },
-      updatedBy: {
+      updated_by: {
         type: Sequelize.UUID,
         allowNull: true,
         references: {
@@ -86,17 +86,17 @@ module.exports = {
         onDelete: 'SET NULL',
         comment: 'ID do usuário que atualizou o servidor'
       },
-      createdAt: {
+      created_at: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
-      updatedAt: {
+      updated_at: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
-      deletedAt: {
+      deleted_at: {
         type: Sequelize.DATE,
         allowNull: true
       }
