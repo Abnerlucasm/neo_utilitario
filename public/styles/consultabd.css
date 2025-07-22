@@ -186,6 +186,10 @@
 /* Melhorias nos botões */
 .btn {
     transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
 }
 
 .btn:hover {
@@ -194,6 +198,19 @@
 
 .btn:active {
     transform: translateY(0);
+}
+
+/* Garantir que os botões dos servidores sejam clicáveis */
+.server-card .btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    position: relative;
+    z-index: 10;
+}
+
+.server-card .flex.space-x-2 {
+    position: relative;
+    z-index: 5;
 }
 
 /* Melhorias nos inputs */

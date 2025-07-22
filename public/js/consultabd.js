@@ -188,7 +188,7 @@ function renderServersList() {
         return;
     }
 
-    container.innerHTML = servers.map(server => `
+    const html = servers.map(server => `
         <div class="card bg-base-200 shadow-sm mb-3 server-card" data-server-id="${server.id}">
             <div class="card-body p-4">
                 <div class="flex items-center justify-between">
@@ -201,13 +201,13 @@ function renderServersList() {
                         </div>
                     </div>
                     <div class="flex space-x-2">
-                        <button class="btn btn-info btn-sm" onclick="testServerConnection(${server.id})" title="Testar Conexão">
+                        <button type="button" class="btn btn-info btn-sm" onclick="testServerConnection('${server.id}')" title="Testar Conexão">
                                 <i class="fas fa-plug"></i>
                         </button>
-                        <button class="btn btn-warning btn-sm" onclick="editServer(${server.id})" title="Editar">
+                        <button type="button" class="btn btn-warning btn-sm" onclick="editServer('${server.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-error btn-sm" onclick="deleteServer(${server.id})" title="Excluir">
+                        <button type="button" class="btn btn-error btn-sm" onclick="deleteServer('${server.id}')" title="Excluir">
                                 <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -215,6 +215,8 @@ function renderServersList() {
             </div>
         </div>
     `).join('');
+    
+    container.innerHTML = html;
 }
 
 // Renderizar checkboxes dos servidores
@@ -395,6 +397,15 @@ function closeCreateModal() {
     }
 }
 
+// Função para verificar se servidor já existe (excluindo um ID específico)
+function checkServerExists(host, port, excludeId = null) {
+    return servers.some(server => 
+        server.host === host && 
+        server.port === port && 
+        (!excludeId || server.id !== excludeId)
+    );
+}
+
 // Função para lidar com o submit do formulário de criação
 async function handleCreateServerSubmit(event) {
     event.preventDefault();
@@ -407,6 +418,12 @@ async function handleCreateServerSubmit(event) {
         username: document.getElementById('createServerUsername').value,
         password: document.getElementById('createServerPassword').value
     };
+    
+    // Verificar se já existe um servidor com o mesmo host e porta
+    if (checkServerExists(formData.host, formData.port)) {
+        showNotification('Já existe um servidor cadastrado com este host e porta. Verifique os dados e tente novamente.', 'error');
+        return;
+    }
     
     try {
         const response = await fetch(`${API_BASE}/servers`, {
@@ -425,7 +442,15 @@ async function handleCreateServerSubmit(event) {
             closeCreateModal();
             loadServers(); // Recarregar lista de servidores
         } else {
-            showNotification(result.message || 'Erro ao criar servidor', 'error');
+            // Mostrar mensagem de erro específica
+            let errorMessage = result.message || 'Erro ao criar servidor';
+            
+            // Se for erro de servidor duplicado, mostrar mensagem mais clara
+            if (errorMessage.includes('Já existe um servidor')) {
+                errorMessage = 'Já existe um servidor cadastrado com este host e porta. Verifique os dados e tente novamente.';
+            }
+            
+            showNotification(errorMessage, 'error');
         }
     } catch (error) {
         console.error('Erro ao criar servidor:', error);
@@ -540,6 +565,12 @@ async function handleEditServerSubmit(event) {
         password: document.getElementById('editServerPassword').value || null
     };
     
+    // Verificar se já existe um servidor com o mesmo host e porta (excluindo o atual)
+    if (checkServerExists(formData.host, formData.port, serverId)) {
+        showNotification('Já existe outro servidor cadastrado com este host e porta. Verifique os dados e tente novamente.', 'error');
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_BASE}/servers/${serverId}`, {
             method: 'PUT',
@@ -557,7 +588,15 @@ async function handleEditServerSubmit(event) {
             closeEditModal();
             loadServers(); // Recarregar lista de servidores
         } else {
-            showNotification(result.message || 'Erro ao atualizar servidor', 'error');
+            // Mostrar mensagem de erro específica
+            let errorMessage = result.message || 'Erro ao atualizar servidor';
+            
+            // Se for erro de servidor duplicado, mostrar mensagem mais clara
+            if (errorMessage.includes('Já existe um servidor')) {
+                errorMessage = 'Já existe um servidor cadastrado com este host e porta. Verifique os dados e tente novamente.';
+            }
+            
+            showNotification(errorMessage, 'error');
         }
     } catch (error) {
         console.error('Erro ao atualizar servidor:', error);
@@ -617,22 +656,241 @@ function formatSize(size) {
 }
 
 // Função para copiar informações da database
-function copyDatabaseInfo(host, databaseName) {
+async function copyDatabaseInfo(host, databaseName) {
     const connectionString = `${host}/${databaseName}`;
     
-    navigator.clipboard.writeText(connectionString).then(() => {
-        showNotification('Informações copiadas para a área de transferência!', 'success');
-    }).catch(() => {
-        // Fallback para navegadores que não suportam clipboard API
+    try {
+        // Tentar usar a API moderna do clipboard primeiro
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(connectionString);
+            showNotification('Informações copiadas para a área de transferência!', 'success');
+            return;
+        }
+    } catch (error) {
+        console.log('Clipboard API não disponível, usando fallback:', error);
+    }
+    
+    // Fallback para navegadores que não suportam clipboard API
+    try {
+        // Método 1: Usar textarea temporário
         const textArea = document.createElement('textarea');
         textArea.value = connectionString;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        textArea.style.opacity = '0';
+        textArea.style.pointerEvents = 'none';
+        document.body.appendChild(textArea);
+        
+        // Tentar diferentes métodos de seleção
+        textArea.focus();
+        textArea.select();
+        
+        // Para Linux, às vezes precisamos de um pequeno delay
+        setTimeout(() => {
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            if (successful) {
+                showNotification('Informações copiadas para a área de transferência!', 'success');
+            } else {
+                // Método 2: Tentar com range selection
+                tryCopyWithRange(connectionString);
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.error('Erro ao copiar com textarea:', error);
+        // Método 2: Tentar com range selection
+        tryCopyWithRange(connectionString);
+    }
+}
+
+// Método alternativo usando range selection
+function tryCopyWithRange(text) {
+    try {
+        const range = document.createRange();
+        const selection = window.getSelection();
+        
+        // Criar elemento temporário
+        const tempElement = document.createElement('div');
+        tempElement.textContent = text;
+        tempElement.style.position = 'absolute';
+        tempElement.style.left = '-9999px';
+        document.body.appendChild(tempElement);
+        
+        range.selectNodeContents(tempElement);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        const successful = document.execCommand('copy');
+        selection.removeAllRanges();
+        document.body.removeChild(tempElement);
+        
+        if (successful) {
+            showNotification('Informações copiadas para a área de transferência!', 'success');
+        } else {
+            // Último recurso: mostrar modal para cópia manual
+            showCopyManualModal(text);
+        }
+    } catch (error) {
+        console.error('Erro ao copiar com range:', error);
+        showCopyManualModal(text);
+    }
+}
+
+// Função para mostrar modal de cópia manual
+function showCopyManualModal(text) {
+    // Remover modal existente se houver
+    const existingModal = document.getElementById('copyManualModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Criar modal
+    const modal = document.createElement('div');
+    modal.id = 'copyManualModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg w-full max-w-md flex flex-col">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-semibold">Copiar Informações</h3>
+                <button onclick="closeCopyManualModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-4">
+                    Não foi possível copiar automaticamente. Selecione o texto abaixo e copie manualmente:
+                </p>
+                <div class="bg-gray-100 p-3 rounded border">
+                    <input type="text" value="${text}" class="w-full bg-transparent border-none outline-none text-sm font-mono" readonly onclick="this.select()">
+                </div>
+            </div>
+            
+            <div class="flex justify-end p-6 border-t bg-gray-50">
+                <button onclick="closeCopyManualModal()" class="btn btn-primary">Fechar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focar no input automaticamente
+    setTimeout(() => {
+        const input = modal.querySelector('input');
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    }, 100);
+}
+
+// Função para fechar modal de cópia manual
+function closeCopyManualModal() {
+    const modal = document.getElementById('copyManualModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Função para testar suporte ao clipboard
+function testClipboardSupport() {
+    console.log('=== TESTE DE SUPORTE AO CLIPBOARD ===');
+    
+    // Verificar se a API Clipboard está disponível
+    console.log('navigator.clipboard disponível:', !!navigator.clipboard);
+    console.log('window.isSecureContext:', window.isSecureContext);
+    
+    // Verificar se document.execCommand está disponível
+    console.log('document.execCommand disponível:', !!document.execCommand);
+    
+    // Testar se estamos em contexto seguro (HTTPS ou localhost)
+    const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    console.log('Contexto seguro:', isSecure);
+    
+    // Verificar user agent para identificar o sistema operacional
+    const userAgent = navigator.userAgent;
+    console.log('User Agent:', userAgent);
+    
+    if (userAgent.includes('Linux')) {
+        console.log('Sistema operacional detectado: Linux');
+    } else if (userAgent.includes('Windows')) {
+        console.log('Sistema operacional detectado: Windows');
+    } else if (userAgent.includes('Mac')) {
+        console.log('Sistema operacional detectado: macOS');
+    }
+    
+    return {
+        clipboardAPI: !!navigator.clipboard,
+        secureContext: isSecure,
+        execCommand: !!document.execCommand,
+        userAgent: userAgent
+    };
+}
+
+// Expor função de teste globalmente
+window.testClipboardSupport = testClipboardSupport;
+
+// Função para testar cópia no Linux
+function testLinuxCopy() {
+    console.log('=== TESTE DE CÓPIA NO LINUX ===');
+    
+    const testText = 'teste-copia-linux-' + Date.now();
+    
+    // Testar todos os métodos
+    console.log('Testando cópia com texto:', testText);
+    
+    // Método 1: Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(testText)
+            .then(() => console.log('✅ Clipboard API funcionou'))
+            .catch(err => console.log('❌ Clipboard API falhou:', err));
+    } else {
+        console.log('⚠️ Clipboard API não disponível');
+    }
+    
+    // Método 2: execCommand
+    try {
+        const textArea = document.createElement('textarea');
+        textArea.value = testText;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
         document.body.appendChild(textArea);
         textArea.select();
-        document.execCommand('copy');
+        const success = document.execCommand('copy');
         document.body.removeChild(textArea);
-        showNotification('Informações copiadas para a área de transferência!', 'success');
-    });
+        console.log(success ? '✅ execCommand funcionou' : '❌ execCommand falhou');
+    } catch (error) {
+        console.log('❌ execCommand falhou:', error);
+    }
+    
+    // Método 3: Range selection
+    try {
+        const range = document.createRange();
+        const selection = window.getSelection();
+        const tempElement = document.createElement('div');
+        tempElement.textContent = testText;
+        tempElement.style.position = 'absolute';
+        tempElement.style.left = '-9999px';
+        document.body.appendChild(tempElement);
+        
+        range.selectNodeContents(tempElement);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        const success = document.execCommand('copy');
+        selection.removeAllRanges();
+        document.body.removeChild(tempElement);
+        console.log(success ? '✅ Range selection funcionou' : '❌ Range selection falhou');
+    } catch (error) {
+        console.log('❌ Range selection falhou:', error);
+    }
 }
+
+// Expor função de teste do Linux globalmente
+window.testLinuxCopy = testLinuxCopy;
 
 // Função para carregar databases dos servidores selecionados
 async function loadDatabases() {

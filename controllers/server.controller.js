@@ -111,7 +111,7 @@ async function testDatabaseConnection(serverData) {
                     host,
                     port,
                     dialect: 'postgres',
-                    logging: false,
+                    logging: true,
                     pool: {
                         max: 1,
                         min: 0,
@@ -195,7 +195,7 @@ async function executeQueryOnServers(servers, query) {
                         host: server.host,
                         port: server.port,
                         dialect: 'postgres',
-                        logging: false,
+                        logging: true,
                         pool: {
                             max: 1,
                             min: 0,
@@ -358,6 +358,25 @@ class ServerController {
             });
         } catch (error) {
             console.error('Erro ao criar servidor:', error);
+            
+            // Verificar se é um erro de constraint única
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                const fields = error.errors.map(err => err.path).join(', ');
+                return res.status(400).json({
+                    success: false,
+                    message: `Já existe um servidor com os mesmos dados: ${fields}`
+                });
+            }
+            
+            // Verificar se é um erro de validação
+            if (error.name === 'SequelizeValidationError') {
+                const messages = error.errors.map(err => err.message).join(', ');
+                return res.status(400).json({
+                    success: false,
+                    message: `Erro de validação: ${messages}`
+                });
+            }
+            
             res.status(500).json({
                 success: false,
                 message: 'Erro interno do servidor'
@@ -396,6 +415,25 @@ class ServerController {
             });
         } catch (error) {
             console.error('Erro ao atualizar servidor:', error);
+            
+            // Verificar se é um erro de constraint única
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                const fields = error.errors.map(err => err.path).join(', ');
+                return res.status(400).json({
+                    success: false,
+                    message: `Já existe um servidor com os mesmos dados: ${fields}`
+                });
+            }
+            
+            // Verificar se é um erro de validação
+            if (error.name === 'SequelizeValidationError') {
+                const messages = error.errors.map(err => err.message).join(', ');
+                return res.status(400).json({
+                    success: false,
+                    message: `Erro de validação: ${messages}`
+                });
+            }
+            
             res.status(500).json({
                 success: false,
                 message: 'Erro interno do servidor'
