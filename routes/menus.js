@@ -32,8 +32,23 @@ router.get('/', async (req, res) => {
                 }
             ]
         });
-        const rootMenus = menus.filter(menu => !menu.parent_id);
-        res.json(rootMenus);
+
+        // Organizar menus em árvore
+        const menuMap = {};
+        menus.forEach(menu => {
+            menuMap[menu.id] = menu.toJSON();
+            menuMap[menu.id].children = [];
+        });
+        const tree = [];
+        menus.forEach(menu => {
+            if (menu.parent_id && menuMap[menu.parent_id]) {
+                menuMap[menu.parent_id].children.push(menuMap[menu.id]);
+            } else {
+                tree.push(menuMap[menu.id]);
+            }
+        });
+
+        res.json(tree);
     } catch (error) {
         logger.error('Erro ao listar menus:', error.message, error.stack);
         res.status(500).json({ error: 'Erro ao listar menus', details: error.message });
@@ -159,4 +174,4 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

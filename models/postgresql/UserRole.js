@@ -8,7 +8,7 @@ module.exports = (sequelize) => {
     UserRole.init({
         id: {
             type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
+            defaultValue: DataTypes.UUIDV4, // Gera UUID automaticamente
             primaryKey: true
         },
         user_id: {
@@ -35,4 +35,4 @@ module.exports = (sequelize) => {
     });
 
     return UserRole;
-}; 
+};

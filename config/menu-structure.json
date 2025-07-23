@@ -1,0 +1,100 @@
+[
+  {
+    "title": "Dashboard",
+    "path": "/pages/index.html",
+    "icon": "fas fa-home",
+    "order": 1,
+    "is_admin_only": false,
+    "is_active": true
+  },
+  {
+    "title": "Glassfish",
+    "path": "/pages/glassfish.html",
+    "icon": "fas fa-server",
+    "order": 2,
+    "is_admin_only": false,
+    "is_active": true
+  },
+  {
+    "title": "Consulta Banco de Dados",
+    "path": "/pages/consultabd.html",
+    "icon": "fas fa-database",
+    "order": 3,
+    "is_admin_only": false,
+    "is_active": true
+  },
+  {
+    "title": "Sugestões",
+    "path": "/pages/sugestoes-dev.html",
+    "icon": "fas fa-lightbulb",
+    "order": 4,
+    "is_admin_only": false,
+    "is_active": true
+  },
+  {
+    "title": "Recursos em Desenvolvimento",
+    "path": "/pages/recursos-dev.html",
+    "icon": "fas fa-cogs",
+    "order": 5,
+    "is_admin_only": false,
+    "is_active": true
+  },
+  {
+    "title": "Utilitários",
+    "path": "/pages/utilitarios.html",
+    "icon": "fas fa-tools",
+    "order": 6,
+    "is_admin_only": false,
+    "is_active": true
+  },
+  {
+    "title": "Configurações",
+    "path": "/pages/user-settings.html",
+    "icon": "fas fa-cog",
+    "order": 7,
+    "is_admin_only": false,
+    "is_active": true
+  },
+  {
+    "title": "Administração",
+    "path": "/admin",
+    "icon": "fas fa-user-shield",
+    "order": 99,
+    "is_admin_only": true,
+    "is_active": true,
+    "children": [
+      {
+        "title": "Gerenciar Usuários",
+        "path": "/pages/admin/user-management.html",
+        "icon": "fas fa-users-cog",
+        "order": 1,
+        "is_admin_only": true,
+        "is_active": true
+      },
+      {
+        "title": "Papéis e Permissões",
+        "path": "/pages/admin/roles.html",
+        "icon": "fas fa-user-shield",
+        "order": 2,
+        "is_admin_only": true,
+        "is_active": true
+      },
+      {
+        "title": "Recursos",
+        "path": "/pages/admin/resources.html",
+        "icon": "fas fa-sitemap",
+        "order": 3,
+        "is_admin_only": true,
+        "is_active": true
+      },
+            {
+        "title": "Menus",
+        "path": "/pages/admin/menus.html",
+        "icon": "fas fa-bars",
+        "order": 3,
+        "is_admin_only": true,
+        "is_active": true
+      }
+    ]
+  }
+]

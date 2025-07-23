@@ -2,7 +2,7 @@
   "development": {
     "username": "postgres",
     "password": "09042003",
-    "database": "neoutilitario",
+    "database": "neohub",
     "host": "127.0.0.1",
     "dialect": "postgres",
     "define": {

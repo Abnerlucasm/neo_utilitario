@@ -296,46 +296,35 @@ class NeoNavbar extends HTMLElement {
         const menuList = this.querySelector('.menu-list');
         if (!menuList) return;
 
-        console.log('Navbar: Renderizando menus...');
-        console.log('Navbar: Total de menus:', this.state.menus.length);
-        console.log('Navbar: Usuário é admin?', this.state.isAdmin);
+        // Filtrar menus baseado em permissões e status
+        const filterMenus = (menus) => {
+            return menus
+                .filter(menu => menu.isActive && (!menu.isAdminOnly || this.state.isAdmin))
+                .map(menu => ({
+                    ...menu,
+                    submenu: menu.submenu ? filterMenus(menu.submenu) : []
+                }));
+        };
 
-        // Filtrar menus baseado em permissões
-        const filteredMenus = this.state.menus.filter(menu => {
-            if (menu.isAdminOnly && !this.state.isAdmin) {
-                console.log('Navbar: Menu filtrado (admin only):', menu.titulo);
-                return false;
-            }
-            if (!menu.isActive) {
-                console.log('Navbar: Menu filtrado (inativo):', menu.titulo);
-                return false;
-            }
-            return true;
-        });
-
-        console.log('Navbar: Menus após filtro:', filteredMenus.length, 'menus');
+        const filteredMenus = filterMenus(this.state.menus);
 
         if (filteredMenus.length === 0) {
-            console.log('Navbar: Nenhum menu após filtro, renderizando menu vazio');
             this.renderEmptyMenu();
             return;
         }
 
-        const menuHtml = filteredMenus.map(menu => this.renderMenuItem(menu)).join('');
-        menuList.innerHTML = menuHtml;
-        console.log('Navbar: Menus renderizados com sucesso');
+        // Renderizar hierarquia recursivamente
+        menuList.innerHTML = this.renderMenuTree(filteredMenus);
+    }
+
+    renderMenuTree(menus) {
+        return menus.map(menu => this.renderMenuItem(menu)).join('');
     }
 
     renderMenuItem(menu) {
         const hasSubmenu = menu.submenu && menu.submenu.length > 0;
-        
-        if (hasSubmenu) {
-            const submenuHtml = menu.submenu
-                .filter(submenu => !submenu.isAdminOnly || this.state.isAdmin)
-                .filter(submenu => submenu.isActive)
-                .map(submenu => this.renderMenuItem(submenu))
-                .join('');
 
+        if (hasSubmenu) {
             return `
                 <li>
                     <details>
@@ -343,13 +332,13 @@ class NeoNavbar extends HTMLElement {
                             <i class="${menu.icon || 'fas fa-circle'}"></i>
                             <span>${menu.titulo}</span>
                         </summary>
-                        <ul class="menu menu-compact">
-                            ${submenuHtml}
-                            </ul>
+                        <ul class="menu menu-compact ml-4">
+                            ${this.renderMenuTree(menu.submenu)}
+                        </ul>
                     </details>
-                        </li>
-                    `;
-                } else {
+                </li>
+            `;
+        } else {
             const isExternal = menu.url.startsWith('http');
             return `
                 <li>

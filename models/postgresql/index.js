@@ -14,8 +14,12 @@ const {
     Glassfish,
     Menu,
     Server,
+    UserRole, // Adicione aqui
     initAssociations
 } = require('./associations');
+const seedResourcesFromMenus = require('../../scripts/seed-resources-from-menus');
+const seedMenusFromConfig = require('../../scripts/seed-menus-from-config');
+const { v4: uuidv4 } = require('uuid');
 
 async function createDefaultAdmin() {
     try {
@@ -56,7 +60,7 @@ async function createDefaultAdmin() {
         // Garantir que o usuário tem a role admin
         try {
             // Verificar se a associação já existe
-            const existingAssociation = await sequelize.models.user_roles.findOne({
+            const existingAssociation = await UserRole.findOne({
                 where: {
                     user_id: adminUser.id,
                     role_id: adminRole.id
@@ -65,7 +69,7 @@ async function createDefaultAdmin() {
             
             // Se não existir, criar a associação
             if (!existingAssociation) {
-                await sequelize.models.user_roles.create({
+                await UserRole.create({
                     user_id: adminUser.id,
                     role_id: adminRole.id
                 });
@@ -93,6 +97,9 @@ async function createDefaultAdmin() {
  */
 async function initDatabase() {
     try {
+        // Sincronizar todos os models com o banco de dados (sem alter para evitar erro de USING)
+        await sequelize.sync({ force: false });
+
         // Verificar se as associações já foram inicializadas
         if (!User.associations || !User.associations.userRoles) {
             // Inicializar associações
@@ -125,10 +132,26 @@ async function initDatabase() {
         // Criar usuário admin padrão
         await createDefaultAdmin();
 
+        // Seed automático de menus
+        await seedMenusFromConfig();
+
+        // Executar seed da estrutura inicial (menus/recursos)
+        await seedInitialStructure();
+
         return true;
     } catch (error) {
         logger.error('Erro ao inicializar banco de dados:', error);
         throw error;
+    }
+}
+
+async function seedInitialStructure() {
+    try {
+        // Executa o seeder de recursos baseados nos menus
+        await seedResourcesFromMenus();
+        logger.info('Estrutura inicial de menus e recursos criada com sucesso.');
+    } catch (error) {
+        logger.error('Erro ao executar seed inicial:', error);
     }
 }
 
@@ -146,4 +169,4 @@ module.exports = {
     Menu,
     Server,
     DatabaseCache: require('./associations').DatabaseCache,
-}; 
+};
