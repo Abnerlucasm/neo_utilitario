@@ -31,21 +31,9 @@ const initServer = require('./scripts/init-server');
 const authRouter = require('./routes/auth');
 const glassfishRouter = require('./routes/glassfish');
 const suggestionsRouter = require('./routes/suggestions');
-const kanbanRouter = require('./routes/kanban');
-const contentRouter = require('./routes/content.js');
-const componentsRouter = require('./routes/components');
-const progressRouter = require('./routes/progress');
-const learningRouter = require('./routes/learning');
 const rolesRouter = require('./routes/roles');
 const menuRouter = require('./routes/menus');
 
-// Importar controllers
-const {
-    timerController,
-    archiveController,
-    statusController,
-    attachmentsController
-} = require('./controllers/kanban');
 
 // Importar rotas de administração
 const adminRouter = require('./routes/admin');
@@ -126,10 +114,7 @@ const authMiddleware = async (req, res, next) => {
         '/styles/',
         '/js/',
         '/assets/',
-        '/components/',
-        '/favicon.ico',
-        '/modules/learning/templates/',
-        '/modules/learning/js/auth-debug.js'
+        '/favicon.ico'
     ];
 
     // Verificar se é uma rota pública
@@ -210,10 +195,6 @@ const authMiddleware = async (req, res, next) => {
             });
         }
 
-        // Para páginas administrativas, redirecionar para página de redirecionamento
-        if (req.path.startsWith('/admin/')) {
-            return res.redirect('/modules/learning/templates/admin-redirect.html');
-        }
 
         // Para outras páginas, redirecionar para login
         res.redirect('/pages/login.html');
@@ -225,13 +206,8 @@ app.use('/api/auth', authRouter);
 
 // Aplicar middleware de autenticação para rotas protegidas
 app.use('/api/user', authMiddleware, userRouter);
-app.use('/api/learning', authMiddleware, learningRouter);
 app.use('/api/glassfish', authMiddleware, glassfishRouter);
 app.use('/api/suggestions', authMiddleware, suggestionsRouter);
-app.use('/api/kanban', authMiddleware, kanbanRouter);
-app.use('/api/content', authMiddleware, contentRouter);
-app.use('/api/components', authMiddleware, componentsRouter);
-app.use('/api/progress', authMiddleware, progressRouter);
 
 // Configurar rota diagnóstica direta (para verificação)
 app.get('/api/test', (req, res) => {
@@ -246,26 +222,6 @@ app.use('/', routes);
 // Comentando essas rotas pois já estão registradas pelo arquivo routes/index.js
 // app.use('/api/menus', menuRouter);
 
-// Adicionar redirecionamentos específicos para módulos de aprendizagem admin
-app.get('/admin/learning/modules', authMiddleware, (req, res) => {
-    // Verificar se o usuário é admin
-    if (!req.isAdmin) {
-        return res.redirect('/pages/login.html');
-    }
-    // Redirecionar para o template correto
-    res.redirect('/modules/learning/templates/modules.html');
-});
-
-// Redirecionamento para página de aprendizado
-app.get('/learn', authMiddleware, (req, res) => {
-    res.redirect('/pages/learn.html');
-});
-
-// Redirecionamento para módulos de aprendizado específicos
-app.get('/learn/:moduleId', authMiddleware, (req, res) => {
-    const { moduleId } = req.params;
-    res.redirect(`/modules/learning/templates/module-view.html?id=${moduleId}`);
-});
 
 // Rota catch-all para SPA
 app.get('*', (req, res) => {
@@ -294,11 +250,7 @@ app.use((err, req, res, next) => {
         // Inicializar o banco de dados
         await initDatabase();
         logger.info('Banco de dados PostgreSQL inicializado com sucesso');
-        
-        // Criar módulo de exemplo para testes se necessário
-        const createExampleModule = require('./scripts/seed-learning-module');
-        await createExampleModule();
-        
+              
         // Executar verificações iniciais
         await initServer();
         

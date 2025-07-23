@@ -7,8 +7,6 @@ const { DataTypes } = require('sequelize');
 const defineUser = require('./User');
 const defineRole = require('./Role');
 const definePermission = require('./Permission');
-const defineLearningModule = require('./LearningModule');
-const defineUserProgress = require('./UserProgress');
 const defineService = require('./Service');
 const defineSession = require('./session');
 const defineResource = require('./Resource');
@@ -18,7 +16,6 @@ const defineMenu = require('./Menu');
 const defineRolePermission = require('./RolePermission');
 const defineUserRole = require('./UserRole');
 const defineRoleResource = require('./RoleResource');
-const defineComponent = require('./Component');
 const Server = require('./Server');
 const defineDatabaseCache = require('./DatabaseCache');
 
@@ -26,8 +23,6 @@ const defineDatabaseCache = require('./DatabaseCache');
 const User = defineUser(sequelize);
 const Role = defineRole(sequelize);
 const Permission = definePermission(sequelize);
-const LearningModule = defineLearningModule(sequelize);
-const UserProgress = defineUserProgress(sequelize);
 const Service = defineService(sequelize);
 const Session = defineSession(sequelize);
 const Resource = defineResource(sequelize);
@@ -37,7 +32,6 @@ const Menu = defineMenu(sequelize);
 const RolePermission = defineRolePermission(sequelize);
 const UserRole = defineUserRole(sequelize);
 const RoleResource = defineRoleResource(sequelize);
-const Component = defineComponent(sequelize);
 const DatabaseCache = defineDatabaseCache(sequelize);
 
 // Definir as associações
@@ -55,39 +49,6 @@ function initAssociations() {
         foreignKey: 'role_id',
         otherKey: 'user_id',
         as: 'users'
-    });
-
-    // User - LearningModule
-    User.hasMany(LearningModule, {
-        foreignKey: 'created_by',
-        as: 'createdModules'
-    });
-
-    LearningModule.belongsTo(User, {
-        foreignKey: 'created_by',
-        as: 'creator'
-    });
-
-    // User - UserProgress
-    User.hasMany(UserProgress, {
-        foreignKey: 'user_id',
-        as: 'userProgress'
-    });
-
-    UserProgress.belongsTo(User, {
-        foreignKey: 'user_id',
-        as: 'user'
-    });
-
-    // LearningModule - UserProgress
-    LearningModule.hasMany(UserProgress, {
-        foreignKey: 'module_id',
-        as: 'userProgresses'
-    });
-
-    UserProgress.belongsTo(LearningModule, {
-        foreignKey: 'module_id',
-        as: 'module'
     });
 
     // User - Service
@@ -111,31 +72,31 @@ function initAssociations() {
         as: 'assignee'
     });
 
-    // Role - Resource
-    Role.belongsToMany(Resource, {
-        through: 'role_resources',
-        foreignKey: 'role_id',
-        otherKey: 'resource_id',
-        as: 'accessibleResources'
-    });
-
-    Resource.belongsToMany(Role, {
-        through: 'role_resources',
-        foreignKey: 'resource_id',
-        otherKey: 'role_id',
-        as: 'roles'
-    });
-
-    // Associações auto-referenciais do Resource (parent-child)
-    Resource.belongsTo(Resource, { 
-        foreignKey: 'parent_id', 
-        as: 'parent' 
-    });
+        // Role - Resource
+        Role.belongsToMany(Resource, {
+            through: 'role_resources',
+            foreignKey: 'role_id',
+            otherKey: 'resource_id',
+            as: 'accessibleResources'
+        });
     
-    Resource.hasMany(Resource, { 
-        foreignKey: 'parent_id', 
-        as: 'children' 
-    });
+        Resource.belongsToMany(Role, {
+            through: 'role_resources',
+            foreignKey: 'resource_id',
+            otherKey: 'role_id',
+            as: 'roles'
+        });
+    
+        // Associações auto-referenciais do Resource (parent-child)
+        Resource.belongsTo(Resource, { 
+            foreignKey: 'parent_id', 
+            as: 'parent' 
+        });
+        
+        Resource.hasMany(Resource, { 
+            foreignKey: 'parent_id', 
+            as: 'children' 
+        });
 
     // User - Session
     User.hasMany(Session, {
@@ -162,6 +123,7 @@ function initAssociations() {
         otherKey: 'role_id',
         as: 'roles'
     });
+
 
     // Associações do Menu
     Menu.associate({ Menu, Resource });
@@ -208,18 +170,15 @@ module.exports = {
     User,
     Role,
     Permission,
-    LearningModule,
-    UserProgress,
     Service,
     Session,
-    Resource,
     Suggestion,
     Glassfish,
     Menu,
     RolePermission,
     UserRole,
+    Resource,
     RoleResource,
-    Component,
     Server,
     DatabaseCache,
     initAssociations

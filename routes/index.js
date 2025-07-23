@@ -11,11 +11,9 @@ const { requireAuth, requireAdmin } = require('../middlewares/access-control');
 const menuRoutes = require('./menus');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
-const learningRoutes = require('./learning');
 const userRoutes = require('./user');
 const rolesRoutes = require('./roles');
 const permissionsRoutes = require('./permissions');
-const progressRoutes = require('./progress');
 const serverRoutes = require('./servers');
 const resourcesRoutes = require('./resources');
 
@@ -31,11 +29,9 @@ console.log('Registrando rota /api/menus na routes/index.js');
 router.use('/api/menus', menuRoutes);
 router.use('/api/auth', authRoutes);
 router.use('/api/admin', [requireAuth, requireAdmin], adminRoutes);
-router.use('/api/learning', requireAuth, learningRoutes);
 router.use('/api/user', requireAuth, userRoutes);
 router.use('/api/roles', [requireAuth, requireAdmin], rolesRoutes);
 router.use('/api/permissions', [requireAuth, requireAdmin], permissionsRoutes);
-router.use('/api/progress', requireAuth, progressRoutes);
 router.use('/api', serverRoutes);
 router.use('/api/resources', resourcesRoutes); // Temporariamente sem autenticação
 
@@ -48,11 +44,9 @@ router.get('/api/status', (req, res) => {
             '/api/menus',
             '/api/auth',
             '/api/admin',
-            '/api/learning',
             '/api/user',
             '/api/roles',
             '/api/permissions',
-            '/api/progress',
             '/api/servers',
             '/api/resources'
         ]
