@@ -64,9 +64,6 @@ class NeoNavbar extends HTMLElement {
             initialized: false
         };
         
-        // Carregar tema do localStorage
-        const savedSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-        this.state.isDarkTheme = savedSettings.theme === 'dark';
     }
 
     async connectedCallback() {

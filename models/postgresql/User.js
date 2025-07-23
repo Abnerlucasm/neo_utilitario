@@ -8,10 +8,6 @@ const logger = require('../../utils/logger');
 module.exports = (sequelize) => {
     class User extends Model {
         static associate(models) {
-            this.hasMany(models.LearningModule, {
-                foreignKey: 'created_by',
-                as: 'createdModules'
-            });
             this.hasMany(models.UserProgress, {
                 foreignKey: 'user_id',
                 as: 'userProgress'

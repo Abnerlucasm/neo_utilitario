@@ -7,8 +7,6 @@ const {
     User,
     Role,
     Permission,
-    LearningModule,
-    UserProgress,
     Service,
     Session,
     Resource,
@@ -108,48 +106,7 @@ async function initDatabase() {
         } else {
             logger.info('Associações já foram inicializadas anteriormente');
         }
-        
-        // Modificar a estratégia de sincronização para evitar problemas com o campo keywords
-        try {
-            // Primeiro, tentar sincronizar sem alterar a estrutura
-            // await sequelize.sync({ alter: false });
-            logger.info('Sincronização inicial concluída sem alterações na estrutura');
-            
-            // Em seguida, executar queries personalizadas para garantir que o campo keywords seja JSONB
-            try {
-                // Verificar se a coluna já existe e seu tipo
-                const [results] = await sequelize.query(`
-                    SELECT column_name, data_type 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'learning_modules' AND column_name = 'keywords'
-                `);
                 
-                if (results.length === 0) {
-                    // A coluna não existe, adicionar como JSONB
-                    await sequelize.query(`
-                        ALTER TABLE learning_modules 
-                        ADD COLUMN keywords JSONB DEFAULT '[]'::jsonb
-                    `);
-                    logger.info('Coluna keywords adicionada como JSONB');
-                } else if (results[0].data_type !== 'jsonb') {
-                    // A coluna existe mas não é JSONB, converter
-                    await sequelize.query(`
-                        ALTER TABLE learning_modules 
-                        ALTER COLUMN keywords TYPE JSONB USING keywords::jsonb
-                    `);
-                    logger.info('Coluna keywords convertida para JSONB');
-                }
-            } catch (error) {
-                logger.warn('Erro ao verificar/modificar coluna keywords:', error);
-                // Continuar mesmo com erro
-            }
-        } catch (error) {
-            logger.warn('Erro na sincronização sem alterações, tentando com força bruta:', error);
-            
-            // Se falhar, tentar com force
-            // await sequelize.sync({ force: false });
-        }
-        
         logger.info('Banco de dados inicializado com sucesso');
 
         // Criar roles padrão
@@ -181,8 +138,6 @@ module.exports = {
     User,
     Role,
     Permission,
-    LearningModule,
-    UserProgress,
     Service,
     Session,
     Resource,
