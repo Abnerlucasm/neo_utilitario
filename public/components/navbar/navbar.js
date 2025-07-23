@@ -114,20 +114,10 @@ class NeoNavbar extends HTMLElement {
             const script = document.createElement('script');
             script.src = 'https://cdn.tailwindcss.com';
             script.onload = () => {
-                if (window.tailwind) {
-                    window.tailwind.config = {
-                        daisyui: {
-                            themes: [
-                                "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", 
-                                "synthwave", "retro", "cyberpunk", "valentine", "halloween", 
-                                "garden", "forest", "aqua", "lofi", "pastel", "fantasy", 
-                                "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", 
-                                "business", "acid", "lemonade", "night", "coffee", "winter",
-                                "dim", "nord", "sunset", "caramellatte", "abyss", "silk"
-                            ]
-                        }
-                    };
-                }
+                // Carregar configuração centralizada
+                const configScript = document.createElement('script');
+                configScript.src = '/js/tailwind-config.js';
+                document.head.appendChild(configScript);
             };
             document.head.appendChild(script);
         }
@@ -517,10 +507,17 @@ class NeoNavbar extends HTMLElement {
             // Carregar configurações básicas do usuário
             const savedSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
             
-            // Aplicar tema salvo (se houver)
-            const theme = savedSettings.theme || 'light';
-            document.documentElement.setAttribute('data-theme', theme);
-            this.state.isDarkTheme = theme === 'dark';
+            // Usar módulo de personalização se disponível
+            if (window.personalization) {
+                const theme = savedSettings.theme || 'light';
+                window.personalization.setTheme(theme);
+                this.state.isDarkTheme = theme === 'dark';
+            } else {
+                // Fallback para aplicação direta do DaisyUI
+                const theme = savedSettings.theme || 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+                this.state.isDarkTheme = theme === 'dark';
+            }
         } catch (error) {
             console.error('Erro ao carregar configurações:', error);
         }

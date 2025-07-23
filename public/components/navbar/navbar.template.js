@@ -10,7 +10,7 @@ export function getNavbarTemplate(isDarkTheme = false) {
             @import url('/components/navbar/navbar.css');
         </style>
 
-        <nav class="navbar ${isDarkTheme ? 'dark-theme' : ''}">
+        <nav class="navbar">
             <div class="navbar-brand">
                 <a href="/">
                     <img src="/assets/neo-logo-small.png" alt="Neo Logo">

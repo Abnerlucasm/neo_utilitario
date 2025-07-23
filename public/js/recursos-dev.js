@@ -292,10 +292,15 @@ function getCategoryClass(category) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Carregar e aplicar tema salvo
-    const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-    if (userSettings.theme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.body.classList.add('dark-theme');
+    // Usar módulo de personalização se disponível
+    if (window.personalization) {
+        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+        const theme = userSettings.theme || 'light';
+        window.personalization.setTheme(theme);
+    } else {
+        // Fallback para aplicação direta do DaisyUI
+        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+        const theme = userSettings.theme || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
     }
 });

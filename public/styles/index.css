@@ -1,96 +1,39 @@
-.hero.is-neohub {
-    background: linear-gradient(135deg, #36502c 0%, #85db34 100%);
+.hero-neohub {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: white;
-}
-.hero-brand {
     text-align: center;
-    padding: 3rem 1.5rem;
+    position: relative;
+    overflow: hidden;
 }
+
+.hero-neohub::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 10;
+}
+
 .brand-title {
-    font-size: 4rem;
-    font-weight: 700;
-    letter-spacing: -2px;
+    font-size: 3.5rem;
+    font-weight: 800;
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-}
-.brand-subtitle {
-    font-size: 1.5rem;
-    opacity: 0.9;
-    max-width: 600px;
-    margin: 0 auto;
-}
-.welcome-section {
-    background-color: white;
-    border-radius: 8px;
-    padding: 2rem;
-    margin-top: -4rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    position: relative;
-    z-index: 1;
-}
-.menu-opcoes {
-    margin-top: 2rem;
-}
-.card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    position: relative;
-}
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-}
-.container {
-    border-radius: 15px;
-}
-.badge {
-    background-color: #ffdd57;
-    color: black;
-    border-radius: 5px;
-    padding: 5px 10px;
-    font-size: 0.8rem;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 10;
-}
-
-/* Estilo para o botão de instalação */
-#install-container {
-    margin-top: 20px; /* Espaçamento acima do botão */
-}
-
-#install-button {
-    font-size: 1.2rem; /* Ajustar o tamanho da fonte */
-    padding: 0.75rem 1.5rem; /* Ajustar o padding para um botão mais equilibrado */
-    background-color: #3273dc; /* Cor de fundo do botão */
-    color: white; /* Cor do texto */
-    border-radius: 5px; /* Bordas arredondadas */
-    transition: background-color 0.3s; /* Transição suave para hover */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra para destaque */
-}
-
-/* Animação de pulsação para o botão inteiro */
-.pulsate {
-    animation: pulse 1.5s infinite; /* Animação de pulsação */
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05); /* Aumentar um pouco mais para o efeito de pulsação */
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
-#install-button:hover {
-    background-color: #0056b3; /* Cor ao passar o mouse */
+    gap: 1rem;
 }
 
 .neo-logo {
@@ -98,8 +41,50 @@
     width: auto;
 }
 
-.brand-title span {
-    background: linear-gradient(45deg, #ffffff, #E0E0E0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.brand-subtitle {
+    font-size: 1.5rem;
+    font-weight: 300;
+    opacity: 0.9;
+}
+
+.welcome-section {
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.menu-opcoes {
+    padding: 2rem 0;
+}
+
+.card-hover {
+    transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.pulsate {
+    animation: pulsate 2s infinite;
+}
+
+@keyframes pulsate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+    .brand-title {
+        font-size: 2.5rem;
+    }
+    
+    .neo-logo {
+        height: 3rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 1.2rem;
+    }
 }

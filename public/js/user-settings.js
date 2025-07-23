@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('logoutButton').addEventListener('click', clearTokenAndRedirect);
 
+    // Aguardar inicialização do módulo de personalização
+    if (window.personalization) {
+        await window.personalization.waitForInitialization();
+    }
+
     // Carregar configurações do usuário
     await loadUserSettings();
     
@@ -18,10 +23,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function setupEventListeners() {
-    // Alternar tema
+    // Alternar tema - usar módulo de personalização
     const themeSelect = document.getElementById('themeSelect');
     if (themeSelect) {
-        themeSelect.addEventListener('change', toggleTheme);
+        themeSelect.addEventListener('change', (event) => {
+            const selectedTheme = event.target.value;
+            if (window.personalization) {
+                window.personalization.setTheme(selectedTheme);
+                showNotification(`Tema alterado para: ${selectedTheme}`, 'success');
+            }
+        });
     }
     
     // Salvar configurações - corrigir para usar o formulário
@@ -50,6 +61,12 @@ function setupEventListeners() {
     if (changePasswordForm) {
         changePasswordForm.addEventListener('submit', handleChangePassword);
     }
+
+    // Listener para mudanças de tema do módulo de personalização
+    document.addEventListener('themeChanged', (event) => {
+        const { theme } = event.detail;
+        console.log('Tema alterado globalmente:', theme);
+    });
 }
 
 function toggleEditMode() {
@@ -131,20 +148,14 @@ async function loadUserSettings() {
         document.getElementById('userName').value = settings.name || '';
         document.getElementById('userEmail').value = settings.email || '';
         
-        // Configurar tema
+        // Configurar tema usando módulo de personalização
         const themeSelect = document.getElementById('themeSelect');
-        if (themeSelect) {
-            themeSelect.value = settings.theme || 'light';
+        if (themeSelect && window.personalization) {
+            const theme = settings.theme || 'light';
+            themeSelect.value = theme;
             
-            // Aplicar tema do DaisyUI
-            document.documentElement.setAttribute('data-theme', settings.theme || 'light');
-            
-            // Manter compatibilidade com tema escuro customizado
-            if (settings.theme === 'dark') {
-                document.body.classList.add('dark-theme');
-            } else {
-                document.body.classList.remove('dark-theme');
-            }
+            // Aplicar tema via módulo de personalização
+            window.personalization.setTheme(theme);
         }
         
         // Salvar configurações no localStorage
@@ -165,20 +176,14 @@ function applyDefaultSettings() {
     // Aplicar configurações padrão
     const savedSettings = JSON.parse(localStorage.getItem('userSettings')) || { theme: 'light' };
     
-    // Configurar tema
+    // Configurar tema usando módulo de personalização
     const themeSelect = document.getElementById('themeSelect');
-    if (themeSelect) {
-        themeSelect.value = savedSettings.theme || 'light';
+    if (themeSelect && window.personalization) {
+        const theme = savedSettings.theme || 'light';
+        themeSelect.value = theme;
         
-        // Aplicar tema do DaisyUI
-        document.documentElement.setAttribute('data-theme', savedSettings.theme || 'light');
-        
-        // Manter compatibilidade com tema escuro customizado
-        if (savedSettings.theme === 'dark') {
-            document.body.classList.add('dark-theme');
-        } else {
-            document.body.classList.remove('dark-theme');
-        }
+        // Aplicar tema via módulo de personalização
+        window.personalization.setTheme(theme);
     }
     
     // Preencher campos do formulário com valores padrão ou vazios
@@ -215,28 +220,6 @@ async function checkUserPermissions() {
     }
 }
 
-function toggleTheme(event) {
-    const selectedTheme = event.target.value;
-    
-    // Aplicar tema do DaisyUI
-    document.documentElement.setAttribute('data-theme', selectedTheme);
-    
-    // Manter compatibilidade com tema escuro customizado
-    if (selectedTheme === 'dark') {
-        document.body.classList.add('dark-theme');
-    } else {
-        document.body.classList.remove('dark-theme');
-    }
-    
-    // Salvar configuração no localStorage
-    const settings = JSON.parse(localStorage.getItem('userSettings')) || {};
-    settings.theme = selectedTheme;
-    localStorage.setItem('userSettings', JSON.stringify(settings));
-    
-    // Mostrar notificação de sucesso
-    showNotification(`Tema alterado para: ${selectedTheme}`, 'success');
-}
-
 async function saveUserSettings() {
     try {
         const token = localStorage.getItem('auth_token');
@@ -269,6 +252,11 @@ async function saveUserSettings() {
         localStorage.setItem('userSettings', JSON.stringify({
             theme
         }));
+        
+        // Aplicar tema via módulo de personalização
+        if (window.personalization) {
+            window.personalization.setTheme(theme);
+        }
         
         showNotification('Configurações salvas com sucesso', 'success');
         } catch (error) {

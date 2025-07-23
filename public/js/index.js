@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Verificar autenticação
     const token = localStorage.getItem('auth_token');
     if (!token) {
@@ -6,45 +6,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Escutar evento de recursos carregados
-    document.addEventListener('userResourcesLoaded', (event) => {
-        const { resources } = event.detail;
-        filterCards(resources);
-    });
-
-    // Carregar recursos imediatamente se disponíveis
-    loadAndFilterResources();
-
-    // Carregar configurações salvas
-    const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-    
-    // Aplicar tema inicial
-    if (userSettings.theme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.body.classList.add('dark-theme');
+    // Aguardar inicialização do módulo de personalização
+    if (window.personalization) {
+        await window.personalization.waitForInitialization();
+        
+        // Carregar configurações salvas e aplicar tema
+        const currentTheme = window.personalization.getTheme();
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        console.log('Tema aplicado:', currentTheme);
     }
 
-    // PWA Installation
-    const installContainer = document.getElementById('install-container');
-    const installButton = document.getElementById('install-button');
+    // Resto do código para carregar recursos e configurar eventos
+    loadAndFilterResources();
+    // ... outras funções e lógica
+});
 
-    if (installContainer && installButton) {
-        installButton.addEventListener('click', () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('Usuário aceitou a instalação do PWA');
-                    }
-                    deferredPrompt = null;
-                });
+        // Aguardar o carregamento do DOM e do AuthManager
+        window.addEventListener('load', async () => {
+            try {
+                // Verificar autenticação
+                if (typeof AuthManager !== 'undefined') {
+                    await AuthManager.checkAuth();
+                } else {
+                    console.error('AuthManager não está definido');
+                }
+            } catch (error) {
+                console.error('Erro ao inicializar a página:', error);
             }
         });
-    }
 
-    // Atualizar saudação
-    updateGreeting();
-});
+
 
 async function loadAndFilterResources() {
     try {

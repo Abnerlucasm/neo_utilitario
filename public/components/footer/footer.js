@@ -33,8 +33,13 @@ class NeoFooter extends HTMLElement {
     applyTheme(theme) {
         const footer = this.querySelector('.footer');
         if (footer) {
-            // Aplicar tema do DaisyUI
-            document.documentElement.setAttribute('data-theme', theme);
+            // Usar módulo de personalização se disponível
+            if (window.personalization) {
+                window.personalization.setTheme(theme);
+            } else {
+                // Fallback para aplicação direta do DaisyUI
+                document.documentElement.setAttribute('data-theme', theme);
+            }
         }
     }
 
