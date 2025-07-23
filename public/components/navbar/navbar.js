@@ -1,50 +1,46 @@
 // Template otimizado do navbar
 function getNavbarTemplate(isDarkTheme = false) {
     return `
-        <div class="navbar bg-base-100 shadow-lg fixed top-0 w-full z-50">
+        <nav class="navbar bg-base-100 shadow-lg fixed top-0 w-full z-50">
             <div class="navbar-start">
                 <a href="/" class="btn btn-ghost normal-case text-xl">
                     <img src="/assets/neo-logo-small.png" alt="Neo Logo" class="h-8">
                 </a>
             </div>
-
             <div class="navbar-end">
                 <button id="userMenuBtn" class="btn btn-ghost btn-circle" title="Menu do usuário">
-                        <i class="fas fa-user"></i>
+                    <div class="avatar">
+                        <div class="w-8 rounded-full">
+                            <img id="navbarAvatar" src="/assets/avatar-default.png" alt="Avatar">
+                        </div>
+                    </div>
                 </button>
-
-                <!-- Menu burger para mobile - sempre visível e centralizado -->
-                <label for="sidebar-toggle" class="btn btn-ghost btn-circle" style="display: flex !important; align-items: center !important; justify-content: center !important;">
-                    <i class="fas fa-bars" style="display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; height: 100% !important;"></i>
+                <label for="sidebar-toggle" class="btn btn-ghost btn-circle">
+                    <i class="fas fa-bars"></i>
                 </label>
             </div>
-        </div>
-
-        <!-- Breadcrumb horizontal -->
+        </nav>
         <div class="bg-base-200 border-b border-base-300 pt-16 pb-2 px-4">
-            <ul class="breadcrumbs text-sm flex flex-wrap items-center gap-2" style="display: flex !important; flex-direction: row !important;">
+            <ul class="breadcrumbs text-sm flex flex-wrap items-center gap-2">
                 <!-- Breadcrumb será gerado dinamicamente -->
             </ul>
         </div>
-
-        <!-- Sidebar drawer -->
         <div class="drawer drawer-end">
             <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
             <div class="drawer-side z-50">
                 <label for="sidebar-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
                 <div class="menu p-4 w-80 min-h-full bg-base-100 text-base-content">
                     <div class="flex items-center gap-4 p-4 border-b border-base-300 mb-4">
-                        <div class="avatar placeholder">
-                            <div class="bg-neutral text-neutral-content rounded-full w-12">
-                        <i class="fas fa-user"></i>
+                        <div class="avatar">
+                            <div class="w-16 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                                <img id="sidebarAvatar" src="/assets/avatar-default.png" alt="Avatar">
                             </div>
-                    </div>
-                    <div>
+                        </div>
+                        <div>
                             <div id="userName" class="font-semibold">Carregando...</div>
                             <div id="userRole" class="text-sm opacity-70">...</div>
                         </div>
                     </div>
-                    
                     <ul class="menu-list"></ul>
                 </div>
             </div>
@@ -231,14 +227,22 @@ class NeoNavbar extends HTMLElement {
     updateUserInfo(tokenData) {
         const userName = this.querySelector('#userName');
         const userRole = this.querySelector('#userRole');
-        
+        const avatarUrl = tokenData.avatar || '/assets/avatar-default.png';
+        const navbarAvatar = this.querySelector('#navbarAvatar');
+        const sidebarAvatar = this.querySelector('#sidebarAvatar');
+
         if (userName) {
             userName.textContent = tokenData.email ? tokenData.email.split('@')[0] : 'Usuário';
         }
-        
         if (userRole) {
             const roles = tokenData.roles || [];
             userRole.textContent = roles.length > 0 ? roles.join(', ') : 'Usuário';
+        }
+        if (navbarAvatar) {
+            navbarAvatar.src = avatarUrl;
+        }
+        if (sidebarAvatar) {
+            sidebarAvatar.src = avatarUrl;
         }
     }
 
@@ -407,78 +411,52 @@ class NeoNavbar extends HTMLElement {
         const breadcrumb = this.querySelector('.breadcrumbs');
         if (!breadcrumb) return;
 
-        // Garantir que o breadcrumb seja horizontal
-        breadcrumb.style.display = 'flex';
-        breadcrumb.style.flexDirection = 'row';
-        breadcrumb.style.alignItems = 'center';
-        breadcrumb.style.gap = '0.5rem';
-        breadcrumb.style.flexWrap = 'wrap';
-
-        const pathSegments = window.location.pathname.split('/').filter(segment => segment);
-
-        // Mapeamento simplificado de títulos
-        const routeTitles = {
-            'admin': 'Administração',
-            'learning': 'Central de Aprendizado',
-            'user-settings': 'Configurações',
-            'user-management': 'Gerenciamento de Usuários',
-            'roles': 'Papéis e Permissões',
-            'menus': 'Menus',
-            'glassfish': 'Glassfish',
-            'neotrack': 'NeoTrack',
-            'consultabd': 'Consulta Banco de Dados'
-        };
-
-        const routeIcons = {
-            'admin': 'fa-shield-alt',
-            'learning': 'fa-graduation-cap',
-            'user-settings': 'fa-user-cog',
-            'user-management': 'fa-users',
-            'roles': 'fa-user-shield',
-            'menus': 'fa-bars',
-            'glassfish': 'fa-server',
-            'neotrack': 'fa-chart-line',
-            'consultabd': 'fa-database'
-        };
-
+        // DaisyUI breadcrumbs com ícones e separador >
+        const pathSegments = window.location.pathname.split('/').filter(segment => segment && segment !== 'pages');
         let breadcrumbHTML = `
-            <li style="display: flex; align-items: center;">
+            <li>
                 <a href="/" class="flex items-center gap-2">
-                        <i class="fas fa-home"></i>
+                    <i class="fas fa-home"></i>
                     <span>Início</span>
                 </a>
             </li>
         `;
-        
+
+        const icons = {
+            'admin': 'fa-user-shield',
+            'user-settings': 'fa-cog',
+            'user-management': 'fa-users-cog',
+            'roles': 'fa-user-shield',
+            'resources': 'fa-sitemap',
+            'glassfish': 'fa-server',
+            'consultabd': 'fa-database',
+            'sugestoes-dev': 'fa-lightbulb',
+            'recursos-dev': 'fa-cogs',
+            'utilitarios': 'fa-tools',
+            'index': 'fa-home'
+        };
+
         let path = '';
         pathSegments.forEach((segment, index) => {
-            const cleanSegment = segment.replace(/\.html$/, '').replace(/[-_]/g, ' ');
             path += `/${segment}`;
-            
-            if (cleanSegment === 'pages') return;
-
             const isLast = index === pathSegments.length - 1;
-            const title = routeTitles[cleanSegment] || this.formatSegmentTitle(cleanSegment);
-            const icon = routeIcons[cleanSegment] || 'fa-link';
+            const name = segment.replace('.html', '').replace(/-/g, ' ');
+            const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+            const iconClass = icons[segment.replace('.html', '')] || 'fa-link';
 
             breadcrumbHTML += `
-                <li class="${isLast ? 'text-base-content font-semibold' : ''}" style="display: flex; align-items: center;">
-                    ${isLast ? `
-                        <span class="flex items-center gap-2">
-                            <i class="fas ${icon}"></i>
-                            <span>${title}</span>
-                        </span>
-                    ` : `
-                        <a href="${path}" class="flex items-center gap-2 hover:text-primary">
-                                <i class="fas ${icon}"></i>
-                            <span>${title}</span>
-                        </a>
-                    `}
+                <li class="flex items-center">
+                    ${isLast
+                        ? `<span class="flex items-center gap-2 font-semibold"><i class="fas ${iconClass}"></i><span>${formattedName}</span></span>`
+                        : `<a href="${path}" class="flex items-center gap-2"><i class="fas ${iconClass}"></i><span>${formattedName}</span></a>
+                           <span class="mx-2 text-base-content/60">›</span>`
+                    }
                 </li>
             `;
         });
-        
+
         breadcrumb.innerHTML = breadcrumbHTML;
+        breadcrumb.className = "breadcrumbs"; // DaisyUI class
     }
 
     formatSegmentTitle(segment) {

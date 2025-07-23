@@ -34,6 +34,7 @@ router.use('/api/roles', [requireAuth, requireAdmin], rolesRoutes);
 router.use('/api/permissions', [requireAuth, requireAdmin], permissionsRoutes);
 router.use('/api', serverRoutes);
 router.use('/api/resources', resourcesRoutes); // Temporariamente sem autenticação
+router.use('/api/users', userRoutes); // Adicionada a rota para usuários
 
 // Rota de diagnóstico
 router.get('/api/status', (req, res) => {
@@ -53,4 +54,4 @@ router.get('/api/status', (req, res) => {
     });
 });
 
-module.exports = router; 
+module.exports = router;

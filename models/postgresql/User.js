@@ -176,6 +176,11 @@ module.exports = (sequelize) => {
         last_login: {
             type: DataTypes.DATE,
             allowNull: true
+        },
+        avatar: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Caminho relativo da imagem/avatar do usuário'
         }
     }, {
         sequelize,
@@ -199,4 +204,4 @@ module.exports = (sequelize) => {
     });
 
     return User;
-}; 
+};

@@ -67,6 +67,9 @@ app.use('/modules', express.static(path.join(__dirname, 'public/modules')));
 app.use('/styles', express.static(path.join(__dirname, 'public/styles')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 
+// Servir arquivos estáticos da pasta public
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Rota de debug para recursos (temporária) - ANTES do middleware de autenticação
 app.get('/api/resources/debug', async (req, res) => {
     try {

@@ -3,9 +3,36 @@ const router = express.Router();
 const { User, Role } = require('../models/postgresql/associations');
 const auth = require('../middlewares/auth');
 const logger = require('../utils/logger');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 // Middleware de autenticação
 router.use(auth);
+
+// Configuração do multer para upload de avatar
+const avatarStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        // Caminho absoluto para garantir que salva em /public/uploads/avatars
+        const uploadDir = path.join(__dirname, '../public/uploads/avatars');
+        fs.mkdirSync(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        const ext = path.extname(file.originalname);
+        cb(null, `${req.user.id}${ext}`);
+    }
+});
+const uploadAvatar = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+            return cb(new Error('Apenas arquivos de imagem são permitidos'));
+        }
+        cb(null, true);
+    }
+});
 
 // Obter perfil do usuário atual
 router.get('/profile', async (req, res) => {
@@ -120,4 +147,25 @@ router.post('/settings', async (req, res) => {
     }
 });
 
-module.exports = router; 
+// Upload de avatar do usuário autenticado
+router.post('/avatar', uploadAvatar.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+        const user = await User.findByPk(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+        // Salvar caminho relativo do avatar (para uso no frontend)
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        user.avatar = avatarUrl;
+        await user.save();
+        res.json({ success: true, avatarUrl });
+    } catch (error) {
+        logger.error('Erro ao salvar avatar:', error);
+        res.status(500).json({ error: 'Erro ao salvar avatar', details: error.message });
+    }
+});
+
+module.exports = router;
