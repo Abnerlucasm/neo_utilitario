@@ -67,14 +67,24 @@ function getAuthToken() {
     return token;
 }
 
-// Função para mostrar notificações
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info'} fixed top-4 right-4 z-50 max-w-sm`;
-    notification.innerHTML = `
+// Função para mostrar notificações toast com DaisyUI
+function showToast(message, type = 'info', duration = 5000) {
+    const toast = document.createElement('div');
+    
+    // Mapear tipos para classes DaisyUI
+    const alertClass = type === 'error' ? 'alert-error' : 
+                      type === 'warning' ? 'alert-warning' : 
+                      type === 'success' ? 'alert-success' : 'alert-info';
+    
+    const iconClass = type === 'error' ? 'fa-exclamation-triangle' : 
+                     type === 'warning' ? 'fa-exclamation-circle' : 
+                     type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
+    
+    toast.className = `alert ${alertClass} fixed top-4 right-4 z-50 max-w-sm shadow-lg`;
+    toast.innerHTML = `
         <div class="flex items-center">
             <span class="flex-shrink-0">
-                <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <i class="fas ${iconClass}"></i>
             </span>
             <div class="ml-3">
                 <p class="text-sm font-medium">${message}</p>
@@ -87,14 +97,151 @@ function showNotification(message, type = 'info') {
         </div>
     `;
     
-    document.body.appendChild(notification);
+    document.body.appendChild(toast);
     
-    // Remover automaticamente após 5 segundos
+    // Auto-remover após duração
     setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
+        if (toast.parentElement) {
+            toast.remove();
         }
-    }, 5000);
+    }, duration);
+}
+
+// Função para mostrar notificações (mantida para compatibilidade)
+function showNotification(message, type = 'info') {
+    showToast(message, type);
+}
+
+// Função para criar skeleton loading como tabela
+function createSkeletonLoading(count = 5) {
+    const skeletonRows = Array(count).fill(`
+        <tr>
+            <td><div class="skeleton-title"></div></td>
+            <td><div class="skeleton-text"></div></td>
+            <td><div class="skeleton-text short"></div></td>
+            <td><div class="skeleton-text short"></div></td>
+            <td><div class="skeleton-text"></div></td>
+            <td><div class="skeleton-text"></div></td>
+            <td><div class="skeleton-text short"></div></td>
+        </tr>
+    `).join('');
+    
+    return `
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr>
+                        <th>Servidor</th>
+                        <th>Nome</th>
+                        <th>Versão</th>
+                        <th>Tamanho</th>
+                        <th>Dono</th>
+                        <th>Comentário</th>
+                        <th style="width: 90px;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${skeletonRows}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Função para mostrar skeleton loading
+function showSkeletonLoading() {
+    const databasesSection = document.getElementById('databasesSection');
+    const resultsSummary = document.getElementById('resultsSummary');
+    
+    if (resultsSummary) resultsSummary.remove();
+    
+    if (databasesSection) {
+        databasesSection.style.display = 'block';
+        
+        // Manter os filtros e apenas substituir o conteúdo da grid
+        const databasesGrid = document.getElementById('databasesGrid');
+        if (databasesGrid) {
+            databasesGrid.innerHTML = createSkeletonLoading(8);
+        } else {
+            // Se não existe grid, criar estrutura completa
+            databasesSection.innerHTML = `
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h3 class="card-title mb-4">Databases Encontradas</h3>
+                        
+                        <div class="flex flex-col gap-4 mb-4">
+                            <!-- Filtros de busca -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Buscar por Servidor</span>
+                                    </label>
+                                    <input id="serverSearch" class="input input-bordered" type="search" placeholder="Nome do servidor..." oninput="filterAndPaginateDatabases()">
+                                </div>
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Buscar por Database</span>
+                                    </label>
+                                    <input id="databaseSearch" class="input input-bordered" type="search" placeholder="Nome da database..." oninput="filterAndPaginateDatabases()">
+                                </div>
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Filtrar por Status</span>
+                                    </label>
+                                    <select id="statusFilter" class="select select-bordered" onchange="filterAndPaginateDatabases()">
+                                        <option value="">Todos</option>
+                                        <option value="success">Com sucesso</option>
+                                        <option value="error">Com erro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Controles de paginação -->
+                            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
+                                <div class="flex items-center gap-4">
+                                    <div class="form-control">
+                                        <label class="label">
+                                            <span class="label-text">Itens por página</span>
+                                        </label>
+                                        <select id="databasesPerPage" class="select select-bordered select-sm" onchange="filterAndPaginateDatabases()">
+                                            <option value="5">5</option>
+                                            <option value="10" selected>10</option>
+                                            <option value="25">25</option>
+                                            <option value="50">50</option>
+                                            <option value="100">100</option>
+                                        </select>
+                                    </div>
+                                    <button class="btn btn-outline btn-sm" onclick="clearFilters()">
+                                        <i class="fas fa-times mr-1"></i>
+                                        Limpar Filtros
+                                    </button>
+                                </div>
+                                <div class="text-sm text-base-content/70" id="resultsCount">
+                                    <!-- Contador de resultados será atualizado aqui -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="databasesGrid">
+                            ${createSkeletonLoading(8)}
+                        </div>
+                        
+                        <div class="flex justify-center mt-6">
+                            <div class="join" id="databasesPagination" style="display:none;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+// Função para remover skeleton loading
+function hideSkeletonLoading() {
+    const skeletonContainer = document.querySelector('.skeleton-container');
+    if (skeletonContainer) {
+        skeletonContainer.remove();
+    }
 }
 
 // Carregar servidores
@@ -639,18 +786,21 @@ async function deleteServer(serverId) {
 
 // Função para formatar tamanho
 function formatSize(size) {
-    if (!size) return 'N/A';
+    // Verificar se size é válido
+    if (!size || size === 'NaN undefined' || size === 'Carregando...') {
+        return 'Carregando...';
+    }
     
-    // Se já está formatado, retornar como está
+    // Se já está formatado (contém espaço), retornar como está
     if (typeof size === 'string' && size.includes(' ')) {
         return size;
     }
     
-    // Converter bytes para formato legível
+    // Se é um número, converter para formato legível
     const bytes = parseInt(size);
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    if (bytes === 0) return '0 B';
+    if (isNaN(bytes) || bytes === 0) return 'N/A';
     
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 }
@@ -892,7 +1042,7 @@ function testLinuxCopy() {
 // Expor função de teste do Linux globalmente
 window.testLinuxCopy = testLinuxCopy;
 
-// Função para carregar databases dos servidores selecionados
+// Função para carregar databases dos servidores selecionados (progressiva)
 async function loadDatabases() {
     const selectedServers = getSelectedServers();
     
@@ -901,111 +1051,240 @@ async function loadDatabases() {
         return;
     }
     
-    // Mostrar overlay de loading com progresso
-    const overlay = document.createElement('div');
-    overlay.id = 'loadingOverlay';
-    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    overlay.innerHTML = `
-        <div class="bg-white rounded-lg p-8 flex flex-col items-center shadow-2xl max-w-md w-full mx-4">
-            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mb-4"></div>
-            <p class="text-lg font-semibold text-gray-800 mb-2">Carregando databases...</p>
-            <div id="progressInfo" class="text-sm text-gray-600 text-center space-y-2">
-                <p>Conectando aos servidores selecionados...</p>
-                <div class="progress progress-primary w-full" style="height: 4px;">
-                    <div id="progressBar" class="progress-bar" style="width: 0%"></div>
-                </div>
-                <p id="currentServer" class="text-xs text-gray-500"></p>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
+    // Mostrar indicador discreto de carregamento
+    const btnLoadDatabases = document.getElementById('btnLoadDatabases');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const loadingText = document.getElementById('loadingText');
+    
+    // Desabilitar botão e mostrar indicador
+    btnLoadDatabases.disabled = true;
+    btnLoadDatabases.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Carregando...';
+    loadingIndicator.classList.remove('hidden');
+    loadingText.textContent = 'Iniciando carregamento progressivo...';
+    
+    // Limpar resultados anteriores
+    const databasesSection = document.getElementById('databasesSection');
+    const resultsSummary = document.getElementById('resultsSummary');
+    if (resultsSummary) resultsSummary.remove();
+    databasesSection.style.display = 'none';
+    
+    // Inicializar dados
+    allDatabasesData = [];
+    currentPage = 1;
     
     try {
-        // Simular progresso enquanto a requisição está sendo processada
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress > 90) progress = 90;
-            
-            updateLoadingStats(progress);
-        }, 500);
+        // Usar carregamento progressivo
+        await loadDatabasesProgressive(selectedServers, loadingText);
         
-        const response = await fetch(`${API_BASE}/servers/list-databases`, {
+    } catch (error) {
+        console.error('Erro ao carregar databases:', error);
+        showNotification('Erro ao conectar com o servidor.', 'error');
+    } finally {
+        // Restaurar botão e ocultar indicador
+        btnLoadDatabases.disabled = false;
+        btnLoadDatabases.innerHTML = '<i class="fas fa-search mr-2"></i>Listar Databases';
+        loadingIndicator.classList.add('hidden');
+    }
+}
+
+// Função para carregamento progressivo real
+async function loadDatabasesProgressive(serverIds, loadingText) {
+    try {
+        // Mostrar skeleton loading
+        showSkeletonLoading();
+        
+        // Toast de início
+        showToast('Iniciando carregamento progressivo...', 'info', 3000);
+        
+        const response = await fetch(`${API_BASE}/servers/list-databases-progressive`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getAuthToken()}`
             },
-            body: JSON.stringify({
-                serverIds: selectedServers
-            })
+            body: JSON.stringify({ serverIds: serverIds })
         });
         
-        clearInterval(progressInterval);
-        
-        // Completar progresso
-        updateLoadingStats(100);
+        if (!response.ok) {
+            throw new Error('Erro ao iniciar carregamento progressivo');
+        }
         
         const data = await response.json();
+        const sessionId = data.sessionId;
         
-        if (data.success) {
-            // Mostrar resumo dos resultados
-            const totalServers = data.data.length;
-            const successfulServers = data.data.filter(server => server.success).length;
-            const totalDatabases = data.data.reduce((total, server) => {
-                return total + (server.success && server.databases ? server.databases.length : 0);
-            }, 0);
+        // Toast de progresso iniciado
+        showToast('Carregamento iniciado! Verificando progresso...', 'success', 2000);
+        
+        // Polling para verificar progresso
+        const pollInterval = setInterval(async () => {
+            try {
+                const progressResponse = await fetch(`${API_BASE}/servers/progressive-progress/${sessionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+                
+                if (!progressResponse.ok) {
+                    throw new Error('Erro ao verificar progresso');
+                }
+                
+                const progressData = await progressResponse.json();
+                
+                if (progressData.success) {
+                    const { status, completed, total, results, progress } = progressData.data;
+                    
+                    // Atualizar texto de progresso
+                    loadingText.textContent = `Processando: ${completed}/${total} servidores (${Math.round(progress)}%)`;
+                    
+                    // Atualizar dados se houver novos resultados
+                    if (results.length > allDatabasesData.length) {
+                        allDatabasesData = results;
+                        hideSkeletonLoading();
+                        displayDatabasesGrid(allDatabasesData);
+                        
+                        // Toast de progresso
+                        if (completed > 0 && completed < total) {
+                            showToast(`${completed}/${total} servidores processados`, 'info', 2000);
+                        }
+                    }
+                    
+                    // Verificar se concluído
+                    if (status === 'completed') {
+                        clearInterval(pollInterval);
+                        loadingText.textContent = '✓ Carregamento concluído!';
+                        
+                        // Toast de conclusão
+                        showToast('Carregamento concluído! Atualizando tamanhos...', 'success', 3000);
+                        
+                        // Atualizar tamanhos em background
+                        updateSizesInBackground(serverIds);
+                    } else if (status === 'error') {
+                        clearInterval(pollInterval);
+                        hideSkeletonLoading();
+                        showToast('Erro no processamento progressivo', 'error', 5000);
+                        throw new Error('Erro no processamento progressivo');
+                    }
+                }
+            } catch (error) {
+                clearInterval(pollInterval);
+                hideSkeletonLoading();
+                console.error('Erro ao verificar progresso:', error);
+                showToast('Erro ao verificar progresso', 'error', 5000);
+                throw error;
+            }
+        }, 1000); // Verificar a cada segundo
+        
+        // Timeout de segurança (5 minutos)
+        setTimeout(() => {
+            clearInterval(pollInterval);
+            hideSkeletonLoading();
+            showToast('Timeout no carregamento progressivo', 'error', 5000);
+            throw new Error('Timeout no carregamento progressivo');
+        }, 300000);
+        
+    } catch (error) {
+        console.error('Erro no carregamento progressivo:', error);
+        hideSkeletonLoading();
+        showToast('Erro no carregamento progressivo', 'error', 5000);
+        throw error;
+    }
+}
+
+// Função para atualizar tamanhos em background
+async function updateSizesInBackground(serverIds) {
+    if (!serverIds || serverIds.length === 0) return;
+    
+    // Toast de início da atualização de tamanhos
+    showToast('Iniciando atualização de tamanhos em background...', 'info', 2000);
+    
+    // Aguardar um pouco antes de começar a atualizar tamanhos
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    let updatedCount = 0;
+    
+    for (const serverId of serverIds) {
+        try {
+            console.log(`Tentando atualizar tamanhos para servidor: ${serverId}`);
+            console.log(`URL: ${API_BASE}/servers/${serverId}/update-sizes`);
             
-            const currentServer = document.getElementById('currentServer');
-            if (currentServer) {
-                currentServer.innerHTML = `
-                    <div class="text-green-600 font-semibold">✓ Concluído!</div>
-                    <div class="text-xs mt-1">
-                        ${successfulServers}/${totalServers} servidores conectados<br>
-                        ${totalDatabases} databases encontradas
-                    </div>
-                `;
+            const response = await fetch(`${API_BASE}/servers/${serverId}/update-sizes`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAuthToken()}`
+                }
+            });
+            
+            console.log(`Response status: ${response.status}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            // Aguardar um pouco para mostrar o resultado
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const result = await response.json();
+            console.log('Result:', result);
             
-            displayDatabasesGrid(data.data);
-        } else {
-            showNotification(data.message || 'Erro ao carregar databases.', 'error');
+            if (result.success && result.data.sizes) {
+                // Atualizar tamanhos na tabela
+                result.data.sizes.forEach(sizeData => {
+                    const sizeCells = document.querySelectorAll(`[data-database="${sizeData.name}"]`);
+                    sizeCells.forEach(cell => {
+                        if (cell && cell.textContent === 'Carregando...') {
+                            cell.textContent = formatSize(sizeData.size);
+                            updatedCount++;
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            console.error(`Erro ao atualizar tamanhos do servidor ${serverId}:`, error);
+            showToast(`Erro ao atualizar tamanhos: ${error.message}`, 'error', 3000);
         }
-    } catch (error) {
-        console.error('Erro ao carregar databases:', error);
-        showNotification('Erro ao conectar com o servidor.', 'error');
-    } finally {
-        // Remover overlay de loading
-        const overlay = document.getElementById('loadingOverlay');
-        if (overlay) {
-            overlay.remove();
-        }
+    }
+    
+    // Toast de conclusão
+    if (updatedCount > 0) {
+        showToast(`${updatedCount} tamanhos atualizados com sucesso!`, 'success', 3000);
+    } else {
+        showToast('Nenhum tamanho foi atualizado', 'warning', 3000);
     }
 }
 
-// Função para atualizar estatísticas de loading
-function updateLoadingStats(progress) {
-    const progressBar = document.getElementById('progressBar');
-    if (progressBar) {
-        progressBar.style.width = `${progress}%`;
-    }
-}
-
-// Função para filtrar e paginar databases
-function filterAndPaginateDatabases(page) {
+// Função para filtrar e paginar databases (com debounce)
+const filterAndPaginateDatabases = debounce((page) => {
     if (!allDatabasesData.length) return;
-    const search = document.getElementById('databaseSearch').value.trim().toLowerCase();
-    const perPage = parseInt(document.getElementById('databasesPerPage').value, 10);
+    
+    // Verificar se os elementos existem antes de acessar
+    const serverSearchElement = document.getElementById('serverSearch');
+    const databaseSearchElement = document.getElementById('databaseSearch');
+    const statusFilterElement = document.getElementById('statusFilter');
+    const perPageElement = document.getElementById('databasesPerPage');
+    
+    const serverSearch = serverSearchElement ? serverSearchElement.value.trim().toLowerCase() : '';
+    const databaseSearch = databaseSearchElement ? databaseSearchElement.value.trim().toLowerCase() : '';
+    const statusFilter = statusFilterElement ? statusFilterElement.value : '';
+    const perPage = perPageElement ? parseInt(perPageElement.value, 10) : 10;
+    
     if (page) currentPage = page; else currentPage = 1;
 
     // Filtra databases
     let filtered = [];
     allDatabasesData.forEach(serverData => {
+        // Filtrar por status
+        if (statusFilter && statusFilter !== '') {
+            if (statusFilter === 'success' && !serverData.success) return;
+            if (statusFilter === 'error' && serverData.success) return;
+        }
+        
+        // Filtrar por servidor
+        if (serverSearch && !serverData.serverName.toLowerCase().includes(serverSearch)) return;
+        
         if (serverData.success && serverData.databases && serverData.databases.length > 0) {
-            const dbs = serverData.databases.filter(db => db.name.toLowerCase().includes(search));
+            const dbs = serverData.databases.filter(db => {
+                // Filtrar por nome da database
+                if (databaseSearch && !db.name.toLowerCase().includes(databaseSearch)) return false;
+                return true;
+            });
             if (dbs.length > 0) {
                 filtered.push({ ...serverData, databases: dbs });
             }
@@ -1046,14 +1325,69 @@ function filterAndPaginateDatabases(page) {
     const end = start + perPage;
     const pageData = flat.slice(start, end);
 
+    // Atualizar contador de resultados
+    updateResultsCount(total, flat.length);
+
     renderDatabasesTable(pageData, total, totalPages);
     renderDatabasesPagination(totalPages);
+}, 300);
+
+// Função para atualizar contador de resultados
+function updateResultsCount(total, filtered) {
+    const resultsCount = document.getElementById('resultsCount');
+    if (resultsCount) {
+        if (filtered === total) {
+            resultsCount.textContent = `${total} resultado(s)`;
+        } else {
+            resultsCount.textContent = `${filtered} de ${total} resultado(s)`;
+        }
+    }
+}
+
+// Função para limpar filtros
+function clearFilters() {
+    const serverSearch = document.getElementById('serverSearch');
+    const databaseSearch = document.getElementById('databaseSearch');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (serverSearch) serverSearch.value = '';
+    if (databaseSearch) databaseSearch.value = '';
+    if (statusFilter) statusFilter.value = '';
+    
+    // Resetar página para 1
+    currentPage = 1;
+    
+    // Reaplicar filtros
+    filterAndPaginateDatabases();
+    
+    // Toast de confirmação
+    showToast('Filtros limpos!', 'success', 2000);
 }
 
 // Função para exibir a tabela de databases paginada
 function renderDatabasesTable(pageData, total, totalPages) {
     const databasesSection = document.getElementById('databasesSection');
-    const databasesGrid = document.getElementById('databasesGrid');
+    let databasesGrid = document.getElementById('databasesGrid');
+    
+    if (!databasesSection) {
+        console.error('Elemento databasesSection não encontrado');
+        return;
+    }
+    
+    // Se databasesGrid não existe, criar
+    if (!databasesGrid) {
+        console.log('Criando elemento databasesGrid');
+        databasesGrid = document.createElement('div');
+        databasesGrid.id = 'databasesGrid';
+        databasesSection.appendChild(databasesGrid);
+    }
+    
+    if (!pageData.length) {
+        databasesGrid.innerHTML = `<div class="alert alert-info"><p>Nenhuma database encontrada.</p></div>`;
+        databasesSection.style.display = 'block';
+        return;
+    }
+    
     if (!pageData.length) {
         databasesGrid.innerHTML = `<div class="alert alert-info"><p>Nenhuma database encontrada.</p></div>`;
         databasesSection.style.display = 'block';
@@ -1087,7 +1421,7 @@ function renderDatabasesTable(pageData, total, totalPages) {
                 <td>${db.serverName}</td>
                 <td class="break-all">${db.name}</td>
                 <td>${db.version ? `<span class="badge badge-info">${db.version}</span>` : '<span class="text-gray-400">N/A</span>'}</td>
-                <td>${formatSize(db.size)}</td>
+                <td data-database="${db.name}">${formatSize(db.size)}</td>
                 <td>${db.owner || 'N/A'}</td>
                 <td class="max-w-xs">
                     ${comment ? 
@@ -1175,7 +1509,31 @@ function closeCommentModal() {
 
 // Função para exibir paginação
 function renderDatabasesPagination(totalPages) {
-    const pagination = document.getElementById('databasesPagination');
+    let pagination = document.getElementById('databasesPagination');
+    
+    // Se pagination não existe, criar
+    if (!pagination) {
+        console.log('Criando elemento databasesPagination');
+        const databasesSection = document.getElementById('databasesSection');
+        if (databasesSection) {
+            pagination = document.createElement('div');
+            pagination.id = 'databasesPagination';
+            pagination.className = 'join';
+            pagination.style.display = 'none';
+            
+            // Encontrar o container correto para inserir
+            const paginationContainer = databasesSection.querySelector('.flex.justify-center.mt-6');
+            if (paginationContainer) {
+                paginationContainer.appendChild(pagination);
+            } else {
+                databasesSection.appendChild(pagination);
+            }
+        } else {
+            console.error('Elemento databasesSection não encontrado para criar paginação');
+            return;
+        }
+    }
+    
     if (totalPages <= 1) {
         pagination.style.display = 'none';
         return;
@@ -1217,10 +1575,13 @@ function displayDatabasesGrid(databasesData) {
     allDatabasesData = databasesData;
     currentPage = 1;
     
-    // Mostrar resumo dos resultados
-    showResultsSummary(databasesData);
-    
-    filterAndPaginateDatabases();
+    // Aguardar um pouco para garantir que o DOM esteja pronto
+    setTimeout(() => {
+        // Mostrar resumo dos resultados
+        showResultsSummary(databasesData);
+        
+        filterAndPaginateDatabases();
+    }, 100);
 }
 
 // Função para mostrar resumo dos resultados
@@ -1296,7 +1657,7 @@ function showResultsSummary(databasesData) {
     
     // Inserir o resumo antes da seção de databases
     const databasesSection = document.getElementById('databasesSection');
-    if (databasesSection) {
+    if (databasesSection && databasesSection.parentNode) {
         const existingSummary = document.getElementById('resultsSummary');
         if (existingSummary) {
             existingSummary.remove();
@@ -1309,7 +1670,7 @@ function showResultsSummary(databasesData) {
     }
 }
 
-// Função para forçar atualização do cache
+// Função para forçar atualização do cache (progressivo)
 async function forceCacheUpdate() {
     const selectedServers = getSelectedServers();
     
@@ -1319,33 +1680,65 @@ async function forceCacheUpdate() {
     }
     
     try {
-        showNotification('Limpando cache...', 'info');
+        showToast('Limpando cache...', 'info', 2000);
         
-        const response = await fetch(`${API_BASE}/servers/force-cache-update`, {
+        // Primeiro, limpar cache no backend
+        const clearResponse = await fetch(`${API_BASE}/servers/force-cache-update`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getAuthToken()}`
             },
-            body: JSON.stringify({
-                serverIds: selectedServers
-            })
+            body: JSON.stringify({ serverIds: selectedServers })
         });
         
-        const result = await response.json();
-        
-        if (result.success) {
-            showNotification('Cache limpo com sucesso! Carregando dados atualizados...', 'success');
-            // Recarregar databases após limpar cache
-            setTimeout(() => {
-                refreshDatabases();
-            }, 1000);
-        } else {
-            showNotification(result.message || 'Erro ao limpar cache', 'error');
+        if (!clearResponse.ok) {
+            throw new Error('Erro ao limpar cache no servidor');
         }
+        
+        const clearResult = await clearResponse.json();
+        showToast('Cache limpo! Carregando dados atualizados...', 'success', 2000);
+        
+        // Limpar resultados anteriores
+        const databasesSection = document.getElementById('databasesSection');
+        const resultsSummary = document.getElementById('resultsSummary');
+        if (resultsSummary) resultsSummary.remove();
+        if (databasesSection) databasesSection.style.display = 'none';
+        
+        // Inicializar dados
+        allDatabasesData = [];
+        currentPage = 1;
+        
+        // Mostrar indicador de carregamento
+        const btnLoadDatabases = document.getElementById('btnLoadDatabases');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const loadingText = document.getElementById('loadingText');
+        
+        if (btnLoadDatabases) {
+            btnLoadDatabases.disabled = true;
+            btnLoadDatabases.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Atualizando...';
+        }
+        
+        if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+        if (loadingText) loadingText.textContent = 'Carregando dados atualizados...';
+        
+        // Usar carregamento progressivo
+        await loadDatabasesProgressive(selectedServers, loadingText);
+        
     } catch (error) {
         console.error('Erro ao forçar atualização de cache:', error);
-        showNotification('Erro ao conectar com o servidor', 'error');
+        showToast('Erro ao atualizar cache', 'error', 5000);
+    } finally {
+        // Restaurar botão
+        const btnLoadDatabases = document.getElementById('btnLoadDatabases');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        
+        if (btnLoadDatabases) {
+            btnLoadDatabases.disabled = false;
+            btnLoadDatabases.innerHTML = '<i class="fas fa-search mr-2"></i>Listar Databases';
+        }
+        
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
     }
 }
 

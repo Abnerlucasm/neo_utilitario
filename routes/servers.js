@@ -17,7 +17,12 @@ router.delete('/servers/:id', serverController.deleteServer);
 router.post('/servers/:id/test-connection', serverController.testConnection);
 router.post('/servers/execute-query', serverController.executeQuery);
 router.post('/servers/list-databases', serverController.listDatabases);
+router.post('/servers/list-databases-progress', serverController.listDatabasesProgress);
+router.post('/servers/list-databases-progressive', serverController.listDatabasesProgressive);
+router.get('/servers/progressive-progress/:sessionId', serverController.checkProgressiveProgress);
 router.post('/servers/force-cache-update', serverController.forceCacheUpdate);
 router.get('/servers/stats/overview', serverController.getServerStats);
+router.get('/servers/:serverId/update-data', serverController.updateServerData);
+router.get('/servers/:serverId/update-sizes', serverController.updateDatabaseSizes);
 
 module.exports = router; 

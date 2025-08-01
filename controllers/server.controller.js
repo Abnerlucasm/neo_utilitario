@@ -111,12 +111,12 @@ async function testDatabaseConnection(serverData) {
                     host,
                     port,
                     dialect: 'postgres',
-                    logging: true,
+                    logging: false,
                     pool: {
                         max: 1,
                         min: 0,
-                        acquire: 30000,
-                        idle: 10000
+                        acquire: 15000,
+                        idle: 5000
                     }
                 });
                 break;
@@ -195,12 +195,12 @@ async function executeQueryOnServers(servers, query) {
                         host: server.host,
                         port: server.port,
                         dialect: 'postgres',
-                        logging: true,
+                        logging: false,
                         pool: {
-                            max: 1,
+                            max: 5,
                             min: 0,
-                            acquire: 30000,
-                            idle: 10000
+                            acquire: 15000,
+                            idle: 5000
                         }
                     });
                     break;
@@ -237,6 +237,152 @@ async function executeQueryOnServers(servers, query) {
     }
     
     return results;
+}
+
+// Função para processar servidores em background (progressivo)
+async function processServersProgressive(sessionId) {
+    const session = global.progressiveSessions[sessionId];
+    if (!session) return;
+    
+    try {
+        for (let i = 0; i < session.servers.length; i++) {
+            const server = session.servers[i];
+            
+            // Verificar cache primeiro
+            logger.info(`[${i + 1}/${session.servers.length}] Verificando cache para servidor: ${server.name}`);
+            const cachedResult = await getDatabaseCache(server.id);
+            if (cachedResult) {
+                logger.info(`[${i + 1}/${session.servers.length}] Usando cache para ${server.name}`);
+                session.results.push(cachedResult.data);
+                session.completed++;
+                continue;
+            }
+            
+            logger.info(`[${i + 1}/${session.servers.length}] Cache não encontrado, conectando ao servidor: ${server.name}`);
+            
+            try {
+                const decryptedPassword = decryptPassword(server.password);
+                if (!decryptedPassword) {
+                    session.results.push({
+                        serverId: server.id,
+                        serverName: server.name,
+                        serverHost: server.host,
+                        success: false,
+                        error: 'Erro ao descriptografar senha'
+                    });
+                    session.completed++;
+                    continue;
+                }
+                
+                // Conectar ao servidor
+                const { Sequelize } = require('sequelize');
+                const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                    host: server.host,
+                    port: server.port,
+                    dialect: 'postgres',
+                    logging: false,
+                    pool: {
+                        max: 3,
+                        min: 0,
+                        acquire: 45000,
+                        idle: 15000
+                    },
+                    retry: {
+                        max: 2,
+                        timeout: 20000
+                    }
+                });
+                
+                await sequelize.authenticate();
+                
+                // Buscar databases básicas
+                const [databases] = await sequelize.query(`
+                    SELECT 
+                        d.datname as name,
+                        u.usename as owner,
+                        COALESCE(sd.description, '') as comment
+                    FROM pg_database d
+                    LEFT JOIN pg_user u ON d.datdba = u.usesysid
+                    LEFT JOIN pg_shdescription sd ON sd.objoid = d.oid
+                    WHERE d.datistemplate = false
+                    ORDER BY d.datname
+                `, {
+                    timeout: 25000
+                });
+                
+                // Buscar versões
+                for (let j = 0; j < databases.length; j++) {
+                    const db = databases[j];
+                    try {
+                        const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
+                            host: server.host,
+                            port: server.port,
+                            dialect: 'postgres',
+                            logging: false,
+                            pool: { max: 1, min: 0, acquire: 5000, idle: 3000 },
+                            retry: { max: 1, timeout: 3000 }
+                        });
+                        
+                        const [versionResult] = await dbSequelize.query(`
+                            SELECT versaover as version 
+                            FROM public.versao 
+                            WHERE dataver IS NOT NULL
+                            AND sistemaver = 1
+                            LIMIT 1
+                        `, {
+                            timeout: 5000
+                        });
+                        
+                        await dbSequelize.close();
+                        db.version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
+                        
+                    } catch (versionError) {
+                        db.version = 'N/A';
+                    }
+                    
+                    // Inicializar tamanho
+                    db.size = 'Carregando...';
+                }
+                
+                await sequelize.close();
+                
+                // Salvar sucesso no cache
+                await saveDatabaseCache(server.id, server.name, server.host, databases, 'success');
+                
+                // Adicionar resultado à sessão
+                session.results.push({
+                    serverId: server.id,
+                    serverName: server.name,
+                    serverHost: server.host,
+                    success: true,
+                    databases: databases
+                });
+                
+            } catch (error) {
+                logger.error(`Erro ao processar servidor ${server.name}:`, error);
+                
+                // Salvar erro no cache
+                await saveDatabaseCache(server.id, server.name, server.host, null, 'error', error.message);
+                
+                session.results.push({
+                    serverId: server.id,
+                    serverName: server.name,
+                    serverHost: server.host,
+                    success: false,
+                    error: error.message
+                });
+            }
+            
+            session.completed++;
+        }
+        
+        session.status = 'completed';
+        
+    } catch (error) {
+        logger.error('Erro no processamento progressivo:', error);
+        session.status = 'error';
+        session.error = error.message;
+    }
 }
 
 class ServerController {
@@ -626,7 +772,7 @@ class ServerController {
                         
                         logger.info(`[${index + 1}/${servers.length}] Cache não encontrado, conectando ao servidor: ${server.name} (${server.host})`);
                         
-                        // Timeout de 45 segundos por servidor (aumentado para dar tempo das databases)
+                        // Timeout progressivo: 90 segundos para servidores lentos
                         const timeout = setTimeout(() => {
                             logger.warn(`[${index + 1}/${servers.length}] Timeout ao conectar com ${server.name}`);
                             const errorResult = {
@@ -634,13 +780,13 @@ class ServerController {
                                 serverName: server.name,
                                 serverHost: server.host,
                                 success: false,
-                                error: 'Timeout: Conexão excedeu 45 segundos'
+                                error: 'Timeout: Conexão excedeu 90 segundos'
                             };
                             
                             // Salvar erro no cache
                             saveDatabaseCache(server.id, server.name, server.host, null, 'error', errorResult.error);
                             resolve(errorResult);
-                        }, 45000);
+                        }, 90000);
                         
                         try {
                             const decryptedPassword = decryptPassword(server.password);
@@ -669,14 +815,14 @@ class ServerController {
                                         dialect: 'postgres',
                                         logging: false,
                                         pool: {
-                                            max: 1,
+                                            max: 3,
                                             min: 0,
-                                            acquire: 25000, // Reduzido para 25s
-                                            idle: 10000
+                                            acquire: 45000, // 45 segundos para aquisição (aumentado para servidores lentos)
+                                            idle: 15000
                                         },
                                         retry: {
-                                            max: 1, // Reduzir tentativas
-                                            timeout: 20000 // Timeout de 20s
+                                            max: 2, // Aumentar tentativas
+                                            timeout: 20000 // 20 segundos para retry
                                         }
                                     });
                                     break;
@@ -695,86 +841,170 @@ class ServerController {
                             }
                             
                             logger.info(`[${index + 1}/${servers.length}] Autenticando com ${server.name}...`);
-                            await sequelize.authenticate();
-                            logger.info(`[${index + 1}/${servers.length}] Conexão estabelecida com ${server.name}`);
-                            
-                            // Query para listar databases (PostgreSQL) com timeout reduzido
-                            logger.info(`[${index + 1}/${servers.length}] Executando query para listar databases em ${server.name}`);
-                            const [databases] = await sequelize.query(`
-                                SELECT 
-                                    d.datname as name,
-                                    pg_size_pretty(pg_database_size(d.datname)) as size,
-                                    u.usename as owner,
-                                    COALESCE(sd.description, '') as comment
-                                FROM pg_database d
-                                LEFT JOIN pg_user u ON d.datdba = u.usesysid
-                                LEFT JOIN pg_shdescription sd ON sd.objoid = d.oid
-                                WHERE d.datistemplate = false
-                                ORDER BY d.datname
-                            `, {
-                                timeout: 10000 // Timeout reduzido para 10s
-                            });
-                            
-                            // Buscar versão de cada database em paralelo (máximo 10 conexões simultâneas)
-                            logger.info(`[${index + 1}/${servers.length}] Buscando versões das ${databases.length} databases em ${server.name} (paralelo)`);
-                            
-                            // Processar databases em lotes para evitar sobrecarga
-                            const batchSize = 10;
-                            const batches = [];
-                            for (let i = 0; i < databases.length; i += batchSize) {
-                                batches.push(databases.slice(i, i + batchSize));
+                            try {
+                                await sequelize.authenticate();
+                                logger.info(`[${index + 1}/${servers.length}] Conexão estabelecida com ${server.name}`);
+                            } catch (authError) {
+                                logger.error(`[${index + 1}/${servers.length}] Erro na autenticação com ${server.name}:`, authError.message);
+                                clearTimeout(timeout);
+                                resolve({
+                                    serverId: server.id,
+                                    serverName: server.name,
+                                    serverHost: server.host,
+                                    success: false,
+                                    error: `Erro de autenticação: ${authError.message}`
+                                });
+                                return;
                             }
                             
-                            for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-                                const batch = batches[batchIndex];
-                                logger.info(`[${index + 1}/${servers.length}] Processando lote ${batchIndex + 1}/${batches.length} (${batch.length} databases)`);
-                                
-                                // Processar lote em paralelo
-                                const batchPromises = batch.map(async (db) => {
-                                    try {
-                                        // Conectar na database específica com timeout reduzido
-                                        const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
-                                            host: server.host,
-                                            port: server.port,
-                                            dialect: 'postgres',
-                                            logging: false,
-                                            pool: {
-                                                max: 1,
-                                                min: 0,
-                                                acquire: 3000, // Reduzido para 3s
-                                                idle: 2000
-                                            },
-                                            retry: {
-                                                max: 1,
-                                                timeout: 2000
-                                            }
-                                        });
-                                        
-                                        // Buscar versão da database com timeout muito reduzido
-                                        const [versionResult] = await dbSequelize.query(`
-                                            SELECT versaover as version 
-                                            FROM public.versao 
-                                            WHERE dataver IS NOT NULL
-                                            AND sistemaver = 1
-                                            LIMIT 1
-                                        `, {
-                                            timeout: 2000 // Timeout de apenas 2s
-                                        });
-                                        
-                                        await dbSequelize.close();
-                                        
-                                        // Adicionar versão ao resultado
-                                        db.version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
-                                        
-                                    } catch (versionError) {
-                                        logger.warn(`[${index + 1}/${servers.length}] Erro ao buscar versão da database ${db.name}: ${versionError.message}`);
-                                        db.version = 'N/A';
-                                    }
+                            // Query para listar databases (PostgreSQL) com timeout aumentado
+                            logger.info(`[${index + 1}/${servers.length}] Executando query para listar databases em ${server.name}`);
+                            let databases;
+                            try {
+                                // Query básica para listar databases
+                                [databases] = await sequelize.query(`
+                                    SELECT 
+                                        d.datname as name,
+                                        u.usename as owner,
+                                        COALESCE(sd.description, '') as comment
+                                    FROM pg_database d
+                                    LEFT JOIN pg_user u ON d.datdba = u.usesysid
+                                    LEFT JOIN pg_shdescription sd ON sd.objoid = d.oid
+                                    WHERE d.datistemplate = false
+                                    ORDER BY d.datname
+                                `, {
+                                    timeout: 15000 // Timeout reduzido para query básica
                                 });
                                 
-                                // Aguardar lote atual com timeout
-                                await Promise.allSettled(batchPromises);
+                                                            // Buscar versões junto com a listagem (síncrono)
+                            logger.info(`[${index + 1}/${servers.length}] Buscando versões das ${databases.length} databases em ${server.name}`);
+                            for (let i = 0; i < databases.length; i++) {
+                                const db = databases[i];
+                                try {
+                                    // Conectar na database específica para buscar versão
+                                    const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
+                                        host: server.host,
+                                        port: server.port,
+                                        dialect: 'postgres',
+                                        logging: false,
+                                        pool: {
+                                            max: 1,
+                                            min: 0,
+                                            acquire: 5000,
+                                            idle: 3000
+                                        },
+                                        retry: {
+                                            max: 1,
+                                            timeout: 3000
+                                        }
+                                    });
+                                    
+                                    // Buscar versão da database
+                                    const [versionResult] = await dbSequelize.query(`
+                                        SELECT versaover as version 
+                                        FROM public.versao 
+                                        WHERE dataver IS NOT NULL
+                                        AND sistemaver = 1
+                                        LIMIT 1
+                                    `, {
+                                        timeout: 5000
+                                    });
+                                    
+                                    await dbSequelize.close();
+                                    
+                                    // Adicionar versão ao resultado
+                                    db.version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
+                                    
+                                } catch (versionError) {
+                                    logger.warn(`[${index + 1}/${servers.length}] Erro ao buscar versão da database ${db.name}: ${versionError.message}`);
+                                    db.version = 'N/A';
+                                }
                             }
+                            
+                            // Enviar dados do servidor imediatamente (progressivo)
+                            const serverData = {
+                                serverId: server.id,
+                                serverName: server.name,
+                                serverHost: server.host,
+                                success: true,
+                                databases: databases
+                            };
+                            
+                            // Enviar via WebSocket ou SSE se disponível
+                            if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
+                                res.write(`data: ${JSON.stringify({
+                                    type: 'server_data',
+                                    data: serverData
+                                })}\n\n`);
+                            }
+                                
+                                // Garantir que todos os campos existam
+                                databases.forEach(db => {
+                                    db.size = 'Carregando...';
+                                    db.version = db.version || 'N/A';
+                                    db.owner = db.owner || 'N/A';
+                                    db.comment = db.comment || '';
+                                });
+                                
+                                // Buscar tamanhos em segundo plano (assíncrono)
+                                setTimeout(async () => {
+                                    logger.info(`[${index + 1}/${servers.length}] Buscando tamanhos das ${databases.length} databases em ${server.name} (background)`);
+                                    
+                                    // Criar nova conexão para buscar tamanhos
+                                    const sizeSequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                                        host: server.host,
+                                        port: server.port,
+                                        dialect: 'postgres',
+                                        logging: false,
+                                        pool: {
+                                            max: 1,
+                                            min: 0,
+                                            acquire: 10000,
+                                            idle: 5000
+                                        },
+                                        retry: {
+                                            max: 1,
+                                            timeout: 5000
+                                        }
+                                    });
+                                    
+                                    try {
+                                        await sizeSequelize.authenticate();
+                                        
+                                        for (let i = 0; i < databases.length; i++) {
+                                            try {
+                                                const [sizeResult] = await sizeSequelize.query(`
+                                                    SELECT pg_size_pretty(pg_database_size('${databases[i].name}')) as size
+                                                `, {
+                                                    timeout: 5000
+                                                });
+                                                databases[i].size = sizeResult[0]?.size || 'N/A';
+                                            } catch (sizeError) {
+                                                logger.warn(`[${index + 1}/${servers.length}] Erro ao buscar tamanho da database ${databases[i].name}: ${sizeError.message}`);
+                                                databases[i].size = 'N/A';
+                                            }
+                                        }
+                                        
+                                        await sizeSequelize.close();
+                                    } catch (error) {
+                                        logger.error(`[${index + 1}/${servers.length}] Erro ao conectar para buscar tamanhos: ${error.message}`);
+                                        await sizeSequelize.close();
+                                    }
+                                }, 100);
+                            } catch (queryError) {
+                                logger.error(`[${index + 1}/${servers.length}] Erro na query principal de ${server.name}:`, queryError.message);
+                                clearTimeout(timeout);
+                                resolve({
+                                    serverId: server.id,
+                                    serverName: server.name,
+                                    serverHost: server.host,
+                                    success: false,
+                                    error: `Erro na query: ${queryError.message}`
+                                });
+                                return;
+                            }
+                            
+                            // Versões já foram buscadas junto com a listagem
                             
                             await sequelize.close();
                             clearTimeout(timeout);
@@ -889,6 +1119,570 @@ class ServerController {
             res.status(500).json({
                 success: false,
                 message: 'Erro interno do servidor'
+            });
+        }
+    }
+
+    // Atualizar dados específicos de um servidor (tamanhos e versões)
+    async updateServerData(req, res) {
+        try {
+            const { serverId } = req.params;
+            
+            if (!serverId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'ID do servidor é obrigatório'
+                });
+            }
+            
+            // Buscar servidor
+            const server = await Server.findByPk(serverId);
+            if (!server) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Servidor não encontrado'
+                });
+            }
+            
+            logger.info(`Atualizando dados específicos do servidor: ${server.name} (${server.host})`);
+            
+            const decryptedPassword = decryptPassword(server.password);
+            if (!decryptedPassword) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Erro ao descriptografar senha'
+                });
+            }
+            
+            // Conectar ao servidor
+            const { Sequelize } = require('sequelize');
+            const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                host: server.host,
+                port: server.port,
+                dialect: 'postgres',
+                logging: false,
+                pool: {
+                    max: 1,
+                    min: 0,
+                    acquire: 15000,
+                    idle: 5000
+                },
+                retry: {
+                    max: 1,
+                    timeout: 10000
+                }
+            });
+            
+            try {
+                await sequelize.authenticate();
+                
+                // Buscar databases básicas
+                const [databases] = await sequelize.query(`
+                    SELECT 
+                        d.datname as name,
+                        u.usename as owner,
+                        COALESCE(sd.description, '') as comment
+                    FROM pg_database d
+                    LEFT JOIN pg_user u ON d.datdba = u.usesysid
+                    LEFT JOIN pg_shdescription sd ON sd.objoid = d.oid
+                    WHERE d.datistemplate = false
+                    ORDER BY d.datname
+                `, {
+                    timeout: 15000
+                });
+                
+                // Buscar tamanhos e versões em paralelo
+                const updatedDatabases = [];
+                
+                for (const db of databases) {
+                    try {
+                        // Buscar tamanho
+                        const [sizeResult] = await sequelize.query(`
+                            SELECT pg_size_pretty(pg_database_size('${db.name}')) as size
+                        `, {
+                            timeout: 5000
+                        });
+                        
+                        // Buscar versão
+                        let version = 'N/A';
+                        try {
+                            const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
+                                host: server.host,
+                                port: server.port,
+                                dialect: 'postgres',
+                                logging: false,
+                                pool: { max: 1, min: 0, acquire: 5000, idle: 3000 },
+                                retry: { max: 1, timeout: 3000 }
+                            });
+                            
+                            const [versionResult] = await dbSequelize.query(`
+                                SELECT versaover as version 
+                                FROM public.versao 
+                                WHERE dataver IS NOT NULL
+                                AND sistemaver = 1
+                                LIMIT 1
+                            `, {
+                                timeout: 5000
+                            });
+                            
+                            await dbSequelize.close();
+                            version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
+                        } catch (versionError) {
+                            logger.warn(`Erro ao buscar versão da database ${db.name}: ${versionError.message}`);
+                        }
+                        
+                        updatedDatabases.push({
+                            name: db.name,
+                            size: sizeResult[0]?.size || 'N/A',
+                            owner: db.owner,
+                            comment: db.comment,
+                            version: version
+                        });
+                        
+                    } catch (error) {
+                        logger.warn(`Erro ao processar database ${db.name}: ${error.message}`);
+                        updatedDatabases.push({
+                            name: db.name,
+                            size: 'N/A',
+                            owner: db.owner,
+                            comment: db.comment,
+                            version: 'N/A'
+                        });
+                    }
+                }
+                
+                await sequelize.close();
+                
+                res.json({
+                    success: true,
+                    data: {
+                        serverId: server.id,
+                        serverName: server.name,
+                        serverHost: server.host,
+                        databases: updatedDatabases
+                    }
+                });
+                
+            } catch (error) {
+                await sequelize.close();
+                throw error;
+            }
+            
+        } catch (error) {
+            logger.error('Erro ao atualizar dados do servidor:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erro interno do servidor',
+                error: error.message
+            });
+        }
+    }
+
+    // Atualizar apenas tamanhos das databases de um servidor
+    async updateDatabaseSizes(req, res) {
+        try {
+            const { serverId } = req.params;
+            
+            if (!serverId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'ID do servidor é obrigatório'
+                });
+            }
+            
+            // Buscar servidor
+            const server = await Server.findByPk(serverId);
+            if (!server) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Servidor não encontrado'
+                });
+            }
+            
+            logger.info(`Atualizando tamanhos das databases do servidor: ${server.name} (${server.host})`);
+            
+            const decryptedPassword = decryptPassword(server.password);
+            if (!decryptedPassword) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Erro ao descriptografar senha'
+                });
+            }
+            
+            // Conectar ao servidor
+            const { Sequelize } = require('sequelize');
+            const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                host: server.host,
+                port: server.port,
+                dialect: 'postgres',
+                logging: false,
+                pool: {
+                    max: 1,
+                    min: 0,
+                    acquire: 15000,
+                    idle: 5000
+                },
+                retry: {
+                    max: 1,
+                    timeout: 10000
+                }
+            });
+            
+            try {
+                await sequelize.authenticate();
+                
+                // Buscar databases básicas
+                const [databases] = await sequelize.query(`
+                    SELECT 
+                        d.datname as name
+                    FROM pg_database d
+                    WHERE d.datistemplate = false
+                    ORDER BY d.datname
+                `, {
+                    timeout: 15000
+                });
+                
+                // Buscar tamanhos
+                const sizes = [];
+                for (const db of databases) {
+                    try {
+                        const [sizeResult] = await sequelize.query(`
+                            SELECT pg_size_pretty(pg_database_size('${db.name}')) as size
+                        `, {
+                            timeout: 5000
+                        });
+                        
+                        sizes.push({
+                            name: db.name,
+                            size: sizeResult[0]?.size || 'N/A'
+                        });
+                        
+                    } catch (error) {
+                        logger.warn(`Erro ao buscar tamanho da database ${db.name}: ${error.message}`);
+                        sizes.push({
+                            name: db.name,
+                            size: 'N/A'
+                        });
+                    }
+                }
+                
+                await sequelize.close();
+                
+                res.json({
+                    success: true,
+                    data: {
+                        serverId: server.id,
+                        serverName: server.name,
+                        sizes: sizes
+                    }
+                });
+                
+            } catch (error) {
+                await sequelize.close();
+                throw error;
+            }
+            
+        } catch (error) {
+            logger.error('Erro ao atualizar tamanhos das databases:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erro interno do servidor',
+                error: error.message
+            });
+        }
+    }
+
+    // Listagem progressiva de databases com SSE
+    async listDatabasesProgress(req, res) {
+        try {
+            // Verificar autenticação
+            const authHeader = req.headers.authorization;
+            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Token de autenticação necessário'
+                });
+            }
+            
+            const { serverIds } = req.body;
+            
+            if (!serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'IDs dos servidores são obrigatórios'
+                });
+            }
+            
+            // Configurar headers para SSE
+            res.writeHead(200, {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Cache-Control'
+            });
+            
+            logger.info(`Iniciando listagem progressiva de databases para ${serverIds.length} servidores`);
+            
+            // Buscar servidores
+            const servers = await Server.findAll({
+                where: { 
+                    id: serverIds,
+                    isActive: true 
+                }
+            });
+            
+            if (servers.length === 0) {
+                res.write(`data: ${JSON.stringify({
+                    type: 'error',
+                    message: 'Nenhum servidor ativo encontrado'
+                })}\n\n`);
+                res.end();
+                return;
+            }
+            
+            // Enviar início do processo
+            res.write(`data: ${JSON.stringify({
+                type: 'start',
+                totalServers: servers.length,
+                message: 'Iniciando carregamento...'
+            })}\n\n`);
+            
+            // Processar servidores sequencialmente
+            for (let i = 0; i < servers.length; i++) {
+                const server = servers[i];
+                
+                // Enviar progresso
+                res.write(`data: ${JSON.stringify({
+                    type: 'progress',
+                    current: i + 1,
+                    total: servers.length,
+                    serverName: server.name,
+                    message: `Conectando com ${server.name}...`
+                })}\n\n`);
+                
+                try {
+                    const decryptedPassword = decryptPassword(server.password);
+                    if (!decryptedPassword) {
+                        res.write(`data: ${JSON.stringify({
+                            type: 'server_error',
+                            serverId: server.id,
+                            serverName: server.name,
+                            error: 'Erro ao descriptografar senha'
+                        })}\n\n`);
+                        continue;
+                    }
+                    
+                    // Conectar ao servidor
+                    const { Sequelize } = require('sequelize');
+                    const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                        host: server.host,
+                        port: server.port,
+                        dialect: 'postgres',
+                        logging: false,
+                        pool: {
+                            max: 3,
+                            min: 0,
+                            acquire: 45000,
+                            idle: 15000
+                        },
+                        retry: {
+                            max: 2,
+                            timeout: 20000
+                        }
+                    });
+                    
+                    await sequelize.authenticate();
+                    
+                    // Buscar databases básicas
+                    const [databases] = await sequelize.query(`
+                        SELECT 
+                            d.datname as name,
+                            u.usename as owner,
+                            COALESCE(sd.description, '') as comment
+                        FROM pg_database d
+                        LEFT JOIN pg_user u ON d.datdba = u.usesysid
+                        LEFT JOIN pg_shdescription sd ON sd.objoid = d.oid
+                        WHERE d.datistemplate = false
+                        ORDER BY d.datname
+                    `, {
+                        timeout: 25000
+                    });
+                    
+                    // Buscar versões
+                    for (let j = 0; j < databases.length; j++) {
+                        const db = databases[j];
+                        try {
+                            const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
+                                host: server.host,
+                                port: server.port,
+                                dialect: 'postgres',
+                                logging: false,
+                                pool: { max: 1, min: 0, acquire: 5000, idle: 3000 },
+                                retry: { max: 1, timeout: 3000 }
+                            });
+                            
+                            const [versionResult] = await dbSequelize.query(`
+                                SELECT versaover as version 
+                                FROM public.versao 
+                                WHERE dataver IS NOT NULL
+                                AND sistemaver = 1
+                                LIMIT 1
+                            `, {
+                                timeout: 5000
+                            });
+                            
+                            await dbSequelize.close();
+                            db.version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
+                            
+                        } catch (versionError) {
+                            db.version = 'N/A';
+                        }
+                        
+                        // Inicializar tamanho
+                        db.size = 'Carregando...';
+                    }
+                    
+                    await sequelize.close();
+                    
+                    // Enviar dados do servidor
+                    res.write(`data: ${JSON.stringify({
+                        type: 'server_data',
+                        serverId: server.id,
+                        serverName: server.name,
+                        serverHost: server.host,
+                        success: true,
+                        databases: databases
+                    })}\n\n`);
+                    
+                } catch (error) {
+                    logger.error(`Erro ao processar servidor ${server.name}:`, error);
+                    res.write(`data: ${JSON.stringify({
+                        type: 'server_error',
+                        serverId: server.id,
+                        serverName: server.name,
+                        error: error.message
+                    })}\n\n`);
+                }
+            }
+            
+            // Enviar finalização
+            res.write(`data: ${JSON.stringify({
+                type: 'complete',
+                message: 'Carregamento concluído'
+            })}\n\n`);
+            
+            res.end();
+            
+        } catch (error) {
+            logger.error('Erro na listagem progressiva:', error);
+            res.write(`data: ${JSON.stringify({
+                type: 'error',
+                message: 'Erro interno do servidor',
+                error: error.message
+            })}\n\n`);
+            res.end();
+        }
+    }
+
+    // Carregamento progressivo real de databases
+    async listDatabasesProgressive(req, res) {
+        try {
+            const { serverIds } = req.body;
+            
+            if (!serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'IDs dos servidores são obrigatórios'
+                });
+            }
+            
+            logger.info(`Iniciando carregamento progressivo real para ${serverIds.length} servidores`);
+            
+            // Buscar servidores
+            const servers = await Server.findAll({
+                where: { 
+                    id: serverIds,
+                    isActive: true 
+                }
+            });
+            
+            if (servers.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Nenhum servidor ativo encontrado'
+                });
+            }
+            
+            // Iniciar processamento em background
+            const sessionId = Date.now().toString();
+            global.progressiveSessions = global.progressiveSessions || {};
+            global.progressiveSessions[sessionId] = {
+                servers: servers,
+                results: [],
+                completed: 0,
+                total: servers.length,
+                status: 'processing'
+            };
+            
+            // Processar servidores em background
+            processServersProgressive(sessionId);
+            
+            res.json({
+                success: true,
+                sessionId: sessionId,
+                totalServers: servers.length,
+                message: 'Carregamento progressivo iniciado'
+            });
+            
+        } catch (error) {
+            logger.error('Erro ao iniciar carregamento progressivo:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erro interno do servidor',
+                error: error.message
+            });
+        }
+    }
+    
+    // Verificar progresso do carregamento
+    async checkProgressiveProgress(req, res) {
+        try {
+            const { sessionId } = req.params;
+            
+            if (!global.progressiveSessions || !global.progressiveSessions[sessionId]) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Sessão não encontrada'
+                });
+            }
+            
+            const session = global.progressiveSessions[sessionId];
+            
+            res.json({
+                success: true,
+                data: {
+                    status: session.status,
+                    completed: session.completed,
+                    total: session.total,
+                    results: session.results,
+                    progress: (session.completed / session.total) * 100
+                }
+            });
+            
+            // Limpar sessão se concluída
+            if (session.status === 'completed') {
+                setTimeout(() => {
+                    delete global.progressiveSessions[sessionId];
+                }, 60000); // Limpar após 1 minuto
+            }
+            
+        } catch (error) {
+            logger.error('Erro ao verificar progresso:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erro interno do servidor',
+                error: error.message
             });
         }
     }

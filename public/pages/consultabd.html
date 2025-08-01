@@ -122,10 +122,16 @@
                         </div>
 
                         <div class="mt-4">
-                            <button class="btn btn-primary" onclick="loadDatabases()">
+                            <button class="btn btn-primary" onclick="loadDatabases()" id="btnLoadDatabases">
                                 <i class="fas fa-search mr-2"></i>
                                 Listar Databases
                             </button>
+                            <div id="loadingIndicator" class="hidden mt-2">
+                                <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                    <span id="loadingText">Carregando...</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -138,17 +144,56 @@
                 <div class="card-body">
                     <h3 class="card-title mb-4">Databases Encontradas</h3>
                     
-                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                        <div class="form-control flex-1">
-                            <input id="databaseSearch" class="input input-bordered" type="search" placeholder="Pesquisar database..." oninput="filterAndPaginateDatabases()">
+                    <div class="flex flex-col gap-4 mb-4">
+                        <!-- Filtros de busca -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Buscar por Servidor</span>
+                                </label>
+                                <input id="serverSearch" class="input input-bordered" type="search" placeholder="Nome do servidor..." oninput="filterAndPaginateDatabases()">
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Buscar por Database</span>
+                                </label>
+                                <input id="databaseSearch" class="input input-bordered" type="search" placeholder="Nome da database..." oninput="filterAndPaginateDatabases()">
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Filtrar por Status</span>
+                                </label>
+                                <select id="statusFilter" class="select select-bordered" onchange="filterAndPaginateDatabases()">
+                                    <option value="">Todos</option>
+                                    <option value="success">Com sucesso</option>
+                                    <option value="error">Com erro</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-control w-full sm:w-auto">
-                            <select id="databasesPerPage" class="select select-bordered select-sm" onchange="filterAndPaginateDatabases()">
-                                <option value="5">5 por página</option>
-                                <option value="10" selected>10 por página</option>
-                                <option value="25">25 por página</option>
-                                <option value="50">50 por página</option>
-                            </select>
+                        
+                        <!-- Controles de paginação -->
+                        <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Itens por página</span>
+                                    </label>
+                                    <select id="databasesPerPage" class="select select-bordered select-sm" onchange="filterAndPaginateDatabases()">
+                                        <option value="5">5</option>
+                                        <option value="10" selected>10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-outline btn-sm" onclick="clearFilters()">
+                                    <i class="fas fa-times mr-1"></i>
+                                    Limpar Filtros
+                                </button>
+                            </div>
+                            <div class="text-sm text-base-content/70" id="resultsCount">
+                                <!-- Contador de resultados será atualizado aqui -->
+                            </div>
                         </div>
                     </div>
                     
@@ -254,5 +299,83 @@
 
     <!-- Scripts -->
     <script src="/js/consultabd.js"></script>
+    
+    <style>
+        /* Skeleton Loading Styles */
+        .skeleton-container {
+            padding: 1rem;
+        }
+        
+        .skeleton-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .skeleton-title {
+            height: 24px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+        
+        .skeleton-text {
+            height: 16px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .skeleton-text.short {
+            width: 60%;
+        }
+        
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+        
+        /* Toast Container */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </body>
 </html>
