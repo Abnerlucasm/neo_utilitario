@@ -1686,6 +1686,618 @@ class ServerController {
             });
         }
     }
+
+    // Buscar objetos do banco de dados
+    async searchObjects(req, res) {
+        try {
+            const { searchTerm, searchType = 'contains', objectType, searchLimit = 25, serverIds } = req.body;
+            
+            if (!searchTerm || !serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Termo de busca e IDs dos servidores são obrigatórios'
+                });
+            }
+            
+            // Validação de termo de busca (mínimo 3 caracteres)
+            if (searchTerm.length < 3) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Termo de busca deve ter pelo menos 3 caracteres'
+                });
+            }
+            
+            logger.info(`Iniciando busca de objetos: "${searchTerm}" em ${serverIds.length} servidores`);
+            
+            // Buscar servidores
+            const servers = await Server.findAll({
+                where: { 
+                    id: serverIds,
+                    isActive: true 
+                }
+            });
+            
+            logger.info(`Servidores encontrados: ${servers.length}`, servers.map(s => ({ id: s.id, name: s.name, host: s.host })));
+            
+            if (servers.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Nenhum servidor ativo encontrado'
+                });
+            }
+            
+                // Configurações de performance
+                const MAX_OBJECTS_PER_SERVER = Math.min(searchLimit, 250); // Limite de objetos por servidor
+                const SEARCH_TIMEOUT = 30000; // 30 segundos timeout por servidor
+                const MAX_TOTAL_OBJECTS = searchLimit; // Limite total de objetos
+            
+            // Processar servidores em paralelo com timeout
+            const results = await Promise.allSettled(
+                servers.map(async (server) => {
+                    return new Promise(async (resolve) => {
+                        // Timeout por servidor
+                        const timeout = setTimeout(() => {
+                            resolve({
+                                serverId: server.id,
+                                serverName: server.name,
+                                serverHost: server.host,
+                                success: false,
+                                error: 'Timeout: Busca excedeu 30 segundos'
+                            });
+                        }, SEARCH_TIMEOUT);
+                        
+                        try {
+                            const decryptedPassword = decryptPassword(server.password);
+                            if (!decryptedPassword) {
+                                clearTimeout(timeout);
+                                resolve({
+                                    serverId: server.id,
+                                    serverName: server.name,
+                                    serverHost: server.host,
+                                    success: false,
+                                    error: 'Erro ao descriptografar senha'
+                                });
+                                return;
+                            }
+                            
+                            // Conectar ao servidor com configurações otimizadas
+                            const { Sequelize } = require('sequelize');
+                            const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                                host: server.host,
+                                port: server.port,
+                                dialect: 'postgres',
+                                logging: false,
+                                pool: {
+                                    max: 2,
+                                    min: 0,
+                                    acquire: 20000,
+                                    idle: 5000
+                                },
+                                retry: {
+                                    max: 1,
+                                    timeout: 10000
+                                }
+                            });
+                            
+                            await sequelize.authenticate();
+                            logger.info(`Conectado ao servidor ${server.name}, iniciando busca de objetos...`);
+                            
+                                // Buscar objetos com limite
+                                const objects = await searchObjectsInServer(sequelize, searchTerm, searchType, objectType, server, MAX_OBJECTS_PER_SERVER);
+                            
+                            logger.info(`Servidor ${server.name}: encontrados ${objects.length} objetos`);
+                            
+                            await sequelize.close();
+                            clearTimeout(timeout);
+                            
+                            resolve({
+                                serverId: server.id,
+                                serverName: server.name,
+                                serverHost: server.host,
+                                success: true,
+                                objects: objects
+                            });
+                            
+                        } catch (error) {
+                            clearTimeout(timeout);
+                            logger.error(`Erro ao buscar objetos no servidor ${server.name}:`, error);
+                            resolve({
+                                serverId: server.id,
+                                serverName: server.name,
+                                serverHost: server.host,
+                                success: false,
+                                error: error.message
+                            });
+                        }
+                    });
+                })
+            );
+            
+            // Processar resultados
+            const allObjects = [];
+            const processedResults = results.map(result => {
+                if (result.status === 'fulfilled') {
+                    const serverResult = result.value;
+                    if (serverResult.success && serverResult.objects) {
+                        serverResult.objects.forEach(obj => {
+                            allObjects.push({
+                                ...obj,
+                                server_id: serverResult.serverId,
+                                server_name: serverResult.serverName,
+                                server_host: serverResult.serverHost,
+                                connection_status: 'connected'
+                            });
+                        });
+                    }
+                    return serverResult;
+                } else {
+                    logger.error('Erro inesperado no processamento:', result.reason);
+                    return {
+                        serverId: 'unknown',
+                        serverName: 'Unknown',
+                        serverHost: 'unknown',
+                        success: false,
+                        error: result.reason?.message || 'Erro desconhecido'
+                    };
+                }
+            });
+            
+            // Limitar total de objetos retornados
+            const limitedObjects = allObjects.slice(0, MAX_TOTAL_OBJECTS);
+            const hasMore = allObjects.length > MAX_TOTAL_OBJECTS;
+            
+            logger.info(`Busca concluída: ${limitedObjects.length} objetos encontrados${hasMore ? ` (limitado de ${allObjects.length})` : ''}`);
+            
+            res.json({
+                success: true,
+                data: limitedObjects,
+                summary: {
+                    totalObjects: limitedObjects.length,
+                    totalFound: allObjects.length,
+                    hasMore: hasMore,
+                    totalServers: processedResults.length,
+                    successfulServers: processedResults.filter(r => r.success).length
+                }
+            });
+            
+        } catch (error) {
+            logger.error('Erro ao buscar objetos:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erro interno do servidor',
+                error: error.message
+            });
+        }
+    }
+}
+
+// Função auxiliar para buscar objetos em um servidor específico
+async function searchObjectsInServer(sequelize, searchTerm, searchType, objectType, server, maxObjects) {
+    const objects = [];
+    
+    // Construir padrão de busca baseado no tipo
+    let searchPattern;
+    switch (searchType) {
+        case 'starts_with':
+            searchPattern = `${searchTerm}%`;
+            break;
+        case 'ends_with':
+            searchPattern = `%${searchTerm}`;
+            break;
+        case 'exact':
+            searchPattern = searchTerm;
+            break;
+        case 'contains':
+        default:
+            searchPattern = `%${searchTerm}%`;
+            break;
+    }
+    
+    try {
+        // Buscar databases do servidor (limitado para performance)
+        const [databases] = await sequelize.query(`
+            SELECT datname as name
+            FROM pg_database 
+            WHERE datistemplate = false
+            ORDER BY datname
+            LIMIT 10
+        `, {
+            timeout: 5000
+        });
+        
+        logger.info(`Servidor ${server.name}: encontradas ${databases.length} databases`);
+        
+        // Buscar objetos em cada database (máximo 5 databases para performance)
+        for (const db of databases.slice(0, 5)) {
+            try {
+                // Conectar na database específica
+                const dbSequelize = new Sequelize(db.name, server.username, decryptPassword(server.password), {
+                    host: server.host,
+                    port: server.port,
+                    dialect: 'postgres',
+                    logging: false,
+                    pool: { max: 1, min: 0, acquire: 5000, idle: 3000 },
+                    retry: { max: 1, timeout: 5000 }
+                });
+                
+                await dbSequelize.authenticate();
+                logger.info(`Conectado na database ${db.name}, buscando objetos do tipo: ${objectType || 'todos'}`);
+                
+                        // Buscar objetos baseado no tipo com limite
+                        const dbObjects = await searchObjectsByType(dbSequelize, searchPattern, searchType, objectType, db.name, Math.floor(maxObjects / databases.length));
+                logger.info(`Database ${db.name}: encontrados ${dbObjects.length} objetos`);
+                objects.push(...dbObjects);
+                
+                // Parar se atingiu o limite
+                if (objects.length >= maxObjects) {
+                    await dbSequelize.close();
+                    break;
+                }
+                
+                await dbSequelize.close();
+                
+            } catch (dbError) {
+                logger.warn(`Erro ao buscar objetos na database ${db.name}: ${dbError.message}`);
+                continue;
+            }
+        }
+        
+    } catch (error) {
+        logger.error(`Erro ao buscar objetos no servidor ${server.name}:`, error);
+        throw error;
+    }
+    
+    return objects.slice(0, maxObjects);
+}
+
+// Função para buscar objetos por tipo
+async function searchObjectsByType(sequelize, searchPattern, searchType, objectType, databaseName, maxObjects = 50) {
+    const objects = [];
+    
+    try {
+        if (!objectType || objectType === 'table') {
+            logger.info(`Buscando tabelas com padrão: ${searchPattern}`);
+            
+            // Escolher operador baseado no tipo de busca
+            const operator = searchType === 'exact' ? '=' : 'ILIKE';
+            
+            // Buscar tabelas (versão simplificada e mais robusta)
+            const [tables] = await sequelize.query(`
+                SELECT 
+                    n.nspname as schema_name,
+                    c.relname as object_name,
+                    'table' as object_type,
+                    pg_size_pretty(pg_total_relation_size(c.oid)) as size,
+                    obj_description(c.oid) as description,
+                    pg_get_userbyid(c.relowner) as owner
+                FROM pg_class c
+                JOIN pg_namespace n ON c.relnamespace = n.oid
+                WHERE c.relkind = 'r'
+                AND n.nspname NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
+                AND c.relname ${operator} $1
+                ORDER BY n.nspname, c.relname
+                LIMIT $2
+            `, {
+                bind: [searchPattern, maxObjects],
+                timeout: 8000
+            });
+            
+            // Obter DDL real para cada tabela usando funções nativas do PostgreSQL
+            for (const table of tables) {
+                try {
+                    // Buscar colunas da tabela para construir o DDL
+                    const [columns] = await sequelize.query(`
+                        SELECT 
+                            a.attname as column_name,
+                            pg_catalog.format_type(a.atttypid, a.atttypmod) as data_type,
+                            NOT a.attnotnull as is_nullable,
+                            pg_get_expr(d.adbin, d.adrelid) as column_default,
+                            a.attnum as ordinal_position
+                        FROM pg_attribute a
+                        JOIN pg_class c ON a.attrelid = c.oid
+                        JOIN pg_namespace n ON c.relnamespace = n.oid
+                        LEFT JOIN pg_attrdef d ON a.attrelid = d.adrelid AND a.attnum = d.adnum
+                        WHERE c.relname = '${table.object_name}'
+                        AND n.nspname = '${table.schema_name}'
+                        AND a.attnum > 0
+                        AND NOT a.attisdropped
+                        ORDER BY a.attnum
+                    `, {
+                        timeout: 5000
+                    });
+                    
+                    // Construir DDL manualmente
+                    let ddl = `CREATE TABLE ${table.schema_name}.${table.object_name} (\n`;
+                    const columnDefs = columns.map(col => {
+                        let def = `    ${col.column_name} ${col.data_type}`;
+                        if (!col.is_nullable) def += ' NOT NULL';
+                        if (col.column_default) def += ` DEFAULT ${col.column_default}`;
+                        return def;
+                    });
+                    ddl += columnDefs.join(',\n');
+                    ddl += `\n);`;
+                    
+                    objects.push({
+                        ...table,
+                        database_name: databaseName,
+                        sql_definition: ddl
+                    });
+                } catch (ddlError) {
+                    logger.warn(`Erro ao obter DDL da tabela ${table.schema_name}.${table.object_name}: ${ddlError.message}`);
+                    objects.push({
+                        ...table,
+                        database_name: databaseName,
+                        sql_definition: `-- Tabela: ${table.schema_name}.${table.object_name}\n-- Tamanho: ${table.size}\n-- Dono: ${table.owner}\n-- Erro ao obter DDL: ${ddlError.message}`
+                    });
+                }
+            }
+        }
+        
+        if (!objectType || objectType === 'column') {
+            // Escolher operador baseado no tipo de busca
+            const operator = searchType === 'exact' ? '=' : 'ILIKE';
+            
+            // Buscar colunas (versão simplificada)
+            const [columns] = await sequelize.query(`
+                SELECT 
+                    n.nspname as schema_name,
+                    c.relname as table_name,
+                    a.attname as object_name,
+                    'column' as object_type,
+                    pg_catalog.format_type(a.atttypid, a.atttypmod) as data_type,
+                    NOT a.attnotnull as is_nullable,
+                    pg_get_expr(d.adbin, d.adrelid) as column_default,
+                    a.attnum as ordinal_position,
+                    col_description(a.attrelid, a.attnum) as description,
+                    pg_get_userbyid(c.relowner) as owner
+                FROM pg_attribute a
+                JOIN pg_class c ON a.attrelid = c.oid
+                JOIN pg_namespace n ON c.relnamespace = n.oid
+                LEFT JOIN pg_attrdef d ON a.attrelid = d.adrelid AND a.attnum = d.adnum
+                WHERE c.relkind = 'r'
+                AND n.nspname NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
+                AND a.attnum > 0
+                AND NOT a.attisdropped
+                AND a.attname ${operator} $1
+                ORDER BY n.nspname, c.relname, a.attnum
+                LIMIT $2
+            `, {
+                bind: [searchPattern, maxObjects],
+                timeout: 8000
+            });
+            
+            objects.push(...columns.map(column => ({
+                ...column,
+                database_name: databaseName,
+                sql_definition: `-- Coluna: ${column.schema_name}.${column.table_name}.${column.object_name}\n-- Tipo: ${column.data_type}\n-- Nullable: ${column.is_nullable}\n-- Posição: ${column.ordinal_position}\n-- Default: ${column.column_default || 'NULL'}\n-- Descrição: ${column.description || 'N/A'}\n-- Dono: ${column.owner}`
+            })));
+        }
+        
+        if (!objectType || objectType === 'index') {
+            // Buscar índices (otimizada)
+            const [indexes] = await sequelize.query(`
+                SELECT 
+                    schemaname as schema_name,
+                    indexname as object_name,
+                    'index' as object_type,
+                    tablename as table_name,
+                    pg_size_pretty(pg_relation_size(indexrelid)) as size,
+                    obj_description(indexrelid) as description,
+                    pg_get_userbyid(c.relowner) as owner
+                FROM pg_indexes i
+                LEFT JOIN pg_class c ON c.relname = i.indexname
+                WHERE indexname ILIKE $1
+                ORDER BY schemaname, indexname
+                LIMIT $2
+            `, {
+                bind: [searchPattern, maxObjects],
+                timeout: 8000
+            });
+            
+            // Obter DDL real para cada índice
+            for (const index of indexes) {
+                try {
+                    const [ddlResult] = await sequelize.query(`
+                        SELECT pg_get_indexdef(i.indexrelid) as ddl
+                        FROM pg_indexes i
+                        JOIN pg_class c ON c.relname = i.indexname
+                        WHERE i.schemaname = '${index.schema_name}' AND i.indexname = '${index.object_name}'
+                    `, {
+                        timeout: 5000
+                    });
+                    
+                    const ddl = ddlResult[0]?.ddl || `-- Índice: ${index.schema_name}.${index.object_name}\n-- Tabela: ${index.table_name}\n-- Tamanho: ${index.size}`;
+                    
+                    objects.push({
+                        ...index,
+                        database_name: databaseName,
+                        sql_definition: ddl
+                    });
+                } catch (ddlError) {
+                    logger.warn(`Erro ao obter DDL do índice ${index.schema_name}.${index.object_name}: ${ddlError.message}`);
+                    objects.push({
+                        ...index,
+                        database_name: databaseName,
+                        sql_definition: `-- Índice: ${index.schema_name}.${index.object_name}\n-- Tabela: ${index.table_name}\n-- Tamanho: ${index.size}\n-- Erro ao obter DDL: ${ddlError.message}`
+                    });
+                }
+            }
+        }
+        
+        if (!objectType || objectType === 'view') {
+            // Buscar views (otimizada)
+            const [views] = await sequelize.query(`
+                SELECT 
+                    schemaname as schema_name,
+                    viewname as object_name,
+                    'view' as object_type,
+                    pg_size_pretty(pg_relation_size(schemaname||'.'||viewname)) as size,
+                    obj_description(c.oid) as description,
+                    pg_get_userbyid(c.relowner) as owner
+                FROM pg_views v
+                LEFT JOIN pg_class c ON c.relname = v.viewname AND c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = v.schemaname)
+                WHERE viewname ILIKE $1
+                ORDER BY schemaname, viewname
+                LIMIT $2
+            `, {
+                bind: [searchPattern, maxObjects],
+                timeout: 8000
+            });
+            
+            // Obter DDL real para cada view usando funções nativas
+            for (const view of views) {
+                try {
+                    const [ddlResult] = await sequelize.query(`
+                        SELECT pg_get_viewdef(c.oid, true) as ddl
+                        FROM pg_class c
+                        JOIN pg_namespace n ON c.relnamespace = n.oid
+                        WHERE c.relname = '${view.object_name}'
+                        AND n.nspname = '${view.schema_name}'
+                        AND c.relkind = 'v'
+                    `, {
+                        timeout: 5000
+                    });
+                    
+                    const ddl = ddlResult[0]?.ddl || `-- View: ${view.schema_name}.${view.object_name}\n-- Tamanho: ${view.size}\n-- Dono: ${view.owner}`;
+                    
+                    objects.push({
+                        ...view,
+                        database_name: databaseName,
+                        sql_definition: `CREATE VIEW ${view.schema_name}.${view.object_name} AS\n${ddl};\n\n-- Tamanho: ${view.size}\n-- Dono: ${view.owner}`
+                    });
+                } catch (ddlError) {
+                    logger.warn(`Erro ao obter DDL da view ${view.schema_name}.${view.object_name}: ${ddlError.message}`);
+                    objects.push({
+                        ...view,
+                        database_name: databaseName,
+                        sql_definition: `-- View: ${view.schema_name}.${view.object_name}\n-- Tamanho: ${view.size}\n-- Dono: ${view.owner}\n-- Erro ao obter DDL: ${ddlError.message}`
+                    });
+                }
+            }
+        }
+        
+        if (!objectType || objectType === 'function' || objectType === 'procedure') {
+            // Buscar funções e procedures (otimizada)
+            const [functions] = await sequelize.query(`
+                SELECT 
+                    n.nspname as schema_name,
+                    p.proname as object_name,
+                    CASE 
+                        WHEN p.prokind = 'f' THEN 'function'
+                        WHEN p.prokind = 'p' THEN 'procedure'
+                        ELSE 'function'
+                    END as object_type,
+                    pg_get_function_result(p.oid) as return_type,
+                    pg_get_function_arguments(p.oid) as arguments,
+                    obj_description(p.oid) as description,
+                    pg_get_userbyid(p.proowner) as owner
+                FROM pg_proc p
+                LEFT JOIN pg_namespace n ON p.pronamespace = n.oid
+                WHERE p.proname ILIKE $1
+                ORDER BY n.nspname, p.proname
+                LIMIT $2
+            `, {
+                bind: [searchPattern, maxObjects],
+                timeout: 8000
+            });
+            
+            objects.push(...functions.map(func => ({
+                ...func,
+                database_name: databaseName,
+                sql_definition: `-- ${func.object_type}: ${func.schema_name}.${func.object_name}\n-- Retorno: ${func.return_type}\n-- Argumentos: ${func.arguments}`
+            })));
+        }
+        
+        if (!objectType || objectType === 'trigger') {
+            // Buscar triggers (otimizada)
+            const [triggers] = await sequelize.query(`
+                SELECT 
+                    t.trigger_schema as schema_name,
+                    t.trigger_name as object_name,
+                    'trigger' as object_type,
+                    t.event_object_table as table_name,
+                    t.action_timing,
+                    t.event_manipulation,
+                    obj_description(pgc.oid) as description,
+                    pg_get_userbyid(pgc.relowner) as owner
+                FROM information_schema.triggers t
+                LEFT JOIN pg_class pgc ON pgc.relname = t.event_object_table AND pgc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = t.trigger_schema)
+                WHERE t.trigger_name ILIKE $1
+                ORDER BY t.trigger_schema, t.trigger_name
+                LIMIT $2
+            `, {
+                bind: [searchPattern, maxObjects],
+                timeout: 8000
+            });
+            
+            objects.push(...triggers.map(trigger => ({
+                ...trigger,
+                database_name: databaseName,
+                sql_definition: `-- Trigger: ${trigger.schema_name}.${trigger.object_name}\n-- Tabela: ${trigger.table_name}\n-- Evento: ${trigger.event_manipulation} ${trigger.action_timing}`
+            })));
+        }
+        
+        if (!objectType || objectType === 'sequence') {
+            // Buscar sequências (otimizada)
+            const [sequences] = await sequelize.query(`
+                SELECT 
+                    schemaname as schema_name,
+                    sequencename as object_name,
+                    'sequence' as object_type,
+                    pg_size_pretty(pg_relation_size(schemaname||'.'||sequencename)) as size,
+                    obj_description(c.oid) as description,
+                    pg_get_userbyid(c.relowner) as owner
+                FROM pg_sequences s
+                LEFT JOIN pg_class c ON c.relname = s.sequencename AND c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = s.schemaname)
+                WHERE sequencename ILIKE $1
+                ORDER BY schemaname, sequencename
+                LIMIT $2
+            `, {
+                bind: [searchPattern, maxObjects],
+                timeout: 8000
+            });
+            
+            objects.push(...sequences.map(seq => ({
+                ...seq,
+                database_name: databaseName,
+                sql_definition: `-- Sequência: ${seq.schema_name}.${seq.object_name}\n-- Tamanho: ${seq.size}\n-- Dono: ${seq.owner}`
+            })));
+        }
+        
+        if (!objectType || objectType === 'constraint') {
+            // Buscar constraints (otimizada)
+            const [constraints] = await sequelize.query(`
+                SELECT 
+                    tc.table_schema as schema_name,
+                    tc.constraint_name as object_name,
+                    'constraint' as object_type,
+                    tc.table_name,
+                    tc.constraint_type,
+                    obj_description(pgc.oid) as description,
+                    pg_get_userbyid(pgc.relowner) as owner
+                FROM information_schema.table_constraints tc
+                LEFT JOIN pg_class pgc ON pgc.relname = tc.table_name AND pgc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = tc.table_schema)
+                WHERE tc.constraint_name ILIKE $1
+                ORDER BY tc.table_schema, tc.constraint_name
+                LIMIT $2
+            `, {
+                bind: [searchPattern, maxObjects],
+                timeout: 8000
+            });
+            
+            objects.push(...constraints.map(constraint => ({
+                ...constraint,
+                database_name: databaseName,
+                sql_definition: `-- Constraint: ${constraint.schema_name}.${constraint.object_name}\n-- Tabela: ${constraint.table_name}\n-- Tipo: ${constraint.constraint_type}`
+            })));
+        }
+        
+    } catch (error) {
+        logger.error(`Erro ao buscar objetos por tipo na database ${databaseName}:`, error);
+        throw error;
+    }
+    
+    return objects;
 }
 
 module.exports = new ServerController(); 

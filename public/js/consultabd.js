@@ -1258,11 +1258,13 @@ const filterAndPaginateDatabases = debounce((page) => {
     const serverSearchElement = document.getElementById('serverSearch');
     const databaseSearchElement = document.getElementById('databaseSearch');
     const statusFilterElement = document.getElementById('statusFilter');
+    const versionFilterElement = document.getElementById('versionFilter');
     const perPageElement = document.getElementById('databasesPerPage');
     
     const serverSearch = serverSearchElement ? serverSearchElement.value.trim().toLowerCase() : '';
     const databaseSearch = databaseSearchElement ? databaseSearchElement.value.trim().toLowerCase() : '';
     const statusFilter = statusFilterElement ? statusFilterElement.value : '';
+    const versionFilter = versionFilterElement ? versionFilterElement.value.trim() : '';
     const perPage = perPageElement ? parseInt(perPageElement.value, 10) : 10;
     
     if (page) currentPage = page; else currentPage = 1;
@@ -1278,6 +1280,15 @@ const filterAndPaginateDatabases = debounce((page) => {
         
         // Filtrar por servidor
         if (serverSearch && !serverData.serverName.toLowerCase().includes(serverSearch)) return;
+        
+        // Filtrar por versão da grid (campo version da database)
+        if (versionFilter && versionFilter !== '') {
+            // Verificar se alguma database do servidor tem a versão filtrada
+            const hasMatchingVersion = serverData.databases && serverData.databases.some(db => 
+                db.version && db.version.includes(versionFilter)
+            );
+            if (!hasMatchingVersion) return;
+        }
         
         if (serverData.success && serverData.databases && serverData.databases.length > 0) {
             const dbs = serverData.databases.filter(db => {
@@ -1349,10 +1360,12 @@ function clearFilters() {
     const serverSearch = document.getElementById('serverSearch');
     const databaseSearch = document.getElementById('databaseSearch');
     const statusFilter = document.getElementById('statusFilter');
+    const versionFilter = document.getElementById('versionFilter');
     
     if (serverSearch) serverSearch.value = '';
     if (databaseSearch) databaseSearch.value = '';
     if (statusFilter) statusFilter.value = '';
+    if (versionFilter) versionFilter.value = '';
     
     // Resetar página para 1
     currentPage = 1;
@@ -1758,4 +1771,492 @@ function refreshDatabases() {
     currentPage = 1;
     
     loadDatabases();
+}
+
+// ==================== FUNCIONALIDADES DE BUSCA DE OBJETOS ====================
+
+// Variáveis globais para busca de objetos
+let objectSearchResults = [];
+
+// Função para abrir modal de busca de objetos
+function openObjectSearchModal() {
+    const modal = document.getElementById('objectSearchModal');
+    if (modal) {
+        // Carregar checkboxes dos servidores
+        renderObjectSearchServerCheckboxes();
+        
+        // Mostrar modal
+        modal.showModal();
+        
+        // Focar no campo de busca
+        setTimeout(() => {
+            const searchInput = document.getElementById('objectSearchTerm');
+            if (searchInput) {
+                searchInput.focus();
+            }
+        }, 100);
+    }
+}
+
+// Função para fechar modal de busca de objetos
+function closeObjectSearchModal() {
+    const modal = document.getElementById('objectSearchModal');
+    if (modal) {
+        modal.close();
+        
+        // Limpar resultados
+        clearObjectSearchResults();
+    }
+}
+
+// Função para renderizar checkboxes dos servidores no modal de busca
+function renderObjectSearchServerCheckboxes() {
+    const container = document.getElementById('objectSearchServerCheckboxes');
+    
+    if (servers.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">Nenhum servidor disponível</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="form-control mb-2">
+            <label class="label cursor-pointer bg-base-200 p-2 rounded hover:bg-base-300 transition-colors">
+                <span class="label-text text-sm font-medium">Selecionar Todos</span>
+                <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" id="selectAllObjectServers" onchange="toggleAllObjectServers()">
+            </label>
+        </div>
+        <div class="space-y-1">
+            ${servers.map(server => `
+                <label class="label cursor-pointer p-2 hover:bg-base-200 rounded">
+                    <span class="label-text text-sm flex items-center">
+                        <div class="status-circle status-${server.connectionStatus || 'unknown'} mr-2"></div>
+                        ${server.name}
+                    </span>
+                    <input type="checkbox" class="checkbox checkbox-sm" value="${server.id}" data-server-name="${server.name}">
+                </label>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Função para alternar todos os servidores na busca de objetos
+function toggleAllObjectServers() {
+    const selectAllCheckbox = document.getElementById('selectAllObjectServers');
+    const serverCheckboxes = document.querySelectorAll('#objectSearchServerCheckboxes input[type="checkbox"][value]');
+    
+    serverCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+}
+
+// Função para obter servidores selecionados na busca de objetos
+function getSelectedObjectServers() {
+    const checkboxes = document.querySelectorAll('#objectSearchServerCheckboxes input[type="checkbox"][value]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// Função para buscar objetos
+async function searchObjects() {
+    const searchTerm = document.getElementById('objectSearchTerm').value.trim();
+    const searchType = document.getElementById('objectSearchType').value;
+    const objectType = document.getElementById('objectTypeFilter').value;
+    const searchLimit = document.getElementById('objectSearchLimit').value;
+    const selectedServers = getSelectedObjectServers();
+    
+    // Validações
+    if (!searchTerm) {
+        showNotification('Digite um termo de busca', 'warning');
+        return;
+    }
+    
+    if (searchTerm.length < 3) {
+        showNotification('Termo de busca deve ter pelo menos 3 caracteres', 'warning');
+        return;
+    }
+    
+    if (selectedServers.length === 0) {
+        showNotification('Selecione pelo menos um servidor', 'warning');
+        return;
+    }
+    
+    if (!objectType) {
+        showNotification('Selecione um tipo de objeto', 'warning');
+        return;
+    }
+    
+    // Mostrar loading
+    const btnSearch = document.getElementById('btnSearchObjectsExecute');
+    const originalText = btnSearch.innerHTML;
+    btnSearch.disabled = true;
+    btnSearch.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Buscando...';
+    
+    try {
+                const response = await fetch(`${API_BASE}/servers/search-objects`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({
+                        searchTerm: searchTerm,
+                        searchType: searchType,
+                        objectType: objectType,
+                        searchLimit: parseInt(searchLimit),
+                        serverIds: selectedServers
+                    })
+                });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao buscar objetos');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            objectSearchResults = result.data || [];
+            // Armazenar summary para uso nas estatísticas
+            window.lastSearchSummary = result.summary || {};
+            displayObjectSearchResults(objectSearchResults);
+            showNotification(`Encontrados ${objectSearchResults.length} objetos`, 'success');
+        } else {
+            showNotification(result.message || 'Erro ao buscar objetos', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Erro ao buscar objetos:', error);
+        showNotification('Erro ao conectar com o servidor', 'error');
+    } finally {
+        // Restaurar botão
+        btnSearch.disabled = false;
+        btnSearch.innerHTML = originalText;
+    }
+}
+
+// Função para exibir resultados da busca de objetos
+function displayObjectSearchResults(results) {
+    const resultsDiv = document.getElementById('objectSearchResults');
+    const statsDiv = document.getElementById('objectSearchStats');
+    const tableDiv = document.getElementById('objectSearchTable');
+    
+    if (!results.length) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    
+    // Mostrar seção de resultados
+    resultsDiv.style.display = 'block';
+    
+    // Estatísticas
+    const totalObjects = results.length;
+    const objectTypes = [...new Set(results.map(r => r.object_type))];
+    const servers = [...new Set(results.map(r => r.server_name))];
+    
+    // Verificar se há mais resultados (baseado na resposta da API)
+    const hasMore = window.lastSearchSummary && window.lastSearchSummary.hasMore;
+    const totalFound = window.lastSearchSummary && window.lastSearchSummary.totalFound;
+    
+    statsDiv.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div>
+                <h4 class="font-bold">Resultados da Busca</h4>
+                <div class="text-sm space-y-1 mt-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="badge badge-primary">${totalObjects}</span>
+                        <span>objetos encontrados${hasMore ? ` (de ${totalFound} total)` : ''}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="badge badge-secondary">${servers.length}</span>
+                        <span>servidores pesquisados</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="badge badge-accent">${objectTypes.length}</span>
+                        <span>tipos de objetos</span>
+                    </div>
+                    ${hasMore ? `
+                    <div class="flex items-center space-x-2 mt-2">
+                        <span class="badge badge-warning">Limite</span>
+                        <span>Resultados limitados para melhor performance</span>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Tabela de resultados
+    let tableHtml = `
+        <table class="table table-zebra w-full">
+            <thead>
+                <tr>
+                    <th>Servidor</th>
+                    <th>Database</th>
+                    <th>Tipo</th>
+                    <th>Nome do Objeto</th>
+                    <th>Schema</th>
+                    <th>Informações</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    results.forEach(obj => {
+        const info = getObjectInfo(obj);
+        const actions = getObjectActions(obj);
+        
+        tableHtml += `
+            <tr>
+                <td>
+                    <div class="flex items-center">
+                        <div class="status-circle status-${obj.connection_status || 'unknown'} mr-2"></div>
+                        ${obj.server_name}
+                    </div>
+                </td>
+                <td class="font-mono text-sm">${obj.database_name}</td>
+                <td>
+                    <span class="badge badge-${getObjectTypeBadgeClass(obj.object_type)}">
+                        ${getObjectTypeLabel(obj.object_type)}
+                    </span>
+                </td>
+                <td class="font-mono text-sm">${obj.object_name}</td>
+                <td class="font-mono text-sm">${obj.schema_name || 'N/A'}</td>
+                <td class="max-w-xs">
+                    <div class="text-xs space-y-1">
+                        ${info.map(item => `<div><strong>${item.label}:</strong> ${item.value}</div>`).join('')}
+                    </div>
+                </td>
+                <td>
+                    <div class="flex gap-1">
+                        ${actions.map(action => action).join('')}
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableHtml += '</tbody></table>';
+    tableDiv.innerHTML = tableHtml;
+}
+
+// Função para obter informações do objeto
+function getObjectInfo(obj) {
+    const info = [];
+    
+    if (obj.size) {
+        info.push({ label: 'Tamanho', value: formatSize(obj.size) });
+    }
+    
+    if (obj.owner) {
+        info.push({ label: 'Dono', value: obj.owner });
+    }
+    
+    if (obj.description) {
+        info.push({ label: 'Descrição', value: obj.description.substring(0, 50) + (obj.description.length > 50 ? '...' : '') });
+    }
+    
+    if (obj.created_at) {
+        info.push({ label: 'Criado', value: new Date(obj.created_at).toLocaleDateString('pt-BR') });
+    }
+    
+    if (obj.modified_at) {
+        info.push({ label: 'Modificado', value: new Date(obj.modified_at).toLocaleDateString('pt-BR') });
+    }
+    
+    return info;
+}
+
+// Função para obter ações do objeto
+function getObjectActions(obj) {
+    const actions = [];
+    
+    // Botão para ver SQL
+    if (obj.sql_definition) {
+        actions.push(`
+            <button class="btn btn-xs btn-info" onclick="showObjectSQL('${obj.object_name}', \`${obj.sql_definition.replace(/`/g, '\\`')}\`, '${obj.server_name}', '${obj.size || ''}', '${obj.owner || ''}')" title="Ver SQL">
+                <i class="fas fa-code"></i>
+            </button>
+        `);
+    }
+    
+    
+    return actions;
+}
+
+// Função para obter classe do badge do tipo de objeto
+function getObjectTypeBadgeClass(objectType) {
+    const typeClasses = {
+        'table': 'primary',
+        'column': 'secondary',
+        'index': 'accent',
+        'view': 'info',
+        'function': 'warning',
+        'procedure': 'warning',
+        'trigger': 'error',
+        'sequence': 'success',
+        'constraint': 'neutral'
+    };
+    return typeClasses[objectType] || 'neutral';
+}
+
+// Função para obter label do tipo de objeto
+function getObjectTypeLabel(objectType) {
+    const typeLabels = {
+        'table': 'Tabela',
+        'column': 'Coluna',
+        'index': 'Índice',
+        'view': 'View',
+        'function': 'Função',
+        'procedure': 'Procedure',
+        'trigger': 'Trigger',
+        'sequence': 'Sequência',
+        'constraint': 'Constraint'
+    };
+    return typeLabels[objectType] || objectType;
+}
+
+// Função para mostrar SQL do objeto
+function showObjectSQL(objectName, sqlDefinition, serverName, objectSize, objectOwner) {
+    // Remover modal existente se houver
+    const existingModal = document.getElementById('objectSQLModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Criar modal
+    const modal = document.createElement('div');
+    modal.id = 'objectSQLModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999999] p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-semibold">SQL do Objeto</h3>
+                <button onclick="closeObjectSQLModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Servidor:</span>
+                        </label>
+                        <p class="text-base-content/70">${serverName}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Objeto:</span>
+                        </label>
+                        <p class="text-base-content/70 font-mono">${objectName}</p>
+                    </div>
+                    
+                    ${objectSize ? `
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Tamanho:</span>
+                        </label>
+                        <p class="text-base-content/70">${objectSize}</p>
+                    </div>
+                    ` : ''}
+                    
+                    ${objectOwner ? `
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Dono:</span>
+                        </label>
+                        <p class="text-base-content/70">${objectOwner}</p>
+                    </div>
+                    ` : ''}
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Definição SQL:</span>
+                        </label>
+                        <div class="bg-gray-900 text-green-400 p-4 rounded-lg max-h-96 overflow-y-auto">
+                            <pre class="text-sm font-mono whitespace-pre-wrap">${sqlDefinition}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end p-6 border-t bg-gray-50">
+                <button onclick="copySQLDefinition(\`${sqlDefinition.replace(/`/g, '\\`')}\`)" class="btn btn-primary mr-2">
+                    <i class="fas fa-copy mr-2"></i>
+                    Copiar SQL
+                </button>
+                <button onclick="closeObjectSQLModal()" class="btn btn-ghost">Fechar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Função para fechar modal de SQL
+function closeObjectSQLModal() {
+    const modal = document.getElementById('objectSQLModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+
+// Função para copiar definição SQL
+function copySQLDefinition(sqlDefinition) {
+    copyToClipboard(sqlDefinition, 'SQL copiado!');
+}
+
+// Função auxiliar para copiar texto
+async function copyToClipboard(text, successMessage) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            showNotification(successMessage, 'success');
+        } else {
+            // Fallback para navegadores que não suportam clipboard API
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showNotification(successMessage, 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao copiar:', error);
+        showNotification('Erro ao copiar texto', 'error');
+    }
+}
+
+// Função para limpar busca de objetos
+function clearObjectSearch() {
+    document.getElementById('objectSearchTerm').value = '';
+    document.getElementById('objectSearchType').value = 'contains';
+    document.getElementById('objectTypeFilter').value = 'table';
+    document.getElementById('objectSearchLimit').value = '25';
+    
+    // Desmarcar todos os servidores
+    const checkboxes = document.querySelectorAll('#objectSearchServerCheckboxes input[type="checkbox"][value]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Limpar resultados
+    clearObjectSearchResults();
+    
+    showNotification('Filtros limpos!', 'success');
+}
+
+// Função para limpar resultados da busca de objetos
+function clearObjectSearchResults() {
+    const resultsDiv = document.getElementById('objectSearchResults');
+    if (resultsDiv) {
+        resultsDiv.style.display = 'none';
+    }
+    
+    objectSearchResults = [];
 } 

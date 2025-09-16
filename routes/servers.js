@@ -24,5 +24,6 @@ router.post('/servers/force-cache-update', serverController.forceCacheUpdate);
 router.get('/servers/stats/overview', serverController.getServerStats);
 router.get('/servers/:serverId/update-data', serverController.updateServerData);
 router.get('/servers/:serverId/update-sizes', serverController.updateDatabaseSizes);
+router.post('/servers/search-objects', serverController.searchObjects);
 
 module.exports = router; 

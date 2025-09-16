@@ -122,10 +122,16 @@
                         </div>
 
                         <div class="mt-4">
-                            <button class="btn btn-primary" onclick="loadDatabases()" id="btnLoadDatabases">
-                                <i class="fas fa-search mr-2"></i>
-                                Listar Databases
-                            </button>
+                            <div class="flex flex-wrap gap-2">
+                                <button class="btn btn-primary" onclick="loadDatabases()" id="btnLoadDatabases">
+                                    <i class="fas fa-search mr-2"></i>
+                                    Listar Databases
+                                </button>
+                                <button class="btn btn-secondary" onclick="openObjectSearchModal()" id="btnSearchObjects">
+                                    <i class="fas fa-search-plus mr-2"></i>
+                                    Buscar Objetos
+                                </button>
+                            </div>
                             <div id="loadingIndicator" class="hidden mt-2">
                                 <div class="flex items-center space-x-2 text-sm text-gray-600">
                                     <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -146,7 +152,7 @@
                     
                     <div class="flex flex-col gap-4 mb-4">
                         <!-- Filtros de busca -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div class="form-control">
                                 <label class="label">
                                     <span class="label-text">Buscar por Servidor</span>
@@ -168,6 +174,12 @@
                                     <option value="success">Com sucesso</option>
                                     <option value="error">Com erro</option>
                                 </select>
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Filtrar por Versão</span>
+                                </label>
+                                <input id="versionFilter" class="input input-bordered" type="text" placeholder="Digite a versão..." oninput="filterAndPaginateDatabases()">
                             </div>
                         </div>
                         
@@ -278,6 +290,121 @@
         </form>
     </dialog>
 
+    <!-- Modal para Busca de Objetos -->
+    <dialog id="objectSearchModal" class="modal">
+        <div class="modal-box w-11/12 max-w-6xl">
+            <h3 class="font-bold text-lg mb-4">
+                <i class="fas fa-search-plus mr-2"></i>
+                Buscar Objetos do Banco de Dados
+            </h3>
+            
+            <div class="space-y-4">
+                <!-- Filtros de Busca -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tipo de Busca</span>
+                        </label>
+                        <select id="objectSearchType" class="select select-bordered">
+                            <option value="contains">Contém</option>
+                            <option value="starts_with">Inicia em</option>
+                            <option value="ends_with">Termina em</option>
+                            <option value="exact">Exato</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Termo de Busca *</span>
+                        </label>
+                        <input type="text" id="objectSearchTerm" class="input input-bordered" 
+                               placeholder="Digite o nome do objeto..." required>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tipo de Objeto</span>
+                        </label>
+                        <select id="objectTypeFilter" class="select select-bordered" required>
+                            <option value="table">Tabelas</option>
+                            <option value="column">Colunas</option>
+                            <option value="index">Índices</option>
+                            <option value="view">Views</option>
+                            <option value="function">Funções</option>
+                            <option value="procedure">Procedures</option>
+                            <option value="trigger">Triggers</option>
+                            <option value="sequence">Sequências</option>
+                            <option value="constraint">Constraints</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Configurações de Busca -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Quantidade de Registros</span>
+                        </label>
+                        <select id="objectSearchLimit" class="select select-bordered">
+                            <option value="5">5 registros</option>
+                            <option value="25" selected>25 registros</option>
+                            <option value="50">50 registros</option>
+                            <option value="100">100 registros</option>
+                            <option value="250">250 registros</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Servidores para Buscar</span>
+                        </label>
+                        <div id="objectSearchServerCheckboxes" class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto border border-base-300 rounded-lg p-3">
+                            <!-- Checkboxes dos servidores serão carregados aqui -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botões de Ação -->
+                <div class="flex justify-between items-center">
+                    <div class="flex gap-2">
+                        <button class="btn btn-primary" onclick="searchObjects()" id="btnSearchObjectsExecute">
+                            <i class="fas fa-search mr-2"></i>
+                            Buscar Objetos
+                        </button>
+                        <button class="btn btn-outline" onclick="clearObjectSearch()">
+                            <i class="fas fa-times mr-2"></i>
+                            Limpar
+                        </button>
+                    </div>
+                    <button class="btn btn-ghost" onclick="closeObjectSearchModal()">
+                        <i class="fas fa-times mr-2"></i>
+                        Fechar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Resultados da Busca -->
+            <div id="objectSearchResults" class="mt-6" style="display: none;">
+                <div class="divider">
+                    <span class="text-sm font-medium">Resultados da Busca</span>
+                </div>
+                
+                <div class="mt-4">
+                    <div id="objectSearchStats" class="alert alert-info mb-4">
+                        <!-- Estatísticas serão exibidas aqui -->
+                    </div>
+                    
+                    <div id="objectSearchTable" class="overflow-x-auto">
+                        <!-- Tabela de resultados será exibida aqui -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
     <!-- Créditos -->
     <div class="container mx-auto px-4 py-8">
         <div class="card bg-base-100 shadow-xl">
@@ -375,6 +502,20 @@
         
         .hidden {
             display: none !important;
+        }
+        
+        /* Garantir que o modal SQL apareça na frente do modal de busca */
+        #objectSQLModal {
+            z-index: 999999 !important;
+        }
+        
+        #objectSQLModal .modal-box {
+            z-index: 1000000 !important;
+        }
+        
+        /* Garantir que o modal de busca tenha z-index menor */
+        #objectSearchModal {
+            z-index: 9999 !important;
         }
     </style>
 </body>
