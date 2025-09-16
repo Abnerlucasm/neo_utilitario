@@ -3,42 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Bancos de Dados - Neo Utilitário</title>
-    
-    <!-- DaisyUI CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <title>Consulta de Bancos de Dados - NeoHub</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Módulo de Personalização -->
+    <script src="/js/personalization-module.js"></script>
     
+    <!-- DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+
     <!-- CSS Customizado -->
     <link rel="stylesheet" href="/styles/consultabd.css">
-    
-    <!-- Configuração do Tailwind -->
-    <script src="/js/tailwind-config.js"></script>
 </head>
 <body class="bg-base-200 min-h-screen">
-    <!-- Navbar -->
-    <div class="navbar bg-base-100 shadow-lg">
-        <div class="navbar-start">
-            <a href="/" class="btn btn-ghost normal-case text-xl">
-                <i class="fas fa-database mr-2"></i>
-                Neo Utilitário
-            </a>
-        </div>
-        <div class="navbar-center">
-            <h1 class="text-xl font-semibold">Consulta de Bancos de Dados</h1>
-        </div>
-        <div class="navbar-end">
-            <a href="/" class="btn btn-ghost">
-                <i class="fas fa-home mr-2"></i>
-                Voltar
-            </a>
-        </div>
-    </div>
+    <neo-navbar></neo-navbar>
 
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
@@ -424,8 +407,69 @@
         </div>
     </div>
 
+    <neo-footer></neo-footer>
+
+    <!-- Botão de Voltar ao Topo -->
+    <button id="backToTop" class="btn btn-circle btn-primary fixed bottom-4 right-4 z-50 opacity-0 transition-opacity duration-300" style="display: none;" data-unique="back-to-top-consultabd">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
     <!-- Scripts -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/avatar-manager.js"></script>
+    <script type="module" src="/components/navbar/navbar.js"></script>
+    <script type="module" src="/components/footer/footer.js"></script>
     <script src="/js/consultabd.js"></script>
+    
+    <script>
+        // Adicionar fundo à navbar quando fazer scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            // Remover qualquer elemento duplicado de botão de voltar ao topo
+            const existingBackToTopBtns = document.querySelectorAll('[data-unique="back-to-top-consultabd"]');
+            if (existingBackToTopBtns.length > 1) {
+                for (let i = 1; i < existingBackToTopBtns.length; i++) {
+                    existingBackToTopBtns[i].remove();
+                }
+            }
+            
+            const navbar = document.querySelector('.navbar');
+            const backToTopBtn = document.getElementById('backToTop');
+            
+            if (navbar) {
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > 10) {
+                        navbar.classList.add('scrolled');
+                    } else {
+                        navbar.classList.remove('scrolled');
+                    }
+                });
+            }
+            
+            // Botão de voltar ao topo
+            if (backToTopBtn) {
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > 300) {
+                        backToTopBtn.style.display = 'block';
+                        setTimeout(() => {
+                            backToTopBtn.style.opacity = '1';
+                        }, 10);
+                    } else {
+                        backToTopBtn.style.opacity = '0';
+                        setTimeout(() => {
+                            backToTopBtn.style.display = 'none';
+                        }, 300);
+                    }
+                });
+                
+                backToTopBtn.addEventListener('click', function() {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
+        });
+    </script>
     
     <style>
         /* Skeleton Loading Styles */

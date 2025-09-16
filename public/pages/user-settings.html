@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="light">
+<html lang="pt-BR" data-theme="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -156,18 +156,19 @@
                             Segurança
                         </h2>
                         <div class="form-control">
-                            <label class="label" for="newPassword">
-                                <span class="label-text font-medium">Nova Senha</span>
+                            <label class="label">
+                                <span class="label-text font-medium">Senha</span>
                             </label>
-                            <div class="relative">
-                                <input class="input input-bordered w-full pl-10 rounded-lg" type="password" id="newPassword" placeholder="Digite a nova senha">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50">
-                                    <i class="fas fa-lock"></i>
-                                </span>
+                            <div class="flex items-center gap-4 p-4 bg-base-100 rounded-lg border">
+                                <div class="flex-1">
+                                    <div class="text-sm text-base-content/70 mb-2">Sua senha atual está segura</div>
+                                    <div class="text-xs text-base-content/50">Última alteração: <span id="lastPasswordChange">Não disponível</span></div>
+                                </div>
+                                <button type="button" id="changePasswordBtn" class="btn btn-outline btn-sm">
+                                    <i class="fas fa-key mr-2"></i>
+                                    Alterar Senha
+                                </button>
                             </div>
-                            <label class="label justify-end">
-                                <span class="label-text-alt text-base-content/50">Deixe em branco para manter a senha atual</span>
-                            </label>
                         </div>
                     </div>
 
@@ -204,24 +205,142 @@
     <!-- Footer sempre visível -->
     <neo-footer></neo-footer>
 
+    <!-- Modal de Troca de Senha -->
+    <dialog id="changePasswordModal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4">
+                <i class="fas fa-key mr-2"></i>
+                Alterar Senha
+            </h3>
+            <form id="changePasswordForm" class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Senha Atual</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="currentPassword" class="input input-bordered w-full pr-12" placeholder="Digite sua senha atual" required>
+                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content" onclick="togglePasswordVisibility('currentPassword')">
+                            <i class="fas fa-eye" id="currentPasswordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Nova Senha</span>
+                        <span class="label-text-alt text-base-content/50">Mínimo 6 caracteres</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="newPassword" class="input input-bordered w-full pr-12" placeholder="Digite a nova senha" required minlength="6">
+                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content" onclick="togglePasswordVisibility('newPassword')">
+                            <i class="fas fa-eye" id="newPasswordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Confirmar Nova Senha</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="confirmPassword" class="input input-bordered w-full pr-12" placeholder="Digite novamente a nova senha" required minlength="6">
+                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content" onclick="togglePasswordVisibility('confirmPassword')">
+                            <i class="fas fa-eye" id="confirmPasswordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-action">
+                    <button type="button" class="btn btn-ghost" onclick="closeChangePasswordModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Alterar Senha</button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
     <script src="/js/personalization-module.js"></script>
+    <script src="/js/avatar-manager.js"></script>
     <script src="/js/auth.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Carregar avatar do usuário se disponível
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Carregar dados do usuário
             const token = localStorage.getItem('auth_token');
             if (token) {
                 try {
                     const tokenData = JSON.parse(atob(token.split('.')[1]));
-                    const avatarUrl = tokenData.avatar || '/assets/avatar-default.png';
-                    document.getElementById('userAvatar').src = avatarUrl;
-                } catch {}
+                    
+                    // Carregar dados completos do usuário
+                    const response = await fetch('/api/user/profile', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const userData = await response.json();
+                        console.log('Dados do usuário carregados:', userData);
+                        
+                        // Preencher campos do formulário
+                        const nameValue = userData.name || userData.username || tokenData.name || tokenData.email?.split('@')[0] || '';
+                        document.getElementById('userName').value = nameValue;
+                        document.getElementById('userEmail').value = userData.email || tokenData.email || '';
+                        const themeValue = userData.theme || tokenData.theme || 'light';
+                        document.getElementById('themeSelect').value = themeValue;
+                        
+                        // Aplicar tema
+                        document.documentElement.setAttribute('data-theme', themeValue);
+                        
+                        console.log('Nome definido como:', nameValue);
+                        console.log('Tema aplicado:', themeValue);
+                        
+                        // Carregar avatar
+                        if (window.avatarManager) {
+                            await window.avatarManager.updateAvatarElement(userData.id, '#userAvatar');
+                        } else {
+                            document.getElementById('userAvatar').src = userData.avatar || '/assets/avatar-default.png';
+                        }
+                    } else {
+                        // Fallback para dados do token
+                        const nameValue = tokenData.name || tokenData.email?.split('@')[0] || '';
+                        document.getElementById('userName').value = nameValue;
+                        document.getElementById('userEmail').value = tokenData.email || '';
+                        const themeValue = tokenData.theme || 'light';
+                        document.getElementById('themeSelect').value = themeValue;
+                        
+                        // Aplicar tema
+                        document.documentElement.setAttribute('data-theme', themeValue);
+                        
+                        console.log('Fallback - Nome definido como:', nameValue);
+                        console.log('Fallback - Tema aplicado:', themeValue);
+                        
+                        if (window.avatarManager) {
+                            await window.avatarManager.updateAvatarElement(tokenData.id, '#userAvatar');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar dados do usuário:', error);
+                    document.getElementById('userAvatar').src = '/assets/avatar-default.png';
+                }
             }
 
             // Preview do avatar antes de enviar
             document.getElementById('avatarUpload').addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
+                    // Validar tipo de arquivo
+                    if (!file.type.startsWith('image/')) {
+                        alert('Por favor, selecione apenas arquivos de imagem.');
+                        e.target.value = '';
+                        return;
+                    }
+                    
+                    // Validar tamanho (2MB)
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('O arquivo deve ter no máximo 2MB.');
+                        e.target.value = '';
+                        return;
+                    }
+                    
                     const reader = new FileReader();
                     reader.onload = function(evt) {
                         document.getElementById('userAvatar').src = evt.target.result;
@@ -235,31 +354,180 @@
                 e.preventDefault();
                 const fileInput = document.getElementById('avatarUpload');
                 const file = fileInput.files[0];
-                if (!file) return;
+                if (!file) {
+                    alert('Por favor, selecione um arquivo.');
+                    return;
+                }
 
                 const formData = new FormData();
                 formData.append('avatar', file);
 
+                // Mostrar loading
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+                submitBtn.disabled = true;
+
                 try {
-                    const response = await fetch('/api/users/avatar', {
+                    const response = await fetch('/api/user/avatar', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                         },
                         body: formData
                     });
+                    
                     if (!response.ok) {
-                        throw new Error('Falha ao enviar avatar');
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Falha ao enviar avatar');
                     }
+                    
                     const result = await response.json();
-                    // Atualizar avatar exibido (caso backend retorne novo path)
+                    
+                    // Atualizar avatar exibido
                     if (result.avatarUrl) {
                         document.getElementById('userAvatar').src = result.avatarUrl;
+                        
+                        // Atualizar avatar no navbar se disponível
+                        if (window.avatarManager) {
+                            const tokenData = JSON.parse(atob(localStorage.getItem('auth_token').split('.')[1]));
+                            window.avatarManager.updateCurrentUserAvatar();
+                        }
                     }
-                    alert('Avatar atualizado com sucesso!');
+                    
+                    // Limpar formulário
+                    fileInput.value = '';
+                    
+                    // Mostrar sucesso
+                    showToast('Avatar atualizado com sucesso!', 'success');
+                    
                 } catch (err) {
-                    alert('Erro ao atualizar avatar: ' + err.message);
+                    console.error('Erro ao atualizar avatar:', err);
+                    showToast('Erro ao atualizar avatar: ' + err.message, 'error');
+                } finally {
+                    // Restaurar botão
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                 }
+            });
+
+            // Função para mostrar toast
+            function showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type} fixed top-4 right-4 z-50 max-w-sm`;
+                toast.innerHTML = `
+                    <div>
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            }
+
+            // Botão de troca de senha
+            document.getElementById('changePasswordBtn').addEventListener('click', function() {
+                document.getElementById('changePasswordModal').showModal();
+            });
+
+            // Formulário de troca de senha
+            document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (newPassword !== confirmPassword) {
+                    showToast('As senhas não coincidem', 'error');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    showToast('A nova senha deve ter pelo menos 6 caracteres', 'error');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/user/profile', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                        },
+                        body: JSON.stringify({
+                            currentPassword,
+                            password: newPassword
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        showToast('Senha alterada com sucesso!', 'success');
+                        closeChangePasswordModal();
+                    } else {
+                        const errorData = await response.json();
+                        showToast(errorData.error || 'Erro ao alterar senha', 'error');
+                    }
+                } catch (error) {
+                    showToast('Erro ao alterar senha: ' + error.message, 'error');
+                }
+            });
+
+            // Botão de logout
+            document.getElementById('logoutButton').addEventListener('click', function() {
+                if (confirm('Tem certeza que deseja sair da sua conta?')) {
+                    // Limpar dados locais
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('userSettings');
+                    
+                    // Redirecionar para login
+                    window.location.href = '/login.html';
+                }
+            });
+
+            // Função para fechar modal de troca de senha
+            window.closeChangePasswordModal = function() {
+                document.getElementById('changePasswordModal').close();
+                document.getElementById('changePasswordForm').reset();
+                // Resetar visibilidade das senhas
+                resetPasswordVisibility();
+            };
+
+            // Função para alternar visibilidade da senha
+            window.togglePasswordVisibility = function(inputId) {
+                const input = document.getElementById(inputId);
+                const icon = document.getElementById(inputId + 'Icon');
+                
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.className = 'fas fa-eye-slash';
+                } else {
+                    input.type = 'password';
+                    icon.className = 'fas fa-eye';
+                }
+            };
+
+            // Função para resetar visibilidade das senhas
+            function resetPasswordVisibility() {
+                const passwordInputs = ['currentPassword', 'newPassword', 'confirmPassword'];
+                passwordInputs.forEach(inputId => {
+                    const input = document.getElementById(inputId);
+                    const icon = document.getElementById(inputId + 'Icon');
+                    if (input && icon) {
+                        input.type = 'password';
+                        icon.className = 'fas fa-eye';
+                    }
+                });
+            }
+
+            // Listener para mudanças de tema
+            document.getElementById('themeSelect').addEventListener('change', function() {
+                const selectedTheme = this.value;
+                document.documentElement.setAttribute('data-theme', selectedTheme);
+                console.log('Tema alterado para:', selectedTheme);
             });
 
             AuthManager.checkAuth();

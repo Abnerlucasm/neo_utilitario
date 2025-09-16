@@ -168,4 +168,56 @@ router.post('/avatar', uploadAvatar.single('avatar'), async (req, res) => {
     }
 });
 
+// Buscar avatar de um usuário específico
+router.get('/:userId/avatar', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await User.findByPk(userId);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        // Retornar URL do avatar ou avatar padrão
+        const avatarUrl = user.avatar || '/assets/avatar-default.png';
+        res.json({ avatarUrl });
+    } catch (error) {
+        logger.error('Erro ao buscar avatar:', error);
+        res.status(500).json({ error: 'Erro ao buscar avatar' });
+    }
+});
+
+// Buscar informações básicas do usuário (incluindo avatar)
+router.get('/:userId/info', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await User.findByPk(userId, {
+            attributes: ['id', 'username', 'name', 'email', 'avatar', 'is_active'],
+            include: [{
+                model: Role,
+                as: 'userRoles',
+                attributes: ['id', 'name', 'description'],
+                through: { attributes: [] }
+            }]
+        });
+        
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        res.json({
+            id: user.id,
+            username: user.username,
+            name: user.name || user.username,
+            email: user.email,
+            avatar: user.avatar || '/assets/avatar-default.png',
+            is_active: user.is_active,
+            roles: user.userRoles || []
+        });
+    } catch (error) {
+        logger.error('Erro ao buscar informações do usuário:', error);
+        res.status(500).json({ error: 'Erro ao buscar informações do usuário' });
+    }
+});
+
 module.exports = router;

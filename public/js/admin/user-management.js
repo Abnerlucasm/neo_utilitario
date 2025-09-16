@@ -88,9 +88,10 @@ class UserManager {
             <tr>
                 <td>
                     <div class="flex items-center gap-3">
-                        <div class="avatar placeholder">
-                            <div class="bg-neutral text-neutral-content rounded-full w-8 h-8">
-                                <span class="text-xs">${user.username.charAt(0).toUpperCase()}</span>
+                        <div class="avatar">
+                            <div id="user-avatar-${user.id}" 
+                                 class="w-8 h-8 rounded-full bg-base-300 flex items-center justify-center text-base-content/70">
+                                <i class="fas fa-user"></i>
                             </div>
                         </div>
                         <div class="font-medium">${user.username}</div>
@@ -122,6 +123,21 @@ class UserManager {
                 </td>
             </tr>
         `).join('') || '<tr><td colspan="5" class="text-center py-8 text-base-content/70">Nenhum usuário encontrado</td></tr>';
+
+        // Atualizar avatares usando o AvatarManager
+        if (window.avatarManager) {
+            users.forEach(user => {
+                const avatarElement = document.getElementById(`user-avatar-${user.id}`);
+                if (avatarElement) {
+                    // Se o usuário tem avatar, substituir ícone por imagem
+                    window.avatarManager.getUserAvatar(user.id).then(avatarUrl => {
+                        if (avatarUrl && avatarUrl !== '/assets/avatar-default.png') {
+                            avatarElement.innerHTML = `<img src="${avatarUrl}" alt="${user.username}" class="w-full h-full object-cover rounded-full" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user\\'></i>'">`;
+                        }
+                    });
+                }
+            });
+        }
     }
 
     renderRoles() {

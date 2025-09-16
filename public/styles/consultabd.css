@@ -1,5 +1,130 @@
 /* Estilos para Consulta de Bancos de Dados */
 
+/* ===== CORREÇÕES E MELHORIAS ===== */
+
+/* 1. Paginação responsiva - evita scroll lateral */
+#databasesPagination {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+#databasesPagination .join {
+    flex-wrap: wrap;
+    max-width: 100%;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+#databasesPagination .join-item {
+    flex-shrink: 0;
+    min-width: auto;
+    white-space: nowrap;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+/* Em telas pequenas, mostrar apenas ícones */
+@media (max-width: 640px) {
+    #databasesPagination .join-item span {
+        display: none;
+    }
+    
+    #databasesPagination .join-item {
+        padding: 0.5rem;
+        min-width: 2.5rem;
+    }
+}
+
+/* 2. Navbar - estilos movidos para /components/navbar/navbar.css */
+
+/* 5. Avatar upload - melhorar visual */
+.avatar-upload-container {
+    position: relative;
+    display: inline-block;
+}
+
+.avatar-upload-container input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+/* 6. Melhorar responsividade geral */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .grid {
+        gap: 1rem;
+    }
+}
+
+/* 7. Corrigir overflow em tabelas */
+.overflow-x-auto {
+    max-width: 100%;
+}
+
+/* 8. Melhorar visual da paginação em telas pequenas */
+@media (max-width: 480px) {
+    #databasesPagination .join-item {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    #databasesPagination .join-item i {
+        margin: 0;
+    }
+}
+
+/* 9. Estilos para toast notifications */
+.alert {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 10. Garantir que a paginação não cause overflow */
+.databases-section {
+    overflow-x: hidden;
+}
+
+/* 11. Esconder texto em telas muito pequenas */
+@media (max-width: 360px) {
+    #databasesPagination .join-item span {
+        display: none;
+    }
+    
+    #databasesPagination .join-item {
+        min-width: 2rem;
+        padding: 0.25rem;
+    }
+}
+
+/* ===== ESTILOS ORIGINAIS ===== */
+
 /* Indicadores de Status em formato de círculo */
 .status-circle {
     width: 12px;
@@ -304,4 +429,27 @@
         flex: 1;
         min-width: auto;
     }
+}
+
+/* Garantir que não haja elementos duplicados no botão de voltar ao topo */
+#backToTop {
+    pointer-events: auto !important;
+    z-index: 50 !important;
+    position: fixed !important;
+    bottom: 1rem !important;
+    right: 1rem !important;
+}
+
+/* Remover qualquer pseudo-elemento que possa estar criando problemas */
+#backToTop::before,
+#backToTop::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* Garantir que o ícone dentro do botão seja visível */
+#backToTop i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 } 

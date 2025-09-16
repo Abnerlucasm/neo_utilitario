@@ -6,10 +6,13 @@
     padding: 0;
 }
 
-/* Navbar Styles */
+/* Navbar Styles - Translúcida com cor baseada no tema */
 .navbar {
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: hsl(var(--b1) / 0.85) !important;
+    backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+    border-bottom: 1px solid hsl(var(--bc) / 0.1);
+    color: hsl(var(--bc)) !important;
     padding: 0.5rem 1rem;
     display: flex;
     justify-content: space-between;
@@ -19,6 +22,7 @@
     top: 0;
     width: 100%;
     z-index: 1000;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
 .navbar-brand {
@@ -62,9 +66,58 @@
     background-color: #e8e8e8;
 }
 
-/* Tema escuro */
+/* Navbar em scroll - mais opaca */
+.navbar.scrolled {
+    background-color: hsl(var(--b1) / 0.95) !important;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    border-bottom: 1px solid hsl(var(--bc) / 0.2);
+}
+
+/* Elementos da navbar */
+.navbar .btn-ghost {
+    color: hsl(var(--bc)) !important;
+    transition: all 0.2s ease;
+}
+
+.navbar .btn-ghost:hover {
+    background-color: hsl(var(--b2) / 0.5) !important;
+    color: hsl(var(--bc)) !important;
+}
+
+/* Aplicar tema específico */
+.navbar[data-theme] {
+    background-color: hsl(var(--b1) / 0.85) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid hsl(var(--bc) / 0.1);
+}
+
+/* Tema escuro - navbar mais escura */
+[data-theme="dark"] .navbar {
+    background-color: hsl(var(--b1) / 0.9) !important;
+    border-bottom: 1px solid hsl(var(--bc) / 0.2);
+}
+
+[data-theme="dark"] .navbar.scrolled {
+    background-color: hsl(var(--b1) / 0.98) !important;
+    border-bottom: 1px solid hsl(var(--bc) / 0.3);
+}
+
+/* Tema claro - navbar mais clara */
+[data-theme="light"] .navbar {
+    background-color: hsl(var(--b1) / 0.8) !important;
+    border-bottom: 1px solid hsl(var(--bc) / 0.1);
+}
+
+[data-theme="light"] .navbar.scrolled {
+    background-color: hsl(var(--b1) / 0.92) !important;
+    border-bottom: 1px solid hsl(var(--bc) / 0.15);
+}
+
+/* Tema escuro - compatibilidade com classes antigas */
 .dark-theme .navbar {
-    background: #2c2d31;
+    background-color: hsl(var(--b1) / 0.9) !important;
+    border-bottom: 1px solid hsl(var(--bc) / 0.2);
 }
 
 .dark-theme .button.is-light {

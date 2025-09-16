@@ -5,13 +5,15 @@
 ## 🚀 Funcionalidades
 
 - **Gerenciamento de Serviços Glassfish**: Controle completo de servidores Glassfish via SSH
+- **Consulta de Bancos de Dados**: Interface para consultar múltiplos servidores de banco de dados
 - **Sistema de Sugestões**: Envie e visualize sugestões de desenvolvimento
-- **Módulos de Aprendizado**: Sistema de aprendizado com progresso e certificados
-- **Gerenciamento de Usuários**: Controle de usuários, roles e permissões
+- **Gerenciamento de Usuários**: Controle completo de usuários, roles e permissões
 - **Sistema de Menus Dinâmicos**: Menus configuráveis via banco de dados
+- **Sistema de Recursos**: Gerenciamento de recursos e permissões granulares
 - **Autenticação 2FA**: Segurança reforçada com autenticação de dois fatores
 - **Tema Claro/Escuro**: Interface responsiva com suporte a temas
 - **WebSockets**: Logs em tempo real e comunicação bidirecional
+
 
 ## 🛠️ Tecnologias
 
@@ -21,9 +23,11 @@
 - **Banco de Dados**: PostgreSQL com Sequelize ORM
 - **Autenticação**: JWT, Passport.js, 2FA com Speakeasy
 - **Process Manager**: PM2 para produção
-- **Logs**: Winston
-- **Uploads**: Multer
+- **Logs**: Winston com rotação diária
+- **Uploads**: Multer para arquivos e avatares
 - **SSH**: NodeSSH para conexões remotas
+- **Sessões**: Express-session com PostgreSQL
+- **CORS**: Suporte a requisições cross-origin
 
 ## ⚙️ Instalação
 
@@ -135,19 +139,32 @@ neo_utilitario/
 ├── config/                 # Configurações do sistema
 │   ├── database.js        # Configuração do PostgreSQL
 │   ├── email.config.js    # Configuração de email
-│   └── passport.js        # Configuração de autenticação
+│   ├── passport.js        # Configuração de autenticação
+│   ├── menu-structure.json # Estrutura de menus
+│   └── defaultResources.js # Recursos padrão
 ├── controllers/           # Controladores da aplicação
 ├── middlewares/          # Middlewares customizados
 │   ├── auth.js           # Autenticação
 │   ├── access-control.js # Controle de acesso
-│   └── ensure-admin.js   # Verificação de admin
+│   ├── ensure-admin.js   # Verificação de admin
+│   └── checkAccess.js    # Verificação de permissões
 ├── models/               # Modelos do banco de dados
 │   └── postgresql/       # Modelos PostgreSQL
+│       ├── User.js       # Modelo de usuário
+│       ├── Role.js       # Modelo de roles
+│       ├── Permission.js # Modelo de permissões
+│       ├── Resource.js   # Modelo de recursos
+│       └── associations.js # Associações entre modelos
 ├── routes/               # Rotas da API
 │   ├── auth.js           # Autenticação
 │   ├── glassfish.js      # Gerenciamento Glassfish
-│   ├── learning.js       # Módulos de aprendizado
-│   └── admin.js          # Administração
+│   ├── admin.js          # Administração
+│   ├── user.js           # Gerenciamento de usuários
+│   ├── roles.js          # Gerenciamento de roles
+│   ├── permissions.js    # Gerenciamento de permissões
+│   ├── servers.js        # Gerenciamento de servidores
+│   ├── resources.js      # Gerenciamento de recursos
+│   └── menus.js          # Gerenciamento de menus
 ├── scripts/              # Scripts utilitários
 ├── services/             # Serviços da aplicação
 │   ├── email.service.js  # Serviço de email
@@ -157,9 +174,16 @@ neo_utilitario/
 │   └── admin-config.js   # Configurações do admin
 ├── public/               # Arquivos estáticos
 │   ├── components/       # Componentes web
+│   │   ├── navbar/       # Componente de navbar
+│   │   └── footer/       # Componente de footer
 │   ├── js/              # JavaScript do frontend
+│   │   ├── admin/        # Scripts de administração
+│   │   └── auth.js       # Autenticação frontend
 │   ├── pages/           # Páginas HTML
-│   └── modules/         # Módulos de aprendizado
+│   │   ├── admin/        # Páginas de administração
+│   │   └── consultabd.html # Consulta de bancos
+│   ├── styles/          # Estilos CSS
+│   └── uploads/         # Uploads de usuários
 ├── uploads/             # Arquivos enviados
 ├── migrations/          # Migrações do banco
 ├── seeders/             # Seeds do banco

@@ -1,7 +1,7 @@
 // Template otimizado do navbar
 function getNavbarTemplate(isDarkTheme = false) {
     return `
-        <nav class="navbar bg-base-100 shadow-lg fixed top-0 w-full z-50">
+        <nav class="navbar fixed top-0 w-full z-50 backdrop-blur-md shadow-lg" style="background-color: hsl(var(--b1) / 0.85);">
             <div class="navbar-start">
                 <a href="/" class="btn btn-ghost normal-case text-xl">
                     <img src="/assets/neo-logo-small.png" alt="Neo Logo" class="h-8">
@@ -73,6 +73,7 @@ class NeoNavbar extends HTMLElement {
 
             // Garantir FontAwesome e CSS
             this.ensureFontAwesome();
+            this.ensureNavbarCSS();
             this.ensureDaisyUI();
 
             // Inicializar
@@ -90,6 +91,16 @@ class NeoNavbar extends HTMLElement {
                 fontAwesome.rel = 'stylesheet';
                 fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
                 document.head.appendChild(fontAwesome);
+        }
+    }
+
+    ensureNavbarCSS() {
+        // Garantir que o CSS do navbar esteja carregado
+        if (!document.querySelector('link[href*="navbar.css"]')) {
+            const navbarCSS = document.createElement('link');
+            navbarCSS.rel = 'stylesheet';
+            navbarCSS.href = '/components/navbar/navbar.css';
+            document.head.appendChild(navbarCSS);
         }
     }
 
@@ -227,7 +238,6 @@ class NeoNavbar extends HTMLElement {
     updateUserInfo(tokenData) {
         const userName = this.querySelector('#userName');
         const userRole = this.querySelector('#userRole');
-        const avatarUrl = tokenData.avatar || '/assets/avatar-default.png';
         const navbarAvatar = this.querySelector('#navbarAvatar');
         const sidebarAvatar = this.querySelector('#sidebarAvatar');
 
@@ -238,11 +248,20 @@ class NeoNavbar extends HTMLElement {
             const roles = tokenData.roles || [];
             userRole.textContent = roles.length > 0 ? roles.join(', ') : 'Usuário';
         }
-        if (navbarAvatar) {
-            navbarAvatar.src = avatarUrl;
-        }
-        if (sidebarAvatar) {
-            sidebarAvatar.src = avatarUrl;
+
+        // Atualizar avatares usando o AvatarManager se disponível
+        if (window.avatarManager && tokenData.id) {
+            window.avatarManager.updateAvatarElement(tokenData.id, navbarAvatar);
+            window.avatarManager.updateAvatarElement(tokenData.id, sidebarAvatar);
+        } else {
+            // Fallback para avatar padrão
+            const avatarUrl = tokenData.avatar || '/assets/avatar-default.png';
+            if (navbarAvatar) {
+                navbarAvatar.src = avatarUrl;
+            }
+            if (sidebarAvatar) {
+                sidebarAvatar.src = avatarUrl;
+            }
         }
     }
 
@@ -436,19 +455,33 @@ class NeoNavbar extends HTMLElement {
             'index': 'fa-home'
         };
 
+        const labels = {
+            'admin': 'Administração',
+            'user-settings': 'Configurações',
+            'user-management': 'Gerenciar Usuários',
+            'roles': 'Papéis',
+            'resources': 'Recursos',
+            'glassfish': 'Glassfish',
+            'consultabd': 'Consulta de Bancos',
+            'sugestoes-dev': 'Sugestões',
+            'recursos-dev': 'Recursos em Desenvolvimento',
+            'utilitarios': 'Utilitários',
+            'index': 'Início'
+        };
+
         let path = '';
         pathSegments.forEach((segment, index) => {
             path += `/${segment}`;
             const isLast = index === pathSegments.length - 1;
-            const name = segment.replace('.html', '').replace(/-/g, ' ');
-            const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-            const iconClass = icons[segment.replace('.html', '')] || 'fa-link';
+            const cleanSegment = segment.replace('.html', '');
+            const label = labels[cleanSegment] || segment.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const iconClass = icons[cleanSegment] || 'fa-link';
 
             breadcrumbHTML += `
                 <li class="flex items-center">
                     ${isLast
-                        ? `<span class="flex items-center gap-2 font-semibold"><i class="fas ${iconClass}"></i><span>${formattedName}</span></span>`
-                        : `<a href="${path}" class="flex items-center gap-2"><i class="fas ${iconClass}"></i><span>${formattedName}</span></a>
+                        ? `<span class="flex items-center gap-2 font-semibold"><i class="fas ${iconClass}"></i><span>${label}</span></span>`
+                        : `<a href="${path}" class="flex items-center gap-2"><i class="fas ${iconClass}"></i><span>${label}</span></a>
                            <span class="mx-2 text-base-content/60">›</span>`
                     }
                 </li>
@@ -482,8 +515,23 @@ class NeoNavbar extends HTMLElement {
                 document.documentElement.setAttribute('data-theme', theme);
                 this.state.isDarkTheme = theme === 'dark';
             }
+            
+            // Aplicar tema ao navbar
+            this.applyThemeToNavbar(savedSettings.theme || 'light');
         } catch (error) {
             console.error('Erro ao carregar configurações:', error);
+        }
+    }
+
+    applyThemeToNavbar(theme) {
+        const navbar = this.querySelector('.navbar');
+        if (navbar) {
+            navbar.setAttribute('data-theme', theme);
+            // Aplicar cor de fundo translúcida baseada no tema
+            navbar.style.backgroundColor = `hsl(var(--b1) / 0.85)`;
+            navbar.style.backdropFilter = 'blur(12px)';
+            navbar.style.borderBottom = `1px solid hsl(var(--bc) / 0.1)`;
+            navbar.classList.remove('scrolled');
         }
     }
 }

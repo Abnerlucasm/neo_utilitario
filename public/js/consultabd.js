@@ -348,13 +348,13 @@ function renderServersList() {
                         </div>
                     </div>
                     <div class="flex space-x-2">
-                        <button type="button" class="btn btn-info btn-sm" onclick="testServerConnection('${server.id}')" title="Testar Conexão">
+                        <button type="button" class="btn btn-outline btn-success btn-sm" onclick="testServerConnection('${server.id}')" title="Testar Conexão">
                                 <i class="fas fa-plug"></i>
                         </button>
-                        <button type="button" class="btn btn-warning btn-sm" onclick="editServer('${server.id}')" title="Editar">
+                        <button type="button" class="btn btn-outline btn-warning btn-sm" onclick="editServer('${server.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" class="btn btn-error btn-sm" onclick="deleteServer('${server.id}')" title="Excluir">
+                        <button type="button" class="btn btn-outline btn-error btn-sm" onclick="deleteServer('${server.id}')" title="Excluir">
                                 <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -1446,7 +1446,7 @@ function renderDatabasesTable(pageData, total, totalPages) {
                         '<span class="text-gray-400">-</span>'
                     }
                 </td>
-                <td><button class="btn btn-info btn-sm" onclick="copyDatabaseInfo('${db.serverHost}', '${db.name}')" title="Copiar"><i class="fas fa-copy"></i></button></td>
+                <td><button class="btn btn-outline btn-info btn-sm" onclick="copyDatabaseInfo('${db.serverHost}', '${db.name}')" title="Copiar"><i class="fas fa-copy"></i></button></td>
             </tr>`;
         }
     });
@@ -1555,23 +1555,21 @@ function renderDatabasesPagination(totalPages) {
     let html = '<div class="join">';
     
     // Botão Anterior
-    html += `<button class="join-item btn btn-outline" ${currentPage === 1 ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage - 1})">
+    html += `<button class="join-item btn btn-outline btn-sm" ${currentPage === 1 ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage - 1})" title="Página Anterior">
         <i class="fas fa-chevron-left"></i>
-        Anterior
     </button>`;
     
     // Números das páginas
     for (let i = 1; i <= totalPages; i++) {
         if (i === currentPage) {
-            html += `<button class="join-item btn btn-active">${i}</button>`;
+            html += `<button class="join-item btn btn-active btn-sm">${i}</button>`;
         } else {
-            html += `<button class="join-item btn btn-outline" onclick="filterAndPaginateDatabases(${i})">${i}</button>`;
+            html += `<button class="join-item btn btn-outline btn-sm" onclick="filterAndPaginateDatabases(${i})">${i}</button>`;
         }
     }
     
     // Botão Próxima
-    html += `<button class="join-item btn btn-outline" ${currentPage === totalPages ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage + 1})">
-        Próxima
+    html += `<button class="join-item btn btn-outline btn-sm" ${currentPage === totalPages ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage + 1})" title="Próxima Página">
         <i class="fas fa-chevron-right"></i>
     </button>`;
     
@@ -1641,7 +1639,7 @@ function showResultsSummary(databasesData) {
                 </div>
                 ${fromCache ? `
                 <div>
-                    <button onclick="forceCacheUpdate()" class="btn btn-warning btn-sm">
+                    <button onclick="forceCacheUpdate()" class="btn btn-outline btn-warning btn-sm">
                         <i class="fas fa-sync-alt"></i>
                         Atualizar Cache
                     </button>
@@ -2072,7 +2070,7 @@ function getObjectActions(obj) {
     // Botão para ver SQL
     if (obj.sql_definition) {
         actions.push(`
-            <button class="btn btn-xs btn-info" onclick="showObjectSQL('${obj.object_name}', \`${obj.sql_definition.replace(/`/g, '\\`')}\`, '${obj.server_name}', '${obj.size || ''}', '${obj.owner || ''}')" title="Ver SQL">
+            <button class="btn btn-outline btn-xs btn-info" onclick="showObjectSQL('${obj.object_name}', \`${obj.sql_definition.replace(/`/g, '\\`')}\`, '${obj.server_name}', '${obj.size || ''}', '${obj.owner || ''}')" title="Ver SQL">
                 <i class="fas fa-code"></i>
             </button>
         `);
