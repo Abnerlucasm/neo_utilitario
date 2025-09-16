@@ -35,7 +35,7 @@
 
 ### 1. Clone o repositório
 ```bash
-git clone https://github.com/seu-usuario/neo_utilitario.git
+git clone https://github.com/Abnerlucasm/neo_utilitario.git
 cd neo_utilitario
 ```
 
@@ -210,7 +210,7 @@ PORT=3020
 
 ```bash
 # Iniciar aplicação
-pm2 start ecosystem.config.js
+pm2 start server.js
 
 # Verificar status
 pm2 status
@@ -372,6 +372,5 @@ Este projeto está sob a licença [MIT](LICENSE).
 
 Para suporte técnico ou dúvidas:
 
-- **Email**: suporte@neosistemas.com.br
-- **Documentação**: [Wiki do projeto](link-para-wiki)
-- **Issues**: [GitHub Issues](link-para-issues)
+- **Email**: abner.freitas@neosistemas.com.br
+- **Issues**: [GitHub Issues](https://github.com/Abnerlucasm/neo_utilitario/issues)
