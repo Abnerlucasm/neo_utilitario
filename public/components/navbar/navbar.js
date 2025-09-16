@@ -73,7 +73,6 @@ class NeoNavbar extends HTMLElement {
 
             // Garantir FontAwesome e CSS
             this.ensureFontAwesome();
-            this.ensureNavbarCSS();
             this.ensureDaisyUI();
 
             // Inicializar
@@ -91,16 +90,6 @@ class NeoNavbar extends HTMLElement {
                 fontAwesome.rel = 'stylesheet';
                 fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
                 document.head.appendChild(fontAwesome);
-        }
-    }
-
-    ensureNavbarCSS() {
-        // Garantir que o CSS do navbar esteja carregado
-        if (!document.querySelector('link[href*="navbar.css"]')) {
-            const navbarCSS = document.createElement('link');
-            navbarCSS.rel = 'stylesheet';
-            navbarCSS.href = '/components/navbar/navbar.css';
-            document.head.appendChild(navbarCSS);
         }
     }
 
