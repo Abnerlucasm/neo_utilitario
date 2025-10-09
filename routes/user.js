@@ -168,6 +168,33 @@ router.post('/avatar', uploadAvatar.single('avatar'), async (req, res) => {
     }
 });
 
+// Deletar avatar do usuário autenticado
+router.delete('/avatar', async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        // Remover arquivo do avatar se existir
+        if (user.avatar && user.avatar !== '/assets/avatar-default.png') {
+            const avatarPath = path.join(__dirname, '../public', user.avatar);
+            if (fs.existsSync(avatarPath)) {
+                fs.unlinkSync(avatarPath);
+            }
+        }
+
+        // Limpar referência do avatar no banco
+        user.avatar = null;
+        await user.save();
+
+        res.json({ success: true, message: 'Avatar removido com sucesso' });
+    } catch (error) {
+        logger.error('Erro ao remover avatar:', error);
+        res.status(500).json({ error: 'Erro ao remover avatar', details: error.message });
+    }
+});
+
 // Buscar avatar de um usuário específico
 router.get('/:userId/avatar', async (req, res) => {
     try {

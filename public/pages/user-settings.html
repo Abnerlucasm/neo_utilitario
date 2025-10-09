@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações do Usuário - NeoHub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/js/tailwind-config.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    
+    <!-- CSS Core NeoHub -->
+    <link rel="stylesheet" href="/css/neohub-core.css">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/styles/styles.css">
     <style>
       :root {
         --color-neo: #b6ce3f;
@@ -29,6 +31,13 @@
         text-decoration: underline;
         color: #a0b82e !important;
       }
+      
+      /* Garantir que os temas do DaisyUI funcionem */
+      html[data-theme] {
+        color-scheme: light dark;
+      }
+      
+      
     </style>
 </head>
 <body class="bg-base-200 min-h-screen">
@@ -38,16 +47,19 @@
     <div class="container mx-auto px-4 py-8 max-w-4xl">
         <!-- Header com avatar e upload -->
         <div class="mb-8 flex flex-col items-center">
-            <div class="avatar mb-4">
-                <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+            <div class="avatar mb-4 relative group">
+                <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all duration-200" onclick="openAvatarModal()">
                     <img id="userAvatar" src="/assets/avatar-default.png" alt="Avatar do usuário">
+                    <!-- Overlay com ícone de ação -->
+                    <div class="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                        <div class="flex gap-2">
+                            <button type="button" class="btn btn-sm btn-primary shadow-lg border-2 border-white/20" onclick="event.stopPropagation(); openAvatarModal()">
+                                <i class="fas fa-edit text-white"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <form id="avatarForm" class="form-control w-56 mb-4" enctype="multipart/form-data">
-                <span class="label-text text-base-content/70 mb-2">Alterar foto de perfil</span>
-                <input type="file" id="avatarUpload" class="file-input file-input-bordered w-full" accept="image/*">
-                <button type="submit" class="btn btn-primary mt-2">Salvar Avatar</button>
-            </form>
             <div class="flex items-center gap-3 mb-2">
                 <i class="fas fa-user-cog text-2xl text-neo"></i>
                 <h1 class="text-3xl font-bold text-neo">Configurações do Usuário</h1>
@@ -94,60 +106,6 @@
                         </div>
                     </div>
 
-                    <!-- Seção de Aparência -->
-                    <div class="border-b border-base-300 pb-8">
-                        <h2 class="text-xl font-semibold mb-6 flex items-center gap-3">
-                            <i class="fas fa-paint-brush text-neo"></i>
-                            Aparência
-                        </h2>
-                        <div class="form-control">
-                            <label class="label" for="themeSelect">
-                                <span class="label-text font-medium">Tema</span>
-                            </label>
-                            <div class="relative">
-                                <select class="select select-bordered w-full pl-10 rounded-lg" id="themeSelect">
-                                    <option value="light">Claro</option>
-                                    <option value="dark">Escuro</option>
-                                    <option value="cupcake">Cupcake</option>
-                                    <option value="bumblebee">Bumblebee</option>
-                                    <option value="emerald">Emerald</option>
-                                    <option value="corporate">Corporate</option>
-                                    <option value="synthwave">Synthwave</option>
-                                    <option value="retro">Retro</option>
-                                    <option value="cyberpunk">Cyberpunk</option>
-                                    <option value="valentine">Valentine</option>
-                                    <option value="halloween">Halloween</option>
-                                    <option value="garden">Garden</option>
-                                    <option value="forest">Forest</option>
-                                    <option value="aqua">Aqua</option>
-                                    <option value="lofi">Lo-Fi</option>
-                                    <option value="pastel">Pastel</option>
-                                    <option value="fantasy">Fantasy</option>
-                                    <option value="wireframe">Wireframe</option>
-                                    <option value="black">Black</option>
-                                    <option value="luxury">Luxury</option>
-                                    <option value="dracula">Dracula</option>
-                                    <option value="cmyk">CMYK</option>
-                                    <option value="autumn">Autumn</option>
-                                    <option value="business">Business</option>
-                                    <option value="acid">Acid</option>
-                                    <option value="lemonade">Lemonade</option>
-                                    <option value="night">Night</option>
-                                    <option value="coffee">Coffee</option>
-                                    <option value="winter">Winter</option>
-                                    <option value="dim">Dim</option>
-                                    <option value="nord">Nord</option>
-                                    <option value="sunset">Sunset</option>
-                                    <option value="caramellatte">Caramel Latte</option>
-                                    <option value="abyss">Abyss</option>
-                                    <option value="silk">Silk</option>
-                                </select>
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50">
-                                    <i class="fas fa-paint-brush"></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Seção de Segurança -->
                     <div class="border-b border-base-300 pb-8">
@@ -178,7 +136,7 @@
                             <i class="fas fa-edit"></i>
                             Editar
                         </button>
-                        <button type="submit" class="btn btn-neo rounded-lg">
+                        <button type="button" id="saveSettings" class="btn btn-neo rounded-lg" style="display: none;">
                             <i class="fas fa-save"></i>
                             Salvar Alterações
                         </button>
@@ -258,18 +216,154 @@
         </form>
     </dialog>
 
-    <script src="/js/personalization-module.js"></script>
+    <!-- Modal de Avatar -->
+    <dialog id="avatarModal" class="modal">
+        <div class="modal-box max-w-md">
+            <h3 class="font-bold text-lg mb-4">
+                <i class="fas fa-camera mr-2"></i>
+                Alterar Foto de Perfil
+            </h3>
+            
+            <div class="space-y-4">
+                <!-- Preview do avatar -->
+                <div class="flex justify-center">
+                    <div class="avatar">
+                        <div class="w-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                            <img id="avatarPreview" src="/assets/avatar-default.png" alt="Preview do avatar">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Input de arquivo -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Selecionar Imagem</span>
+                    </label>
+                    <input type="file" id="avatarFileInput" class="file-input file-input-bordered w-full" accept="image/*">
+                </div>
+                
+                <!-- Área de crop -->
+                <div id="cropArea" style="display: none;">
+                    <label class="label">
+                        <span class="label-text font-medium">Ajustar Imagem</span>
+                    </label>
+                    <div class="border-2 border-dashed border-base-300 rounded-lg p-4">
+                        <div class="flex flex-col items-center space-y-4">
+                            <!-- Controles de zoom -->
+                            <div class="flex items-center gap-4 w-full">
+                                <label class="text-sm font-medium">Zoom:</label>
+                                <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1" class="range range-sm flex-1">
+                                <span id="zoomValue" class="text-sm text-base-content/70">100%</span>
+                            </div>
+                            
+                            <div class="relative overflow-hidden border border-base-300 rounded-lg" style="width: 300px; height: 300px;">
+                                <canvas id="cropCanvas" class="absolute top-0 left-0 cursor-move" style="transform-origin: 0 0;"></canvas>
+                                <div id="cropOverlay" class="absolute inset-0 pointer-events-none">
+                                    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+                                    <div id="cropBox" class="absolute border-2 border-white border-dashed rounded-full w-32 h-32 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <button type="button" id="cropBtn" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-crop mr-1"></i>
+                                    Aplicar Crop
+                                </button>
+                                <button type="button" id="resetCropBtn" class="btn btn-ghost btn-sm">
+                                    <i class="fas fa-undo mr-1"></i>
+                                    Resetar
+                                </button>
+                                <button type="button" id="centerCropBtn" class="btn btn-outline btn-sm">
+                                    <i class="fas fa-crosshairs mr-1"></i>
+                                    Centralizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-action">
+                <button type="button" class="btn btn-ghost" onclick="closeAvatarModal()">Cancelar</button>
+                <button type="button" class="btn btn-error" onclick="removeAvatar()" id="removeAvatarBtn" style="display: none;">
+                    <i class="fas fa-trash mr-2"></i>
+                    Remover
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveAvatar()" id="saveAvatarBtn" disabled>
+                    <i class="fas fa-save mr-2"></i>
+                    Salvar
+                </button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <script src="/components/theme-selector/theme-selector.js"></script>
     <script src="/js/avatar-manager.js"></script>
-    <script src="/js/auth.js"></script>
+    <script src="/js/theme-manager.js"></script>
+    <script type="module" src="/components/theme-selector/theme-selector.js"></script>
     <script>
+
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('DOM carregado, iniciando configurações...');
+            
+            // Aguardar um pouco para garantir que todos os elementos estejam disponíveis
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             // Carregar dados do usuário
+            console.log('Iniciando carregamento de dados do usuário...');
             const token = localStorage.getItem('auth_token');
             if (token) {
+                console.log('Token encontrado, processando...');
                 try {
                     const tokenData = JSON.parse(atob(token.split('.')[1]));
+                    console.log('Dados do token:', tokenData);
                     
-                    // Carregar dados completos do usuário
+                    // Preencher campos básicos do token primeiro
+                    const nameValue = tokenData.name || tokenData.username || tokenData.email?.split('@')[0] || 'Usuário';
+                    const emailValue = tokenData.email || '';
+                    const themeValue = tokenData.theme || localStorage.getItem('theme') || 'light';
+                    
+                    console.log('Valores extraídos:', { nameValue, emailValue, themeValue });
+                    
+                    // Preencher campos imediatamente
+                    const userNameInput = document.getElementById('userName');
+                    const userEmailInput = document.getElementById('userEmail');
+                    console.log('Elementos encontrados:', {
+                        userNameInput: !!userNameInput,
+                        userEmailInput: !!userEmailInput
+                    });
+                    
+                    if (userNameInput) {
+                        userNameInput.value = nameValue;
+                        console.log('Campo nome preenchido:', nameValue);
+                    } else {
+                        console.error('Campo userName não encontrado!');
+                    }
+                    
+                    if (userEmailInput) {
+                        userEmailInput.value = emailValue;
+                        console.log('Campo email preenchido:', emailValue);
+                    } else {
+                        console.error('Campo userEmail não encontrado!');
+                    }
+                    
+                    // O tema agora é gerenciado pelo componente theme-selector
+                    console.log('Tema será aplicado pelo ThemeManager:', themeValue);
+                    
+                    // Aplicar tema usando o sistema global
+                    if (window.ThemeManager) {
+                        window.ThemeManager.setTheme(themeValue);
+                    } else {
+                        document.documentElement.setAttribute('data-theme', themeValue);
+                    }
+                    console.log('Tema aplicado:', themeValue);
+                    
+                    // Tentar carregar dados completos do usuário
+                    try {
+                        console.log('Tentando carregar dados do servidor...');
                     const response = await fetch('/api/user/profile', {
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -278,20 +372,33 @@
                     
                     if (response.ok) {
                         const userData = await response.json();
-                        console.log('Dados do usuário carregados:', userData);
-                        
-                        // Preencher campos do formulário
-                        const nameValue = userData.name || userData.username || tokenData.name || tokenData.email?.split('@')[0] || '';
-                        document.getElementById('userName').value = nameValue;
-                        document.getElementById('userEmail').value = userData.email || tokenData.email || '';
-                        const themeValue = userData.theme || tokenData.theme || 'light';
-                        document.getElementById('themeSelect').value = themeValue;
-                        
-                        // Aplicar tema
-                        document.documentElement.setAttribute('data-theme', themeValue);
-                        
-                        console.log('Nome definido como:', nameValue);
-                        console.log('Tema aplicado:', themeValue);
+                            console.log('Dados completos do usuário carregados:', userData);
+                            
+                            // Atualizar com dados do servidor se disponíveis
+                            if (userData.name || userData.username) {
+                                const serverNameValue = userData.name || userData.username;
+                                if (userNameInput) {
+                                    userNameInput.value = serverNameValue;
+                                    console.log('Nome atualizado do servidor:', serverNameValue);
+                                }
+                            }
+                            
+                            if (userData.email) {
+                                if (userEmailInput) {
+                                    userEmailInput.value = userData.email;
+                                    console.log('Email atualizado do servidor:', userData.email);
+                                }
+                            }
+                            
+                            if (userData.theme) {
+                                // Aplicar tema usando o sistema global
+                                if (window.ThemeManager) {
+                                    window.ThemeManager.setTheme(userData.theme);
+                        } else {
+                                    document.documentElement.setAttribute('data-theme', userData.theme);
+                                }
+                                console.log('Tema atualizado do servidor:', userData.theme);
+                        }
                         
                         // Carregar avatar
                         if (window.avatarManager) {
@@ -300,119 +407,40 @@
                             document.getElementById('userAvatar').src = userData.avatar || '/assets/avatar-default.png';
                         }
                     } else {
-                        // Fallback para dados do token
-                        const nameValue = tokenData.name || tokenData.email?.split('@')[0] || '';
-                        document.getElementById('userName').value = nameValue;
-                        document.getElementById('userEmail').value = tokenData.email || '';
-                        const themeValue = tokenData.theme || 'light';
-                        document.getElementById('themeSelect').value = themeValue;
-                        
-                        // Aplicar tema
-                        document.documentElement.setAttribute('data-theme', themeValue);
-                        
-                        console.log('Fallback - Nome definido como:', nameValue);
-                        console.log('Fallback - Tema aplicado:', themeValue);
-                        
-                        if (window.avatarManager) {
-                            await window.avatarManager.updateAvatarElement(tokenData.id, '#userAvatar');
+                            console.warn('Erro ao carregar dados do servidor:', response.status);
+                            // Manter dados do token
                         }
+                    } catch (serverError) {
+                        console.warn('Erro ao conectar com servidor:', serverError);
+                        // Manter dados do token
                     }
+                    
                 } catch (error) {
-                    console.error('Erro ao carregar dados do usuário:', error);
-                    document.getElementById('userAvatar').src = '/assets/avatar-default.png';
+                    console.error('Erro ao processar token:', error);
+                    // Valores padrão
+                    const userNameInput = document.getElementById('userName');
+                    const userEmailInput = document.getElementById('userEmail');
+                    const userAvatar = document.getElementById('userAvatar');
+                    
+                    if (userNameInput) userNameInput.value = 'Usuário';
+                    if (userEmailInput) userEmailInput.value = '';
+                    if (userAvatar) userAvatar.src = '/assets/avatar-default.png';
                 }
+            } else {
+                console.warn('Nenhum token encontrado');
+                // Valores padrão
+                const userNameInput = document.getElementById('userName');
+                const userEmailInput = document.getElementById('userEmail');
+                const userAvatar = document.getElementById('userAvatar');
+                
+                if (userNameInput) userNameInput.value = 'Usuário';
+                if (userEmailInput) userEmailInput.value = '';
+                // Tema será gerenciado pelo componente theme-selector
+                if (userAvatar) userAvatar.src = '/assets/avatar-default.png';
             }
 
-            // Preview do avatar antes de enviar
-            document.getElementById('avatarUpload').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    // Validar tipo de arquivo
-                    if (!file.type.startsWith('image/')) {
-                        alert('Por favor, selecione apenas arquivos de imagem.');
-                        e.target.value = '';
-                        return;
-                    }
-                    
-                    // Validar tamanho (2MB)
-                    if (file.size > 2 * 1024 * 1024) {
-                        alert('O arquivo deve ter no máximo 2MB.');
-                        e.target.value = '';
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        document.getElementById('userAvatar').src = evt.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            // Upload do avatar para o servidor
-            document.getElementById('avatarForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const fileInput = document.getElementById('avatarUpload');
-                const file = fileInput.files[0];
-                if (!file) {
-                    alert('Por favor, selecione um arquivo.');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('avatar', file);
-
-                // Mostrar loading
-                const submitBtn = this.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-                submitBtn.disabled = true;
-
-                try {
-                    const response = await fetch('/api/user/avatar', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                        },
-                        body: formData
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Falha ao enviar avatar');
-                    }
-                    
-                    const result = await response.json();
-                    
-                    // Atualizar avatar exibido
-                    if (result.avatarUrl) {
-                        document.getElementById('userAvatar').src = result.avatarUrl;
-                        
-                        // Atualizar avatar no navbar se disponível
-                        if (window.avatarManager) {
-                            const tokenData = JSON.parse(atob(localStorage.getItem('auth_token').split('.')[1]));
-                            window.avatarManager.updateCurrentUserAvatar();
-                        }
-                    }
-                    
-                    // Limpar formulário
-                    fileInput.value = '';
-                    
-                    // Mostrar sucesso
-                    showToast('Avatar atualizado com sucesso!', 'success');
-                    
-                } catch (err) {
-                    console.error('Erro ao atualizar avatar:', err);
-                    showToast('Erro ao atualizar avatar: ' + err.message, 'error');
-                } finally {
-                    // Restaurar botão
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
-                }
-            });
-
             // Função para mostrar toast
-            function showToast(message, type = 'info') {
+            window.showToast = function(message, type = 'info') {
                 const toast = document.createElement('div');
                 toast.className = `alert alert-${type} fixed top-4 right-4 z-50 max-w-sm`;
                 toast.innerHTML = `
@@ -426,6 +454,279 @@
                 setTimeout(() => {
                     toast.remove();
                 }, 3000);
+            };
+
+            // Preview do avatar no modal
+            console.log('Configurando upload de avatar...');
+            const avatarFileInput = document.getElementById('avatarFileInput');
+            if (avatarFileInput) {
+                console.log('Elemento avatarFileInput encontrado, adicionando event listener');
+                avatarFileInput.addEventListener('change', function(e) {
+                    console.log('Arquivo selecionado para upload');
+                const file = e.target.files[0];
+                if (file) {
+                        console.log('Arquivo válido:', file.name, file.type, file.size);
+                    // Validar tipo de arquivo
+                    if (!file.type.startsWith('image/')) {
+                        showToast('Por favor, selecione apenas arquivos de imagem.', 'error');
+                        e.target.value = '';
+                        return;
+                    }
+                    
+                    // Validar tamanho (2MB)
+                    if (file.size > 2 * 1024 * 1024) {
+                        showToast('O arquivo deve ter no máximo 2MB.', 'error');
+                        e.target.value = '';
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        const previewImg = document.getElementById('avatarPreview');
+                        
+                            if (previewImg) {
+                        previewImg.src = evt.target.result;
+                        previewImg.style.display = 'block';
+                            }
+                        
+                        // Inicializar crop
+                        initCrop(evt.target.result);
+                        
+                            const saveBtn = document.getElementById('saveAvatarBtn');
+                            if (saveBtn) {
+                                saveBtn.disabled = false;
+                                console.log('Botão de salvar habilitado');
+                            }
+                            
+                            const cropArea = document.getElementById('cropArea');
+                            if (cropArea) {
+                                cropArea.style.display = 'block';
+                                console.log('Área de crop exibida');
+                            } else {
+                                console.error('Área de crop não encontrada!');
+                            }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            } else {
+                console.error('Elemento avatarFileInput não encontrado!');
+            }
+
+            // Variáveis para crop
+            let cropImage = null;
+            let cropCanvas = null;
+            let cropCtx = null;
+            let cropZoom = 1;
+            let cropOffsetX = 0;
+            let cropOffsetY = 0;
+            let isDragging = false;
+            let dragStartX = 0;
+            let dragStartY = 0;
+
+            // Função para inicializar crop
+            function initCrop(imageSrc) {
+                console.log('Inicializando crop com imagem:', imageSrc.substring(0, 50) + '...');
+                cropImage = new Image();
+                cropImage.onload = function() {
+                    console.log('Imagem carregada para crop:', cropImage.width, 'x', cropImage.height);
+                    cropCanvas = document.getElementById('cropCanvas');
+                    cropCtx = cropCanvas.getContext('2d');
+                    
+                    // Definir tamanho do canvas
+                    cropCanvas.width = 300;
+                    cropCanvas.height = 300;
+                    
+                    // Resetar variáveis
+                    cropZoom = 1;
+                    cropOffsetX = 0;
+                    cropOffsetY = 0;
+                    
+                    // Atualizar slider de zoom
+                    const zoomSlider = document.getElementById('zoomSlider');
+                    const zoomValue = document.getElementById('zoomValue');
+                    if (zoomSlider) zoomSlider.value = 1;
+                    if (zoomValue) zoomValue.textContent = '100%';
+                    
+                    // Desenhar imagem
+                    drawCropImage();
+                    
+                    // Configurar event listeners de arrastar
+                    setupCropDragListeners();
+                    
+                    // Garantir que a área de crop seja visível
+                    const cropArea = document.getElementById('cropArea');
+                    if (cropArea) {
+                        cropArea.style.display = 'block';
+                        console.log('Área de crop exibida');
+                    } else {
+                        console.error('Área de crop não encontrada!');
+                    }
+                };
+                cropImage.src = imageSrc;
+            }
+
+            // Função para desenhar a imagem no canvas
+            function drawCropImage() {
+                if (!cropCanvas || !cropCtx || !cropImage) return;
+                
+                const canvasWidth = cropCanvas.width;
+                const canvasHeight = cropCanvas.height;
+                
+                // Limpar canvas
+                cropCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+                
+                // Calcular dimensões da imagem com zoom
+                const scaledWidth = cropImage.width * cropZoom;
+                const scaledHeight = cropImage.height * cropZoom;
+                
+                // Calcular posição para centralizar
+                const centerX = (canvasWidth - scaledWidth) / 2;
+                const centerY = (canvasHeight - scaledHeight) / 2;
+                
+                // Aplicar offset
+                const x = centerX + cropOffsetX;
+                const y = centerY + cropOffsetY;
+                
+                // Desenhar imagem
+                cropCtx.drawImage(cropImage, x, y, scaledWidth, scaledHeight);
+            }
+
+            // Função para abrir modal de avatar (definida globalmente)
+            window.openAvatarModal = function() {
+                console.log('Abrindo modal de avatar...');
+                const modal = document.getElementById('avatarModal');
+                if (modal) {
+                    // Esconder área de crop inicialmente
+                    const cropArea = document.getElementById('cropArea');
+                    if (cropArea) {
+                        cropArea.style.display = 'none';
+                    }
+                    modal.showModal();
+                } else {
+                    console.error('Modal de avatar não encontrado!');
+                }
+            }
+
+            // Função para fechar modal de avatar
+            function closeAvatarModal() {
+                const modal = document.getElementById('avatarModal');
+                if (modal) {
+                    modal.close();
+                }
+            }
+
+            // Função para aplicar crop
+            function applyCrop() {
+                if (!cropCanvas || !cropCtx || !cropImage) return;
+                
+                console.log('Aplicando crop...');
+                const cropSize = 128; // Tamanho fixo para o crop circular
+                
+                // Criar canvas temporário para o crop
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = cropSize;
+                tempCanvas.height = cropSize;
+                
+                // Calcular posição do crop no centro do canvas
+                const centerX = cropCanvas.width / 2;
+                const centerY = cropCanvas.height / 2;
+                const cropX = centerX - cropSize / 2;
+                const cropY = centerY - cropSize / 2;
+                
+                // Criar máscara circular
+                tempCtx.beginPath();
+                tempCtx.arc(cropSize / 2, cropSize / 2, cropSize / 2, 0, 2 * Math.PI);
+                tempCtx.clip();
+                
+                // Desenhar a parte cortada
+                tempCtx.drawImage(cropCanvas, cropX, cropY, cropSize, cropSize, 0, 0, cropSize, cropSize);
+                
+                // Atualizar preview
+                const previewImg = document.getElementById('avatarPreview');
+                if (previewImg) {
+                previewImg.src = tempCanvas.toDataURL('image/png');
+                    console.log('Preview atualizado com crop');
+                }
+                
+                // Atualizar a imagem do avatar principal
+                const userAvatar = document.getElementById('userAvatar');
+                if (userAvatar) {
+                    userAvatar.src = tempCanvas.toDataURL('image/png');
+                    console.log('Avatar principal atualizado com crop');
+                }
+                
+                // Fechar modal
+                closeAvatarModal();
+                
+                // Mostrar toast de sucesso
+                showToast('Crop aplicado com sucesso!', 'success');
+            }
+
+            // Event listeners para crop
+            document.getElementById('cropBtn').addEventListener('click', applyCrop);
+            document.getElementById('resetCropBtn').addEventListener('click', function() {
+                if (cropImage) {
+                    initCrop(cropImage.src);
+                }
+            });
+            
+            // Event listener para centralizar
+            document.getElementById('centerCropBtn').addEventListener('click', function() {
+                cropOffsetX = 0;
+                cropOffsetY = 0;
+                drawCropImage();
+            });
+            
+            // Event listener para zoom
+            document.getElementById('zoomSlider').addEventListener('input', function() {
+                cropZoom = parseFloat(this.value);
+                const zoomValue = document.getElementById('zoomValue');
+                if (zoomValue) {
+                    zoomValue.textContent = Math.round(cropZoom * 100) + '%';
+                }
+                drawCropImage();
+            });
+            
+            // Função para configurar event listeners de arrastar
+            function setupCropDragListeners() {
+                if (!cropCanvas) return;
+                
+                console.log('Configurando event listeners de arrastar para crop');
+                
+                cropCanvas.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    isDragging = true;
+                    dragStartX = e.clientX - cropOffsetX;
+                    dragStartY = e.clientY - cropOffsetY;
+                    cropCanvas.style.cursor = 'grabbing';
+                    console.log('Iniciando arrastar:', dragStartX, dragStartY);
+                });
+                
+                cropCanvas.addEventListener('mousemove', function(e) {
+                    if (isDragging) {
+                        e.preventDefault();
+                        cropOffsetX = e.clientX - dragStartX;
+                        cropOffsetY = e.clientY - dragStartY;
+                        drawCropImage();
+                        console.log('Arrastando:', cropOffsetX, cropOffsetY);
+                    }
+                });
+                
+                cropCanvas.addEventListener('mouseup', function(e) {
+                    e.preventDefault();
+                    isDragging = false;
+                    cropCanvas.style.cursor = 'move';
+                    console.log('Parou de arrastar');
+                });
+                
+                cropCanvas.addEventListener('mouseleave', function(e) {
+                    e.preventDefault();
+                    isDragging = false;
+                    cropCanvas.style.cursor = 'move';
+                    console.log('Mouse saiu da área de crop');
+                });
             }
 
             // Botão de troca de senha
@@ -523,15 +824,280 @@
                 });
             }
 
-            // Listener para mudanças de tema
-            document.getElementById('themeSelect').addEventListener('change', function() {
-                const selectedTheme = this.value;
-                document.documentElement.setAttribute('data-theme', selectedTheme);
-                console.log('Tema alterado para:', selectedTheme);
+            // Listener para mudanças de tema - simplificado
+            // O seletor de temas agora é um componente customizado
+            console.log('Seletor de temas configurado como componente customizado');
+
+            // Funcionalidade de edição
+            console.log('Configurando funcionalidade de edição...');
+            const toggleEditBtn = document.getElementById('toggleEdit');
+            const saveSettingsBtn = document.getElementById('saveSettings');
+            const userNameInput = document.getElementById('userName');
+            
+            console.log('Elementos encontrados:', {
+                toggleEditBtn: !!toggleEditBtn,
+                saveSettingsBtn: !!saveSettingsBtn,
+                userNameInput: !!userNameInput
             });
+            
+            let isEditing = false;
+            
+            if (toggleEditBtn) {
+                console.log('Botão de edição encontrado, adicionando event listener');
+                toggleEditBtn.addEventListener('click', function() {
+                    console.log('Botão de edição clicado, isEditing:', isEditing);
+                    isEditing = !isEditing;
+                
+                    if (isEditing) {
+                        // Modo de edição
+                        if (userNameInput) {
+                            userNameInput.removeAttribute('readonly');
+                            userNameInput.style.backgroundColor = 'var(--fallback-b1,oklch(var(--b1)/1))';
+                        }
+                        
+                        toggleEditBtn.innerHTML = '<i class="fas fa-times"></i> Cancelar';
+                        toggleEditBtn.className = 'btn btn-outline btn-error rounded-lg';
+                        
+                        if (saveSettingsBtn) {
+                            saveSettingsBtn.style.display = 'block';
+                        }
+                        
+                        showToast('Modo de edição ativado', 'info');
+                    } else {
+                        // Cancelar edição
+                        if (userNameInput) {
+                            userNameInput.setAttribute('readonly', 'true');
+                            userNameInput.style.backgroundColor = 'var(--fallback-b2,oklch(var(--b2)/1))';
+                        }
+                        
+                        toggleEditBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
+                        toggleEditBtn.className = 'btn btn-outline btn-info rounded-lg';
+                        
+                        if (saveSettingsBtn) {
+                            saveSettingsBtn.style.display = 'none';
+                        }
+                        
+                        // Restaurar valores originais
+                const token = localStorage.getItem('auth_token');
+                if (token) {
+                            try {
+                                const tokenData = JSON.parse(atob(token.split('.')[1]));
+                                if (userNameInput) {
+                                    userNameInput.value = tokenData.name || tokenData.username || tokenData.email?.split('@')[0] || 'Usuário';
+                                }
+                            } catch (error) {
+                                console.error('Erro ao restaurar valores:', error);
+                            }
+                        }
+                        
+                        showToast('Edição cancelada', 'info');
+                    }
+                });
+            } else {
+                console.error('Botão de edição não encontrado!');
+            }
+            
+            if (saveSettingsBtn) {
+                console.log('Botão de salvar encontrado, adicionando event listener');
+                saveSettingsBtn.addEventListener('click', async function() {
+                    console.log('Botão de salvar clicado');
+                    const token = localStorage.getItem('auth_token');
+                    if (!token) {
+                        showToast('Erro: usuário não autenticado', 'error');
+                        return;
+                    }
+                    
+                    const originalText = saveSettingsBtn.innerHTML;
+                    saveSettingsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+                    saveSettingsBtn.disabled = true;
+                    
+                    try {
+                        const response = await fetch('/api/user/profile', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                            body: JSON.stringify({
+                                name: userNameInput ? userNameInput.value : '',
+                                theme: window.ThemeManager ? window.ThemeManager.getCurrentTheme() : 'light'
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            showToast('Configurações salvas com sucesso!', 'success');
+                            
+                            // Sair do modo de edição
+                            isEditing = false;
+                            if (userNameInput) {
+                                userNameInput.setAttribute('readonly', 'true');
+                                userNameInput.style.backgroundColor = 'var(--fallback-b2,oklch(var(--b2)/1))';
+                            }
+                            
+                            if (toggleEditBtn) {
+                                toggleEditBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
+                                toggleEditBtn.className = 'btn btn-outline btn-info rounded-lg';
+                            }
+                            
+                            saveSettingsBtn.style.display = 'none';
+                            
+                            // Atualizar token se necessário
+                            const userData = await response.json();
+                            if (userData.token) {
+                                localStorage.setItem('auth_token', userData.token);
+                            }
+                        } else {
+                            const errorData = await response.json();
+                            showToast(errorData.error || 'Erro ao salvar configurações', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Erro ao salvar configurações:', error);
+                        showToast('Erro ao salvar configurações: ' + error.message, 'error');
+                    } finally {
+                        saveSettingsBtn.innerHTML = originalText;
+                        saveSettingsBtn.disabled = false;
+                    }
+                });
+            } else {
+                console.error('Botão de salvar não encontrado!');
+            }
 
             AuthManager.checkAuth();
         });
+
+        // Função openAvatarModal já definida acima
+
+        // Função para fechar modal de avatar
+        window.closeAvatarModal = function() {
+            document.getElementById('avatarModal').close();
+        };
+
+        // Função para salvar avatar
+        window.saveAvatar = async function() {
+            console.log('=== Função saveAvatar chamada ===');
+            const fileInput = document.getElementById('avatarFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                console.log('Nenhum arquivo selecionado');
+                showToast('Por favor, selecione uma imagem.', 'error');
+                return;
+            }
+            
+            console.log('Arquivo selecionado para upload:', file.name, file.type, file.size);
+
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            const saveBtn = document.getElementById('saveAvatarBtn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            saveBtn.disabled = true;
+
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    console.log('Token não encontrado');
+                    showToast('Erro: usuário não autenticado', 'error');
+                    return;
+                }
+
+                console.log('Enviando requisição para /api/user/avatar');
+                const response = await fetch('/api/user/avatar', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                console.log('Resposta recebida:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    let errorMessage = 'Falha ao enviar avatar';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        // Se não conseguir fazer parse do JSON, usar mensagem padrão
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const result = await response.json();
+                
+                // Atualizar avatar exibido
+                if (result.avatarUrl) {
+                    document.getElementById('userAvatar').src = result.avatarUrl;
+                    
+                    // Atualizar avatar no navbar se disponível
+                    if (window.avatarManager) {
+                        window.avatarManager.updateCurrentUserAvatar();
+                    }
+                }
+                
+                // Fechar modal
+                closeAvatarModal();
+                showToast('Avatar atualizado com sucesso!', 'success');
+                
+            } catch (err) {
+                console.error('Erro ao atualizar avatar:', err);
+                showToast('Erro ao atualizar avatar: ' + err.message, 'error');
+            } finally {
+                // Restaurar botão
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        };
+
+        // Função para remover avatar
+        window.removeAvatar = async function() {
+            if (!confirm('Tem certeza que deseja remover sua foto de perfil?')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    showToast('Erro: usuário não autenticado', 'error');
+                    return;
+                }
+
+                const response = await fetch('/api/user/avatar', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    // Restaurar avatar padrão
+                    document.getElementById('userAvatar').src = '/assets/avatar-default.png';
+                    
+                    // Atualizar avatar no navbar se disponível
+                    if (window.avatarManager) {
+                        window.avatarManager.updateCurrentUserAvatar();
+                    }
+                    
+                    // Fechar modal se estiver aberto
+                    closeAvatarModal();
+                    showToast('Avatar removido com sucesso!', 'success');
+                } else {
+                    let errorMessage = 'Erro ao remover avatar';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        // Se não conseguir fazer parse do JSON, usar mensagem padrão
+                    }
+                    showToast(errorMessage, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao remover avatar:', error);
+                showToast('Erro ao remover avatar: ' + error.message, 'error');
+            }
+        };
+
     </script>
     <script type="module" src="/components/navbar/navbar.js"></script>
     <script type="module" src="/components/footer/footer.js"></script>

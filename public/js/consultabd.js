@@ -379,7 +379,7 @@ function renderServerCheckboxes() {
         <div class="form-control mb-4">
             <label class="label cursor-pointer bg-base-200 p-3 rounded-lg hover:bg-base-300 transition-colors">
                 <span class="label-text font-medium">Selecionar Todos</span>
-                <input type="checkbox" class="checkbox checkbox-primary" id="selectAllServers" onchange="toggleAllServers()">
+                <input type="checkbox" class="checkbox checkbox-primary" id="selectAllServers">
             </label>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
@@ -394,6 +394,15 @@ function renderServerCheckboxes() {
             `).join('')}
         </div>
     `;
+    
+    // Adicionar event listener programaticamente para evitar duplicação
+    const selectAllCheckbox = document.getElementById('selectAllServers');
+    if (selectAllCheckbox) {
+        // Remover event listeners existentes
+        selectAllCheckbox.removeEventListener('change', toggleAllServers);
+        // Adicionar novo event listener
+        selectAllCheckbox.addEventListener('change', toggleAllServers);
+    }
 }
 
 // Função para alternar todos os servidores
@@ -1820,7 +1829,7 @@ function renderObjectSearchServerCheckboxes() {
         <div class="form-control mb-2">
             <label class="label cursor-pointer bg-base-200 p-2 rounded hover:bg-base-300 transition-colors">
                 <span class="label-text text-sm font-medium">Selecionar Todos</span>
-                <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" id="selectAllObjectServers" onchange="toggleAllObjectServers()">
+                <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" id="selectAllObjectServers">
             </label>
         </div>
         <div class="space-y-1">
@@ -1835,6 +1844,15 @@ function renderObjectSearchServerCheckboxes() {
             `).join('')}
         </div>
     `;
+    
+    // Adicionar event listener programaticamente para evitar duplicação
+    const selectAllCheckbox = document.getElementById('selectAllObjectServers');
+    if (selectAllCheckbox) {
+        // Remover event listeners existentes
+        selectAllCheckbox.removeEventListener('change', toggleAllObjectServers);
+        // Adicionar novo event listener
+        selectAllCheckbox.addEventListener('change', toggleAllObjectServers);
+    }
 }
 
 // Função para alternar todos os servidores na busca de objetos

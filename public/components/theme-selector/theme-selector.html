@@ -1,0 +1,78 @@
+<!-- Seletor Global de Temas Melhorado -->
+<div class="dropdown dropdown-end">
+    <div tabindex="0" role="button" class="btn btn-primary btn-circle shadow-lg hover:shadow-xl transition-all duration-200">
+        <i class="fas fa-palette text-lg"></i>
+    </div>
+    <div tabindex="0" class="dropdown-content z-[1] menu p-4 shadow-2xl bg-base-100 rounded-box w-80 border border-base-300">
+        <div class="flex items-center gap-2 mb-3">
+            <i class="fas fa-palette text-primary"></i>
+            <h3 class="font-semibold text-base-content">Escolher Tema</h3>
+        </div>
+        <div class="divider my-2"></div>
+        
+        <!-- Temas Populares -->
+        <div class="mb-3">
+            <p class="text-sm font-medium text-base-content/70 mb-2">Temas Populares</p>
+            <div class="grid grid-cols-3 gap-2">
+                <button class="theme-option btn btn-sm btn-outline" data-theme="light">
+                    <div class="w-4 h-4 rounded bg-white border border-gray-300"></div>
+                    <span class="text-xs">Claro</span>
+                </button>
+                <button class="theme-option btn btn-sm btn-outline" data-theme="dark">
+                    <div class="w-4 h-4 rounded bg-gray-800"></div>
+                    <span class="text-xs">Escuro</span>
+                </button>
+                <button class="theme-option btn btn-sm btn-outline" data-theme="corporate">
+                    <div class="w-4 h-4 rounded bg-blue-600"></div>
+                    <span class="text-xs">Corporativo</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Todos os Temas -->
+        <div>
+            <p class="text-sm font-medium text-base-content/70 mb-2">Todos os Temas</p>
+            <div class="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto custom-scrollbar">
+                <!-- Temas serão preenchidos via JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Preview do Tema Atual -->
+        <div class="divider my-2"></div>
+        <div class="flex items-center justify-between text-xs text-base-content/70">
+            <span>Tema atual:</span>
+            <span id="currentThemeName" class="font-medium">Carregando...</span>
+        </div>
+    </div>
+</div>
+
+<style>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--bc) / 0.2);
+    border-radius: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--bc) / 0.3);
+}
+
+.theme-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    min-height: auto;
+}
+
+.theme-option:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+}
+</style>
+

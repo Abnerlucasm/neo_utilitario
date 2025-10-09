@@ -1,0 +1,707 @@
+/**
+ * NeoHub - CSS Elegante e Padronizado
+ * Baseado no DaisyUI para consistência visual
+ * Consolida todos os estilos em um arquivo único
+ */
+
+/* ===== RESET E BASE ===== */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    /* Remover forçar cores - deixar DaisyUI controlar */
+}
+
+/* ===== SUPORTE A TEMAS DAISYUI ===== */
+/* Permitir que os temas do DaisyUI funcionem corretamente */
+
+/* Suporte para tema escuro nos inputs */
+[data-theme="dark"] .input,
+[data-theme="dark"] .textarea,
+[data-theme="dark"] .select {
+    border: 1px solid rgba(255,255,255,0.2) ;
+    background-color: rgba(51,51,51,0.9) ;
+    color: #fff ;
+}
+
+[data-theme="dark"] .checkbox {
+    border: 1px solid rgba(255,255,255,0.3) ;
+    background-color: rgba(51,51,51,0.9) ;
+}
+
+[data-theme="dark"] .radio {
+    border: 1px solid rgba(255,255,255,0.3) ;
+    background-color: rgba(51,51,51,0.9) ;
+}
+
+[data-theme="dark"] .toggle {
+    background-color: rgba(85,85,85,0.8) ;
+    border: 1px solid rgba(255,255,255,0.2) ;
+}
+
+[data-theme="dark"] .range {
+    background-color: rgba(85,85,85,0.8) ;
+}
+
+/* ===== VARIÁVEIS CSS NEO ===== */
+:root {
+    --color-neo: #b6ce3f;
+    --color-neo-hover: #a0b82e;
+    --color-neo-light: #d4e67a;
+    --color-neo-dark: #8fa32a;
+}
+
+/* ===== CLASSES UTILITÁRIAS NEO ===== */
+.btn-neo {
+    background-color: var(--color-neo);
+    color: #fff;
+    border: none;
+    transition: all 0.3s ease;
+    padding: 12px 24px ;
+    min-height: 44px ;
+    display: inline-flex ;
+    align-items: center ;
+    justify-content: center ;
+}
+
+.btn-neo:hover {
+    background-color: var(--color-neo-hover);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(182, 206, 63, 0.3);
+}
+
+.text-neo {
+    color: var(--color-neo);
+}
+
+.text-neo:hover {
+    color: var(--color-neo-hover);
+}
+
+.link-neo {
+    color: var(--color-neo);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.link-neo:hover {
+    color: var(--color-neo-hover);
+    text-decoration: underline;
+}
+
+.bg-neo {
+    background-color: var(--color-neo);
+}
+
+.border-neo {
+    border-color: var(--color-neo);
+}
+
+/* ===== MELHORIAS PARA COMPONENTES DAISYUI ===== */
+
+/* ===== INPUTS COM CONTRASTE SUTIL ===== */
+.input, .textarea, .select {
+    border: 1px solid rgba(0,0,0,0.1) ;
+    background-color: rgba(255,255,255,0.9) ;
+    color: #333 ;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) ;
+    backdrop-filter: blur(10px) ;
+                padding: 12px 16px ;
+    min-height: 44px ;
+}
+
+.input:focus, .textarea:focus, .select:focus {
+    border-color: #007bff ;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15) ;
+    outline: none ;
+    background-color: #fff ;
+}
+
+/* Textarea com padding específico */
+.textarea {
+    padding: 16px ;
+    min-height: 120px ;
+    resize: vertical ;
+}
+
+/* Select com padding específico */
+.select {
+    padding-right: 40px ;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") ;
+    background-position: right 12px center ;
+    background-repeat: no-repeat ;
+    background-size: 16px ;
+}
+
+.input:hover, .textarea:hover, .select:hover {
+    background-color: rgba(255,255,255,0.95) ;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12) ;
+}
+
+/* Checkboxes com contraste sutil */
+.checkbox {
+    border: 1px solid rgba(0,0,0,0.2) ;
+    background-color: rgba(255,255,255,0.9) ;
+    width: 18px ;
+    height: 18px ;
+    border-radius: 4px ;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) ;
+    backdrop-filter: blur(10px) ;
+    /* Remover checkmark padrão do browser */
+    -webkit-appearance: none ;
+    -moz-appearance: none ;
+    appearance: none ;
+}
+
+.checkbox:checked {
+    background-color: #007bff ;
+    border-color: #007bff ;
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m13.854 3.646-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6 10.293l7.146-7.147a.5.5 0 0 1 .708.708z'/%3e%3c/svg%3e") ;
+    background-size: 12px 12px ;
+    background-position: center ;
+    background-repeat: no-repeat ;
+}
+
+.checkbox:hover {
+    background-color: rgba(255,255,255,0.95) ;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) ;
+}
+
+.checkbox:focus {
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2) ;
+    outline: none ;
+}
+
+/* Radio buttons com contraste sutil */
+.radio {
+    border: 1px solid rgba(0,0,0,0.2) ;
+    background-color: rgba(255,255,255,0.9) ;
+    width: 18px ;
+    height: 18px ;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) ;
+    backdrop-filter: blur(10px) ;
+    /* Remover checkmark padrão do browser */
+    -webkit-appearance: none ;
+    -moz-appearance: none ;
+    appearance: none ;
+}
+
+.radio:checked {
+    background-color: #007bff ;
+    border-color: #007bff ;
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='8' cy='8' r='3'/%3e%3c/svg%3e") ;
+    background-size: 10px 10px ;
+    background-position: center ;
+    background-repeat: no-repeat ;
+}
+
+.radio:hover {
+    background-color: rgba(255,255,255,0.95) ;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) ;
+}
+
+.radio:focus {
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2) ;
+    outline: none ;
+}
+
+/* Toggle switches com contraste sutil */
+.toggle {
+    background-color: rgba(204,204,204,0.8) ;
+    border: 1px solid rgba(0,0,0,0.2) ;
+    width: 48px ;
+    height: 24px ;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) ;
+    backdrop-filter: blur(10px) ;
+}
+
+.toggle:checked {
+    background-color: #007bff ;
+    border-color: #007bff ;
+}
+
+.toggle:hover {
+    background-color: rgba(204,204,204,0.9) ;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) ;
+}
+
+.toggle:focus {
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2) ;
+    outline: none ;
+}
+
+/* Range sliders com contraste sutil */
+.range {
+    background-color: rgba(204,204,204,0.8) ;
+    height: 6px ;
+    border-radius: 3px ;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) ;
+}
+
+.range::-webkit-slider-thumb {
+    background-color: #007bff ;
+    border: 2px solid #fff ;
+    width: 18px ;
+    height: 18px ;
+    border-radius: 50% ;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2) ;
+}
+
+.range::-moz-range-thumb {
+    background-color: #007bff ;
+    border: 2px solid #fff ;
+    width: 18px ;
+    height: 18px ;
+    border-radius: 50% ;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2) ;
+}
+
+/* ===== BOTÕES COM PADDING ADEQUADO ===== */
+.btn {
+    padding: 12px 20px ;
+    min-height: 44px ;
+    display: inline-flex ;
+    align-items: center ;
+    justify-content: center ;
+    gap: 8px ;
+}
+
+.btn-sm {
+    padding: 8px 16px ;
+    min-height: 36px ;
+    font-size: 0.875rem ;
+}
+
+.btn-lg {
+    padding: 16px 32px ;
+    min-height: 52px ;
+    font-size: 1.125rem ;
+}
+
+.btn-xs {
+    padding: 6px 12px ;
+    min-height: 32px ;
+    font-size: 0.75rem ;
+}
+
+/* Cards Elegantes */
+.card {
+    transition: all 0.3s ease;
+    border: 1px solid hsl(var(--b3));
+    backdrop-filter: blur(10px);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Botões Elegantes */
+.btn {
+    transition: all 0.3s ease;
+    font-weight: 500;
+    border-radius: 0.5rem;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, hsl(var(--p)) 0%, hsl(var(--pf)) 100%);
+    border: none;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, hsl(var(--s)) 0%, hsl(var(--sf)) 100%);
+    border: none;
+}
+
+/* Inputs Elegantes */
+.input, .textarea, .select {
+    transition: all 0.3s ease;
+    border: 2px solid hsl(var(--b3));
+    border-radius: 0.5rem;
+    background-color: hsl(var(--b1));
+}
+
+.input:focus, .textarea:focus, .select:focus {
+    border-color: var(--color-neo);
+    box-shadow: 0 0 0 3px rgba(182, 206, 63, 0.1);
+    outline: none;
+}
+
+/* Navegação Elegante */
+.navbar {
+    backdrop-filter: blur(20px);
+    background-color: hsl(var(--b1) / 0.8);
+    border-bottom: 1px solid hsl(var(--b3));
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Dropdowns Elegantes */
+.dropdown-content {
+    backdrop-filter: blur(20px);
+    background-color: hsl(var(--b1) / 0.95);
+    border: 1px solid hsl(var(--b3));
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border-radius: 0.75rem;
+}
+
+/* Modais Elegantes */
+.modal-box {
+    backdrop-filter: blur(20px);
+    background-color: hsl(var(--b1) / 0.95);
+    border: 1px solid hsl(var(--b3));
+    border-radius: 1rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Tabelas Elegantes */
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: hsl(var(--b2));
+    font-weight: 600;
+    border-bottom: 2px solid hsl(var(--b3));
+    padding: 1rem;
+}
+
+.table td {
+    border-bottom: 1px solid hsl(var(--b3));
+    padding: 0.75rem 1rem;
+}
+
+.table tbody tr:hover {
+    background-color: hsl(var(--b2) / 0.5);
+}
+
+/* Alertas Elegantes */
+.alert {
+    border: 1px solid hsl(var(--b3));
+    backdrop-filter: blur(10px);
+    border-radius: 0.75rem;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, hsl(var(--su) / 0.1) 0%, hsl(var(--su) / 0.05) 100%);
+    border-color: hsl(var(--su));
+    color: hsl(var(--suc));
+}
+
+.alert-error {
+    background: linear-gradient(135deg, hsl(var(--er) / 0.1) 0%, hsl(var(--er) / 0.05) 100%);
+    border-color: hsl(var(--er));
+    color: hsl(var(--erc));
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, hsl(var(--wa) / 0.1) 0%, hsl(var(--wa) / 0.05) 100%);
+    border-color: hsl(var(--wa));
+    color: hsl(var(--wac));
+}
+
+.alert-info {
+    background: linear-gradient(135deg, hsl(var(--in) / 0.1) 0%, hsl(var(--in) / 0.05) 100%);
+    border-color: hsl(var(--in));
+    color: hsl(var(--inc));
+}
+
+/* Loading Elegante */
+.loading {
+    color: var(--color-neo);
+}
+
+/* Scrollbar Personalizada */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: hsl(var(--b2));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: hsl(var(--b3));
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-neo);
+}
+
+/* ===== ANIMAÇÕES ELEGANTES ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+.scale-in {
+    animation: scaleIn 0.3s ease-out;
+}
+
+/* ===== LAYOUT RESPONSIVO ===== */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Responsividade */
+@media (min-width: 768px) {
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    
+    .md\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .lg\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    
+    .lg\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+/* ===== UTILITÁRIOS DE ESPAÇAMENTO ===== */
+.space-y-4 > * + * {
+    margin-top: 1rem;
+}
+
+.space-y-6 > * + * {
+    margin-top: 1.5rem;
+}
+
+.space-y-8 > * + * {
+    margin-top: 2rem;
+}
+
+/* ===== PAGINAÇÃO RESPONSIVA ===== */
+.pagination-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+    display: flex;
+    align-items: center;
+}
+
+.pagination-responsive .join {
+    flex-wrap: wrap;
+    max-width: 100%;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.pagination-responsive .join-item {
+    flex-shrink: 0;
+    min-width: auto;
+    white-space: nowrap;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+/* ===== ESTADOS DE TEMA ===== */
+[data-theme="dark"] {
+    --color-neo: #c4d85a;
+    --color-neo-hover: #b6ce3f;
+    --color-neo-light: #d4e67a;
+    --color-neo-dark: #8fa32a;
+}
+
+[data-theme="light"] {
+    --color-neo: #b6ce3f;
+    --color-neo-hover: #a0b82e;
+    --color-neo-light: #d4e67a;
+    --color-neo-dark: #8fa32a;
+}
+
+/* ===== MELHORIAS ESPECÍFICAS ===== */
+
+/* Breadcrumbs Elegantes */
+.breadcrumbs {
+    background-color: hsl(var(--b1) / 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    margin: 0.5rem 0;
+}
+
+/* Stats Cards */
+.stat {
+    background: linear-gradient(135deg, hsl(var(--b1)) 0%, hsl(var(--b2)) 100%);
+    border: 1px solid hsl(var(--b3));
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress Bars Elegantes */
+.progress {
+    background-color: hsl(var(--b3));
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--color-neo) 0%, var(--color-neo-hover) 100%);
+    transition: width 0.3s ease;
+}
+
+/* Tooltips Elegantes */
+.tooltip {
+    background-color: hsl(var(--b1));
+    color: hsl(var(--bc));
+    border: 1px solid hsl(var(--b3));
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== RESPONSIVIDADE MOBILE ===== */
+@media (max-width: 768px) {
+    .card {
+        margin: 0.5rem;
+    }
+    
+    .btn {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .navbar {
+        padding: 0.5rem 1rem;
+    }
+    
+    .container {
+        padding: 0 0.5rem;
+    }
+    
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .grid-cols-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ===== ACESSIBILIDADE ===== */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms ;
+        animation-iteration-count: 1 ;
+        transition-duration: 0.01ms ;
+    }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .navbar, .btn, .dropdown, .modal {
+        display: none ;
+    }
+    
+    .card {
+        box-shadow: none ;
+        border: 1px solid #000 ;
+    }
+}

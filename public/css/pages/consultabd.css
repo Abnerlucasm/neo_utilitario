@@ -1,0 +1,180 @@
+/**
+ * Estilos específicos para a página Consulta de Bancos de Dados
+ * Mantém funcionalidades específicas como paginação e tabelas
+ */
+
+
+/* ===== PAGINAÇÃO RESPONSIVA ===== */
+#databasesPagination {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+#databasesPagination .join {
+    flex-wrap: wrap;
+    max-width: 100%;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+#databasesPagination .join-item {
+    flex-shrink: 0;
+    min-width: auto;
+    white-space: nowrap;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+/* ===== TABELAS RESPONSIVAS ===== */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 0.75rem;
+    border: 1px solid hsl(var(--b3));
+}
+
+.table-responsive table {
+    min-width: 100%;
+    white-space: nowrap;
+}
+
+/* ===== FILTROS E BUSCA ===== */
+.filter-section {
+    background: hsl(var(--b1));
+    border: 1px solid hsl(var(--b3));
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+/* ===== CARDS DE ESTATÍSTICAS ===== */
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: hsl(var(--b1));
+    border: 1px solid hsl(var(--b3));
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-neo);
+    margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-label {
+    font-size: 0.9rem;
+    color: hsl(var(--bc) / 0.7);
+    font-weight: 500;
+}
+
+/* ===== MODAIS E ALERTAS ===== */
+.modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.alert-database {
+    border-left: 4px solid var(--color-neo);
+    background: hsl(var(--b1));
+    border: 1px solid hsl(var(--b3));
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* ===== BOTÕES DE AÇÃO ===== */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    flex-shrink: 0;
+}
+
+/* ===== RESPONSIVIDADE ===== */
+@media (max-width: 768px) {
+    .filter-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .stats-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-card .stat-number {
+        font-size: 1.5rem;
+    }
+}
+
+/* ===== ANIMAÇÕES ===== */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.filter-section {
+    animation: slideInRight 0.5s ease-out;
+}
+
+.stats-cards {
+    animation: slideInRight 0.5s ease-out 0.1s both;
+}
+
+.table-responsive {
+    animation: slideInRight 0.5s ease-out 0.2s both;
+}

@@ -218,7 +218,7 @@ ADMIN_NAME=Administrador
 ADMIN_PASSWORD=sua_senha_segura
 ```
 
-## 🚀 Deploy com PM2
+## 🚀 Deploy com PM2 e Nginx
 
 ### Configuração de Produção
 
@@ -234,7 +234,7 @@ PORT=3020
 
 ```bash
 # Iniciar aplicação
-pm2 start server.js
+pm2 start server.js --name neohub
 
 # Verificar status
 pm2 status
@@ -258,6 +258,96 @@ pm2 startup
 # Monitoramento web (opcional)
 pm2 web
 ```
+
+## 🌐 Configuração com Nginx (Proxy Reverso)
+
+### Instalação e Configuração do Nginx
+
+Para usar o NeoHub com proxy reverso e subdomínios internos:
+
+#### 1. Instalar Nginx
+```bash
+sudo apt update
+sudo apt install nginx
+```
+
+#### 2. Gerar Certificado SSL Auto-assinado
+```bash
+# Executar o script de geração de certificado
+sudo ./nginx-config/generate-ssl-cert.sh
+```
+
+#### 3. Configurar Nginx
+```bash
+# Copiar configuração do nginx
+sudo cp nginx-config/neohub-simple.conf /etc/nginx/sites-available/
+
+# Ativar o site
+sudo ln -s /etc/nginx/sites-available/neohub-simple.conf /etc/nginx/sites-enabled/
+
+# Remover site default (se necessário)
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Testar configuração
+sudo nginx -t
+
+# Reiniciar nginx
+sudo systemctl restart nginx
+```
+
+#### 4. Configurar DNS Local
+```bash
+# Adicionar entradas ao /etc/hosts
+echo '192.168.1.15 neohub.local admin.neohub.local api.neohub.local' | sudo tee -a /etc/hosts
+```
+
+### Acessos Disponíveis
+
+Após a configuração, você pode acessar:
+
+**HTTP (Porta 8080):**
+- **Aplicação Principal**: `http://neohub.local:8080`
+- **Admin**: `http://admin.neohub.local:8080` (mesmo conteúdo, roteamento futuro)
+- **API**: `http://api.neohub.local:8080` (mesmo conteúdo, roteamento futuro)
+
+**HTTPS (Porta 8443):**
+- **Aplicação Principal**: `https://neohub.local:8443`
+- **Admin**: `https://admin.neohub.local:8443` (mesmo conteúdo, roteamento futuro)
+- **API**: `https://api.neohub.local:8443` (mesmo conteúdo, roteamento futuro)
+
+### 🌐 Acesso via VPN
+
+Para acessar via VPN, use o IP direto do servidor:
+
+**HTTP:**
+- `http://192.168.1.15:8080`
+
+**HTTPS:**
+- `https://192.168.1.15:8443`
+
+> **Nota**: Consulte o arquivo `VPN-ACCESS-GUIDE.md` para instruções detalhadas de acesso via VPN.
+
+### Configuração SSL (Opcional)
+
+Para usar HTTPS com certificado auto-assinado:
+
+```bash
+# Usar configuração com SSL
+sudo cp nginx-config/neohub.conf /etc/nginx/sites-available/
+sudo ln -s /etc/nginx/sites-available/neohub.conf /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/neohub-simple.conf
+
+# Testar e reiniciar
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+**Acessos com SSL:**
+- **Aplicação Principal**: `https://neohub.local:8443`
+- **Admin**: `https://admin.neohub.local:8443`
+- **API**: `https://api.neohub.local:8443`
+
+> **Nota**: Como o certificado é auto-assinado, você precisará aceitar o aviso de segurança no navegador.
 
 ## 📊 Scripts Disponíveis
 

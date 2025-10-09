@@ -1,13 +1,14 @@
 // Template otimizado do navbar
 function getNavbarTemplate(isDarkTheme = false) {
     return `
-        <nav class="navbar fixed top-0 w-full z-50 backdrop-blur-md shadow-lg" style="background-color: hsl(var(--b1) / 0.85);">
+        <nav class="navbar fixed top-0 w-full z-50 backdrop-blur-md shadow-lg">
             <div class="navbar-start">
                 <a href="/" class="btn btn-ghost normal-case text-xl">
                     <img src="/assets/neo-logo-small.png" alt="Neo Logo" class="h-8">
                 </a>
             </div>
             <div class="navbar-end">
+                <modern-theme-selector></modern-theme-selector>
                 <button id="userMenuBtn" class="btn btn-ghost btn-circle" title="Menu do usuário">
                     <div class="avatar">
                         <div class="w-8 rounded-full">
@@ -393,6 +394,25 @@ class NeoNavbar extends HTMLElement {
                 window.location.href = '/pages/user-settings.html';
             });
         }
+
+        // Listener para mudanças de tema do módulo de personalização
+        document.addEventListener('themeChanged', (event) => {
+            this.applyThemeToNavbar(event.detail.theme);
+        });
+        
+        // Listener para mudanças via localStorage (outras abas)
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'userSettings') {
+                try {
+                    const settings = JSON.parse(event.newValue);
+                    if (settings.theme) {
+                        this.applyThemeToNavbar(settings.theme);
+                    }
+                } catch (error) {
+                    console.error('Erro ao processar mudanças de tema:', error);
+                }
+            }
+        });
     }
 
     highlightCurrentPage() {
@@ -493,8 +513,12 @@ class NeoNavbar extends HTMLElement {
             // Carregar configurações básicas do usuário
             const savedSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
             
-            // Usar módulo de personalização se disponível
-            if (window.personalization) {
+            // Usar ThemeManager se disponível
+            if (window.ThemeManager) {
+                const theme = savedSettings.theme || 'light';
+                window.ThemeManager.setTheme(theme);
+                this.state.isDarkTheme = theme === 'dark';
+            } else if (window.personalization) {
                 const theme = savedSettings.theme || 'light';
                 window.personalization.setTheme(theme);
                 this.state.isDarkTheme = theme === 'dark';
@@ -507,8 +531,28 @@ class NeoNavbar extends HTMLElement {
             
             // Aplicar tema ao navbar
             this.applyThemeToNavbar(savedSettings.theme || 'light');
+            
+            // Inicializar seletor de temas
+            this.initializeThemeSelector();
         } catch (error) {
             console.error('Erro ao carregar configurações:', error);
+        }
+    }
+    
+    initializeThemeSelector() {
+        // Aguardar o seletor de temas estar disponível
+        const themeSelector = this.querySelector('theme-selector');
+        if (themeSelector) {
+            // O componente já se inicializa automaticamente
+            console.log('Seletor de temas inicializado');
+        } else {
+            // Tentar novamente após um pequeno delay
+            setTimeout(() => {
+                const themeSelector = this.querySelector('theme-selector');
+                if (themeSelector) {
+                    console.log('Seletor de temas inicializado (delay)');
+                }
+            }, 100);
         }
     }
 
@@ -517,7 +561,8 @@ class NeoNavbar extends HTMLElement {
         if (navbar) {
             navbar.setAttribute('data-theme', theme);
             // Aplicar cor de fundo translúcida baseada no tema
-            navbar.style.backgroundColor = `hsl(var(--b1) / 0.85)`;
+            const opacity = theme === 'dark' ? 0.9 : 0.8;
+            navbar.style.backgroundColor = `hsl(var(--b1) / ${opacity})`;
             navbar.style.backdropFilter = 'blur(12px)';
             navbar.style.borderBottom = `1px solid hsl(var(--bc) / 0.1)`;
             navbar.classList.remove('scrolled');
