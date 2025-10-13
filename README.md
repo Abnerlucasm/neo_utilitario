@@ -106,8 +106,8 @@ createdb neohub
 # Executar migrações
 npm run migrate
 
-# Executar seeds (opcional)
-npm run run-migrations
+# Executar seeds (automático)
+# Os seeds são executados automaticamente na primeira inicialização
 ```
 
 ### 5. Iniciar a aplicação
@@ -165,7 +165,13 @@ neo_utilitario/
 │   ├── servers.js        # Gerenciamento de servidores
 │   ├── resources.js      # Gerenciamento de recursos
 │   └── menus.js          # Gerenciamento de menus
-├── scripts/              # Scripts utilitários
+├── scripts/              # Scripts de build e deploy
+│   ├── build-production.js    # Build otimizado para produção
+│   ├── build-development.js   # Build para desenvolvimento
+│   ├── build-config.js        # Configurações de build
+│   ├── production-server.js   # Servidor otimizado
+│   ├── ecosystem.config.js    # Configuração PM2
+│   └── deploy.sh              # Script de deploy automatizado
 ├── services/             # Serviços da aplicação
 │   ├── email.service.js  # Serviço de email
 │   └── twoFactor.js      # Autenticação 2FA
@@ -353,28 +359,38 @@ sudo systemctl restart nginx
 
 ```bash
 # Desenvolvimento
-npm run dev              # Iniciar com nodemon
+npm run dev              # Build dev + servidor
+npm run build:dev        # Apenas build desenvolvimento
 
 # Produção
 npm start               # Iniciar servidor
+npm run build:prod      # Build otimizado para produção
+npm run deploy          # Deploy manual
+npm run deploy:auto     # Deploy automatizado
+
+# Monitoramento
+npm run logs            # Ver logs do PM2
+npm run status          # Status do servidor
+npm run restart         # Reiniciar servidor
+npm run stop            # Parar servidor
 
 # Banco de Dados
 npm run migrate         # Executar migrações
 npm run migrate:undo    # Reverter migração
 npm run migrate:undo:all # Reverter todas as migrações
 npm run migrate:create  # Criar nova migração
-npm run run-migrations  # Executar migrações customizadas
 ```
 
 ## 🔐 Segurança
 
 ### Autenticação 2FA
 
-O sistema suporta autenticação de dois fatores usando TOTP (Time-based One-Time Password):
+O sistema possui código para autenticação de dois fatores, mas **não está completamente implementado**:
 
-- Geração de QR Code para apps como Google Authenticator
-- Verificação de tokens TOTP
-- Backup codes para recuperação
+- ⚠️ Código 2FA existe mas não está funcional
+- ⚠️ Dependências `speakeasy` e `qrcode` não estão instaladas
+- ⚠️ Interface de usuário não implementada
+- ⚠️ Funcionalidade desabilitada no momento
 
 ### Controle de Acesso
 
@@ -432,6 +448,213 @@ ls -la logs/
 - **Arquivos**: kebab-case (ex: `user-settings.js`)
 - **Variáveis**: camelCase (ex: `userName`, `isActive`)
 
+## 🚀 Deploy para Produção
+
+### Pré-requisitos de Produção
+
+- **Node.js** 14+ instalado
+- **PM2** para gerenciamento de processos
+- **Nginx** ou **Apache** como proxy reverso
+- **SSL/TLS** configurado
+- **Firewall** configurado (porta 80, 443, 3000)
+
+### Deploy Automatizado
+
+```bash
+# Deploy completo automatizado
+./scripts/deploy.sh
+
+# Ou via npm
+npm run deploy:auto
+```
+
+### Deploy Manual
+
+```bash
+# 1. Build para produção
+npm run build:prod
+
+# 2. Parar servidor atual
+pm2 stop neodeploy
+
+# 3. Configurar servidor de produção
+cp scripts/production-server.js server.js
+
+# 4. Iniciar servidor
+pm2 start scripts/ecosystem.config.js --env production
+
+# 5. Salvar configuração
+pm2 save
+```
+
+### Configuração de Produção
+
+#### 1. Variáveis de Ambiente
+```bash
+# Copiar arquivo de configuração
+cp config.example.js config.js
+
+# Editar configurações
+nano config.js
+```
+
+#### 2. SSL/TLS
+```bash
+# Usar Let's Encrypt (recomendado)
+sudo apt install certbot
+sudo certbot --nginx -d seudominio.com
+
+# Ou configurar certificado próprio
+# Colocar certificados em /etc/ssl/certs/
+```
+
+#### 3. Nginx (Proxy Reverso)
+```nginx
+# /etc/nginx/sites-available/neohub
+server {
+    listen 80;
+    server_name seudominio.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name seudominio.com;
+
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/seudominio.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/seudominio.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512;
+    ssl_prefer_server_ciphers off;
+
+    # Security Headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # Gzip Compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    # Proxy to Node.js
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Static files caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        proxy_pass http://localhost:3000;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+### Otimizações de Produção
+
+#### 1. Minificação
+- ✅ JavaScript minificado
+- ✅ CSS minificado
+- ✅ HTML minificado
+- ✅ Logs removidos
+
+#### 2. Cache
+- ✅ Cache de arquivos estáticos (1 ano)
+- ✅ Cache de API (configurável)
+- ✅ Service Worker para cache offline
+
+#### 3. Compressão
+- ✅ Gzip ativado
+- ✅ Compressão de imagens
+- ✅ Minificação de recursos
+
+### Monitoramento de Produção
+
+```bash
+# Status do servidor
+pm2 status
+
+# Logs em tempo real
+pm2 logs neodeploy
+
+# Logs com filtro
+pm2 logs neodeploy --lines 100
+
+# Reiniciar servidor
+pm2 restart neodeploy
+
+# Parar servidor
+pm2 stop neodeploy
+
+# Monitoramento em tempo real
+pm2 monit
+```
+
+### Segurança de Produção
+
+#### Firewall
+```bash
+# UFW (Ubuntu)
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+
+# iptables
+sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+sudo iptables -A INPUT -j DROP
+```
+
+#### Backup
+```bash
+# Backup do banco de dados
+pg_dump neohub > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Backup dos arquivos
+tar -czf backup_files_$(date +%Y%m%d_%H%M%S).tar.gz public/ config.js
+
+# Backup automático (crontab)
+0 2 * * * /path/to/backup_script.sh
+```
+
+### Atualizações e Rollback
+
+#### Atualização Automática
+```bash
+# Pull das mudanças
+git pull origin main
+
+# Deploy automático
+./scripts/deploy.sh
+```
+
+#### Rollback
+```bash
+# Parar servidor
+pm2 stop neodeploy
+
+# Restaurar backup
+cp server.js.backup.YYYYMMDD_HHMMSS server.js
+cp -r dist.backup.YYYYMMDD_HHMMSS dist
+
+# Reiniciar
+pm2 start scripts/ecosystem.config.js --env production
+```
+
 ## 🐛 Troubleshooting
 
 ### Problemas Comuns
@@ -460,6 +683,70 @@ ls -la logs/
    pm2 kill
    pm2 start server.js --name neohub
    ```
+
+4. **Servidor não inicia**:
+   ```bash
+   # Verificar logs
+   pm2 logs neodeploy
+   
+   # Verificar porta
+   netstat -tlnp | grep :3000
+   
+   # Verificar permissões
+   ls -la server.js
+   ```
+
+5. **Erro de certificado SSL**:
+   ```bash
+   # Verificar certificado
+   openssl x509 -in /etc/ssl/certs/cert.pem -text -noout
+   
+   # Renovar Let's Encrypt
+   sudo certbot renew
+   ```
+
+6. **Problemas de performance**:
+   ```bash
+   # Verificar uso de memória
+   pm2 monit
+   
+   # Verificar logs de erro
+   pm2 logs neodeploy --err
+   
+   # Verificar configuração do Nginx
+   sudo nginx -t
+   ```
+
+### Logs Importantes
+- **Aplicação**: `logs/app.log`
+- **PM2**: `pm2 logs neodeploy`
+- **Nginx**: `/var/log/nginx/`
+- **Sistema**: `/var/log/syslog`
+
+### Comandos de Diagnóstico
+```bash
+# Status geral
+pm2 status
+systemctl status nginx
+df -h
+free -h
+
+# Teste de conectividade
+curl -I https://seudominio.com
+ping seudominio.com
+```
+
+### Checklist de Produção
+- [ ] SSL/TLS configurado
+- [ ] Firewall configurado
+- [ ] Proxy reverso configurado
+- [ ] Backup automático configurado
+- [ ] Monitoramento configurado
+- [ ] Logs configurados
+- [ ] Performance otimizada
+- [ ] Segurança implementada
+- [ ] Deploy automatizado
+- [ ] Rollback testado
 
 ## 👥 Contribuição
 
