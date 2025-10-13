@@ -331,7 +331,7 @@ Para acessar via VPN, use o IP direto do servidor:
 **HTTPS:**
 - `https://192.168.1.15:8443`
 
-> **Nota**: Consulte o arquivo `VPN-ACCESS-GUIDE.md` para instruções detalhadas de acesso via VPN.
+> **Nota**: Consulte o arquivo `docs/VPN-DNS-SETUP.md` para instruções detalhadas de acesso via VPN.
 
 ### Configuração SSL (Opcional)
 
