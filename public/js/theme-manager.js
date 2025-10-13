@@ -20,13 +20,14 @@ class ThemeManager {
         this.setupGlobalListeners();
         console.log('ThemeManager inicializado com tema:', this.currentTheme);
         
-        // Aplicar tema imediatamente se o DOM já estiver pronto
+        // Aplicar tema imediatamente
+        this.applyTheme(this.currentTheme);
+        
+        // Aplicar tema quando DOM estiver pronto
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 this.applyTheme(this.currentTheme);
             });
-        } else {
-            this.applyTheme(this.currentTheme);
         }
     }
 

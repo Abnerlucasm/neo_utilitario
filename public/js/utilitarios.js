@@ -1,13 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Usar módulo de personalização se disponível
-    if (window.personalization) {
-        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-        const theme = userSettings.theme || 'light';
-        window.personalization.setTheme(theme);
+    // Aplicar tema salvo usando ThemeManager
+    if (window.ThemeManager) {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        window.ThemeManager.setTheme(savedTheme);
+        console.log('Tema aplicado via ThemeManager:', savedTheme);
     } else {
-        // Fallback para aplicação direta do DaisyUI
-        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-        const theme = userSettings.theme || 'light';
-        document.documentElement.setAttribute('data-theme', theme);
+        // Fallback: aplicar tema diretamente
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        console.log('Tema aplicado diretamente:', savedTheme);
     }
 });

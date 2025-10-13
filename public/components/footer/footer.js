@@ -19,8 +19,8 @@ class NeoFooter extends HTMLElement {
     }
 
     applyTheme(theme) {
-        if (window.personalization) {
-            window.personalization.setTheme(theme);
+        if (window.ThemeManager) {
+            window.ThemeManager.setTheme(theme);
         } else {
             document.documentElement.setAttribute('data-theme', theme);
         }
@@ -39,7 +39,7 @@ class NeoFooter extends HTMLElement {
                        class="btn btn-ghost btn-sm gap-2" 
                        target="_blank" 
                        rel="noopener noreferrer">
-                        <i class="fab fa-github w-5 h-5"></i>
+                        <i class="fab fa-github text-lg"></i>
                         Contribua no GitHub
                     </a>
                     <p class="text-sm opacity-70">© ${new Date().getFullYear()} Neo. Todos os direitos reservados.</p>

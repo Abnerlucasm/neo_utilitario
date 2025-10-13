@@ -72,23 +72,21 @@ class ModernThemeSelector extends HTMLElement {
     selectTheme(theme) {
         console.log('Tema selecionado:', theme);
         
-        if (theme === 'system') {
-            // Para tema sistema, detectar preferência do SO
-            const systemTheme = this.getSystemTheme();
-            console.log('Tema do sistema detectado:', systemTheme);
-            
-            // Aplicar tema do sistema
-            document.documentElement.setAttribute('data-theme', systemTheme);
-            
-            // Salvar 'system' no localStorage
-            localStorage.setItem('theme', 'system');
-            
-            // Configurar listener para mudanças do sistema
-            this.setupSystemThemeListener();
+        // Usar ThemeManager se disponível
+        if (window.ThemeManager) {
+            window.ThemeManager.setTheme(theme);
         } else {
-            // Aplicar tema diretamente
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
+            // Fallback: aplicar tema diretamente
+            if (theme === 'system') {
+                const systemTheme = this.getSystemTheme();
+                console.log('Tema do sistema detectado:', systemTheme);
+                document.documentElement.setAttribute('data-theme', systemTheme);
+                localStorage.setItem('theme', 'system');
+                this.setupSystemThemeListener();
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+            }
         }
         
         this.currentTheme = theme;

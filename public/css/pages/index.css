@@ -5,7 +5,8 @@
 
 /* ===== HERO SECTION ===== */
 .hero-neohub {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); Azul Fade*/
+    background: linear-gradient(135deg, #5f5f5f 0%, #1a1a1a 100%); 
     min-height: 60vh;
     display: flex;
     align-items: center;
@@ -53,6 +54,25 @@
     font-size: 1.5rem;
     font-weight: 300;
     opacity: 0.9;
+}
+
+/* ===== HERO ACTIONS ===== */
+.hero-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.hero-actions .btn {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.hero-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* ===== WELCOME SECTION ===== */
@@ -160,6 +180,15 @@
         font-size: 1.2rem;
     }
     
+    .hero-actions {
+        margin-top: 1.5rem;
+    }
+    
+    .hero-actions .btn {
+        font-size: 0.9rem;
+        padding: 0.75rem 1.5rem;
+    }
+    
     .welcome-title {
         font-size: 1.5rem;
     }
@@ -195,6 +224,15 @@
     
     .brand-subtitle {
         font-size: 1rem;
+    }
+    
+    .hero-actions {
+        margin-top: 1rem;
+    }
+    
+    .hero-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.5rem 1rem;
     }
     
     .stats-grid {

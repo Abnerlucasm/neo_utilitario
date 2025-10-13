@@ -518,10 +518,6 @@ class NeoNavbar extends HTMLElement {
                 const theme = savedSettings.theme || 'light';
                 window.ThemeManager.setTheme(theme);
                 this.state.isDarkTheme = theme === 'dark';
-            } else if (window.personalization) {
-                const theme = savedSettings.theme || 'light';
-                window.personalization.setTheme(theme);
-                this.state.isDarkTheme = theme === 'dark';
             } else {
                 // Fallback para aplicação direta do DaisyUI
                 const theme = savedSettings.theme || 'light';

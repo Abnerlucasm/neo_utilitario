@@ -7,9 +7,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('logoutButton').addEventListener('click', clearTokenAndRedirect);
 
-    // Aguardar inicialização do módulo de personalização
-    if (window.personalization) {
-        await window.personalization.waitForInitialization();
+    // Aplicar tema salvo usando ThemeManager
+    if (window.ThemeManager) {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        window.ThemeManager.setTheme(savedTheme);
+        console.log('Tema aplicado via ThemeManager:', savedTheme);
+    } else {
+        // Fallback: aplicar tema diretamente
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        console.log('Tema aplicado diretamente:', savedTheme);
     }
 
     // Carregar configurações do usuário
@@ -148,14 +155,18 @@ async function loadUserSettings() {
         document.getElementById('userName').value = settings.name || '';
         document.getElementById('userEmail').value = settings.email || '';
         
-        // Configurar tema usando módulo de personalização
+        // Configurar tema usando ThemeManager
         const themeSelect = document.getElementById('themeSelect');
-        if (themeSelect && window.personalization) {
+        if (themeSelect) {
             const theme = settings.theme || 'light';
             themeSelect.value = theme;
             
-            // Aplicar tema via módulo de personalização
-            window.personalization.setTheme(theme);
+            // Aplicar tema via ThemeManager
+            if (window.ThemeManager) {
+                window.ThemeManager.setTheme(theme);
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
         }
         
         // Salvar configurações no localStorage

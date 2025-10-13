@@ -4,13 +4,32 @@ const CACHE_NAME = 'neo-utilitario-v1';
 // Arquivos para cache inicial
 const urlsToCache = [
     '/',
+    '/pages/index.html',
     '/pages/glassfish.html',
+    '/pages/utilitarios.html',
+    '/pages/recursos-dev.html',
+    '/pages/sugestoes-dev.html',
+    '/pages/user-settings.html',
+    '/js/index.js',
     '/js/glassfish.js',
     '/js/auth.js',
+    '/js/theme-manager.js',
+    '/js/apply-theme-immediate.js',
+    '/js/utilitarios.js',
+    '/js/recursos-dev.js',
+    '/js/sugestoes-dev.js',
+    '/js/user-settings.js',
     '/components/navbar/navbar.js',
     '/components/footer/footer.js',
+    '/components/theme-selector/theme-selector-modern.js',
+    '/css/neohub-core.css',
+    '/css/pages/index.css',
     '/assets/neo-logo-small.png',
-    '/assets/favicon.ico'
+    '/assets/favicon.ico',
+    '/icons/icon-128x128.png',
+    '/icons/icon-144x144.png',
+    '/icons/icon-512x512.png',
+    '/manifest.json'
 ];
 
 // Instalação do Service Worker
