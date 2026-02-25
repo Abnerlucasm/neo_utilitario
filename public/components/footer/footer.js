@@ -39,7 +39,6 @@ class NeoFooter extends HTMLElement {
                        class="btn btn-ghost btn-sm gap-2" 
                        target="_blank" 
                        rel="noopener noreferrer">
-                        <i class="fab fa-github text-lg"></i>
                         Contribua no GitHub
                     </a>
                     <p class="text-sm opacity-70">© ${new Date().getFullYear()} Neo. Todos os direitos reservados.</p>
