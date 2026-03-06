@@ -68,34 +68,8 @@ DB_NAME=neohub
 DB_USER=postgres
 DB_PASS=sua_senha_aqui
 
-# Configurações de Segurança
-JWT_SECRET=sua_chave_jwt_super_secreta_aqui
-JWT_EXPIRES_IN=24h
-ENCRYPTION_KEY=sua_chave_criptografia_32_caracteres
+[...]
 
-# Configurações do Admin Padrão
-ADMIN_EMAIL=admin@neosistemas.com.br
-ADMIN_USERNAME=admin
-ADMIN_NAME=Administrador
-ADMIN_PASSWORD=admin@123
-
-# Configurações de Email
-EMAIL_HOST=smtp.office365.com
-EMAIL_PORT=587
-EMAIL_SECURE=false
-EMAIL_TLS=true
-EMAIL_USER=seu_email@dominio.com
-EMAIL_PASS=sua_senha_email
-EMAIL_FROM=seu_email@dominio.com
-EMAIL_FROM_NAME=NeoHub
-EMAIL_SECRET=chave_secreta_para_verificacao_email
-EMAIL_DEBUG=true
-
-# Configurações de 2FA
-TWO_FACTOR_APP_NAME=NeoHub
-
-# Configurações de Log
-LOG_LEVEL=info
 ```
 
 ### 4. Configure o banco de dados
@@ -330,8 +304,6 @@ Para acessar via VPN, use o IP direto do servidor:
 
 **HTTPS:**
 - `https://192.168.1.15:8443`
-
-> **Nota**: Consulte o arquivo `docs/VPN-DNS-SETUP.md` para instruções detalhadas de acesso via VPN.
 
 ### Configuração SSL (Opcional)
 
@@ -673,8 +645,6 @@ pm2 start scripts/ecosystem.config.js --env production
    # Verificar logs
    pm2 logs neohub
    
-   # Verificar configurações
-   node scripts/test-admin-config.js
    ```
 
 3. **Problemas com PM2**:
@@ -764,10 +734,6 @@ ping seudominio.com
    git push origin feature/nova-funcionalidade
    ```
 5. **Abra um Pull Request**
-
-## 📝 Licença
-
-Este projeto está sob a licença [MIT](LICENSE).
 
 ## 🤝 Suporte
 
