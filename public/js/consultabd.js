@@ -682,7 +682,6 @@ function editServer(serverId) {
                         <span class="label-text">Senha</span>
                     </label>
                     <input type="password" id="editServerPassword" placeholder="Digite a nova senha" class="input input-bordered w-full">
-                    <div class="text-xs text-gray-500 mt-1">Deixe em branco para manter a senha atual</div>
                 </div>
             </form>
             
