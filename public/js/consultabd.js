@@ -10,15 +10,15 @@ let currentPage = 1;
 const API_BASE = '/api';
 
 // Inicialização da página
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('DOM carregado, inicializando...');
-    
+
     // Verificar autenticação antes de carregar dados
     if (!getAuthToken()) {
         console.log('Usuário não autenticado, redirecionando...');
         return; // A função getAuthToken já redireciona
     }
-    
+
     loadServers();
     loadServerStats();
     setupEventListeners();
@@ -33,7 +33,7 @@ function setupEventListeners() {
             filterAndPaginateDatabases();
         }, 300));
     }
-    
+
     // Event listener para mudança no número de itens por página
     const perPageSelect = document.getElementById('databasesPerPage');
     if (perPageSelect) {
@@ -70,16 +70,16 @@ function getAuthToken() {
 // Função para mostrar notificações toast com DaisyUI
 function showToast(message, type = 'info', duration = 5000) {
     const toast = document.createElement('div');
-    
+
     // Mapear tipos para classes DaisyUI
-    const alertClass = type === 'error' ? 'alert-error' : 
-                      type === 'warning' ? 'alert-warning' : 
-                      type === 'success' ? 'alert-success' : 'alert-info';
-    
-    const iconClass = type === 'error' ? 'fa-exclamation-triangle' : 
-                     type === 'warning' ? 'fa-exclamation-circle' : 
-                     type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
-    
+    const alertClass = type === 'error' ? 'alert-error' :
+        type === 'warning' ? 'alert-warning' :
+            type === 'success' ? 'alert-success' : 'alert-info';
+
+    const iconClass = type === 'error' ? 'fa-exclamation-triangle' :
+        type === 'warning' ? 'fa-exclamation-circle' :
+            type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
+
     toast.className = `alert ${alertClass} fixed top-4 right-4 z-50 max-w-sm shadow-lg`;
     toast.innerHTML = `
         <div class="flex items-center">
@@ -96,9 +96,9 @@ function showToast(message, type = 'info', duration = 5000) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(toast);
-    
+
     // Auto-remover após duração
     setTimeout(() => {
         if (toast.parentElement) {
@@ -120,12 +120,13 @@ function createSkeletonLoading(count = 5) {
             <td><div class="skeleton-text"></div></td>
             <td><div class="skeleton-text short"></div></td>
             <td><div class="skeleton-text short"></div></td>
+            <td><div class="skeleton-text short"></div></td>
             <td><div class="skeleton-text"></div></td>
             <td><div class="skeleton-text"></div></td>
             <td><div class="skeleton-text short"></div></td>
         </tr>
     `).join('');
-    
+
     return `
         <div class="overflow-x-auto">
             <table class="table table-zebra w-full">
@@ -133,7 +134,8 @@ function createSkeletonLoading(count = 5) {
                     <tr>
                         <th>Servidor</th>
                         <th>Nome</th>
-                        <th>Versão</th>
+                        <th>NeoCorp</th>
+                        <th>NeoContábil</th>
                         <th>Tamanho</th>
                         <th>Dono</th>
                         <th>Comentário</th>
@@ -152,12 +154,12 @@ function createSkeletonLoading(count = 5) {
 function showSkeletonLoading() {
     const databasesSection = document.getElementById('databasesSection');
     const resultsSummary = document.getElementById('resultsSummary');
-    
+
     if (resultsSummary) resultsSummary.remove();
-    
+
     if (databasesSection) {
         databasesSection.style.display = 'block';
-        
+
         // Manter os filtros e apenas substituir o conteúdo da grid
         const databasesGrid = document.getElementById('databasesGrid');
         if (databasesGrid) {
@@ -261,10 +263,10 @@ async function loadServers() {
 
         const data = await response.json();
         servers = data.data || [];
-        
+
         renderServersList();
         renderServerCheckboxes();
-        
+
     } catch (error) {
         console.error('Erro ao carregar servidores:', error);
         showNotification('Erro ao carregar servidores', 'error');
@@ -288,7 +290,7 @@ async function loadServerStats() {
 
         const stats = await response.json();
         renderServerStats(stats);
-        
+
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
     }
@@ -298,7 +300,7 @@ async function loadServerStats() {
 function renderServerStats(stats) {
     const statsContainer = document.getElementById('serverStats');
     if (!statsContainer) return;
-    
+
     statsContainer.innerHTML = `
         <div class="stats shadow">
             <div class="stat">
@@ -323,7 +325,7 @@ function renderServerStats(stats) {
 // Renderizar lista de servidores
 function renderServersList() {
     const container = document.getElementById('serversList');
-    
+
     if (servers.length === 0) {
         container.innerHTML = `
             <div class="text-center text-gray-500 py-8">
@@ -362,14 +364,14 @@ function renderServersList() {
             </div>
         </div>
     `).join('');
-    
+
     container.innerHTML = html;
 }
 
 // Renderizar checkboxes dos servidores
 function renderServerCheckboxes() {
     const container = document.getElementById('serverCheckboxes');
-    
+
     if (servers.length === 0) {
         container.innerHTML = '<p class="text-gray-500">Nenhum servidor disponível</p>';
         return;
@@ -394,7 +396,7 @@ function renderServerCheckboxes() {
             `).join('')}
         </div>
     `;
-    
+
     // Adicionar event listener programaticamente para evitar duplicação
     const selectAllCheckbox = document.getElementById('selectAllServers');
     if (selectAllCheckbox) {
@@ -409,7 +411,7 @@ function renderServerCheckboxes() {
 function toggleAllServers() {
     const selectAllCheckbox = document.getElementById('selectAllServers');
     const serverCheckboxes = document.querySelectorAll('input[type="checkbox"][value]');
-    
+
     serverCheckboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
     });
@@ -433,7 +435,7 @@ async function testServerConnection(serverId) {
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
             showNotification('Conexão testada com sucesso!', 'success');
             // Atualizar status do servidor na lista
@@ -458,7 +460,7 @@ function updateServerStatus(serverId, status) {
             statusIndicator.className = `status-circle status-${status}`;
         }
     }
-    
+
     // Atualizar também nos checkboxes
     const checkbox = document.querySelector(`input[value="${serverId}"]`);
     if (checkbox) {
@@ -538,9 +540,9 @@ function openServerModal() {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
-    
+
     // Adicionar evento de submit
     document.getElementById('createServerForm').addEventListener('submit', handleCreateServerSubmit);
 }
@@ -555,9 +557,9 @@ function closeCreateModal() {
 
 // Função para verificar se servidor já existe (excluindo um ID específico)
 function checkServerExists(host, port, excludeId = null) {
-    return servers.some(server => 
-        server.host === host && 
-        server.port === port && 
+    return servers.some(server =>
+        server.host === host &&
+        server.port === port &&
         (!excludeId || server.id !== excludeId)
     );
 }
@@ -565,7 +567,7 @@ function checkServerExists(host, port, excludeId = null) {
 // Função para lidar com o submit do formulário de criação
 async function handleCreateServerSubmit(event) {
     event.preventDefault();
-    
+
     const formData = {
         name: document.getElementById('createServerName').value,
         host: document.getElementById('createServerHost').value,
@@ -574,13 +576,13 @@ async function handleCreateServerSubmit(event) {
         username: document.getElementById('createServerUsername').value,
         password: document.getElementById('createServerPassword').value
     };
-    
+
     // Verificar se já existe um servidor com o mesmo host e porta
     if (checkServerExists(formData.host, formData.port)) {
         showNotification('Já existe um servidor cadastrado com este host e porta. Verifique os dados e tente novamente.', 'error');
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_BASE}/servers`, {
             method: 'POST',
@@ -590,9 +592,9 @@ async function handleCreateServerSubmit(event) {
             },
             body: JSON.stringify(formData)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showNotification('Servidor criado com sucesso!', 'success');
             closeCreateModal();
@@ -600,12 +602,12 @@ async function handleCreateServerSubmit(event) {
         } else {
             // Mostrar mensagem de erro específica
             let errorMessage = result.message || 'Erro ao criar servidor';
-            
+
             // Se for erro de servidor duplicado, mostrar mensagem mais clara
             if (errorMessage.includes('Já existe um servidor')) {
                 errorMessage = 'Já existe um servidor cadastrado com este host e porta. Verifique os dados e tente novamente.';
             }
-            
+
             showNotification(errorMessage, 'error');
         }
     } catch (error) {
@@ -621,7 +623,7 @@ function editServer(serverId) {
         showNotification('Servidor não encontrado', 'error');
         return;
     }
-    
+
     // Criar modal de edição
     const modal = document.createElement('div');
     modal.id = 'editServerModal';
@@ -691,9 +693,9 @@ function editServer(serverId) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
-    
+
     // Adicionar evento de submit
     document.getElementById('editServerForm').addEventListener('submit', handleEditServerSubmit);
 }
@@ -709,7 +711,7 @@ function closeEditModal() {
 // Função para lidar com o submit do formulário de edição
 async function handleEditServerSubmit(event) {
     event.preventDefault();
-    
+
     const serverId = document.getElementById('editServerId').value;
     const formData = {
         name: document.getElementById('editServerName').value,
@@ -719,13 +721,13 @@ async function handleEditServerSubmit(event) {
         username: document.getElementById('editServerUsername').value,
         password: document.getElementById('editServerPassword').value || null
     };
-    
+
     // Verificar se já existe um servidor com o mesmo host e porta (excluindo o atual)
     if (checkServerExists(formData.host, formData.port, serverId)) {
         showNotification('Já existe outro servidor cadastrado com este host e porta. Verifique os dados e tente novamente.', 'error');
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_BASE}/servers/${serverId}`, {
             method: 'PUT',
@@ -735,9 +737,9 @@ async function handleEditServerSubmit(event) {
             },
             body: JSON.stringify(formData)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showNotification('Servidor atualizado com sucesso!', 'success');
             closeEditModal();
@@ -745,12 +747,12 @@ async function handleEditServerSubmit(event) {
         } else {
             // Mostrar mensagem de erro específica
             let errorMessage = result.message || 'Erro ao atualizar servidor';
-            
+
             // Se for erro de servidor duplicado, mostrar mensagem mais clara
             if (errorMessage.includes('Já existe um servidor')) {
                 errorMessage = 'Já existe um servidor cadastrado com este host e porta. Verifique os dados e tente novamente.';
             }
-            
+
             showNotification(errorMessage, 'error');
         }
     } catch (error) {
@@ -766,7 +768,7 @@ async function deleteServer(serverId) {
         showNotification('Servidor não encontrado', 'error');
         return;
     }
-    
+
     if (confirm(`Tem certeza que deseja excluir o servidor "${server.name}"?`)) {
         try {
             const response = await fetch(`${API_BASE}/servers/${serverId}`, {
@@ -776,9 +778,9 @@ async function deleteServer(serverId) {
                     'Authorization': `Bearer ${getAuthToken()}`
                 }
             });
-            
+
             const result = await response.json();
-            
+
             if (result.success) {
                 showNotification('Servidor removido com sucesso!', 'success');
                 loadServers(); // Recarregar lista de servidores
@@ -798,16 +800,16 @@ function formatSize(size) {
     if (!size || size === 'NaN undefined' || size === 'Carregando...') {
         return 'Carregando...';
     }
-    
+
     // Se já está formatado (contém espaço), retornar como está
     if (typeof size === 'string' && size.includes(' ')) {
         return size;
     }
-    
+
     // Se é um número, converter para formato legível
     const bytes = parseInt(size);
     if (isNaN(bytes) || bytes === 0) return 'N/A';
-    
+
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
@@ -816,7 +818,7 @@ function formatSize(size) {
 // Função para copiar informações da database
 async function copyDatabaseInfo(host, databaseName) {
     const connectionString = `${host}/${databaseName}`;
-    
+
     try {
         // Tentar usar a API moderna do clipboard primeiro
         if (navigator.clipboard && window.isSecureContext) {
@@ -827,7 +829,7 @@ async function copyDatabaseInfo(host, databaseName) {
     } catch (error) {
         console.log('Clipboard API não disponível, usando fallback:', error);
     }
-    
+
     // Fallback para navegadores que não suportam clipboard API
     try {
         // Método 1: Usar textarea temporário
@@ -839,16 +841,16 @@ async function copyDatabaseInfo(host, databaseName) {
         textArea.style.opacity = '0';
         textArea.style.pointerEvents = 'none';
         document.body.appendChild(textArea);
-        
+
         // Tentar diferentes métodos de seleção
         textArea.focus();
         textArea.select();
-        
+
         // Para Linux, às vezes precisamos de um pequeno delay
         setTimeout(() => {
             const successful = document.execCommand('copy');
             document.body.removeChild(textArea);
-            
+
             if (successful) {
                 showNotification('Informações copiadas para a área de transferência!', 'success');
             } else {
@@ -856,7 +858,7 @@ async function copyDatabaseInfo(host, databaseName) {
                 tryCopyWithRange(connectionString);
             }
         }, 100);
-        
+
     } catch (error) {
         console.error('Erro ao copiar com textarea:', error);
         // Método 2: Tentar com range selection
@@ -869,22 +871,22 @@ function tryCopyWithRange(text) {
     try {
         const range = document.createRange();
         const selection = window.getSelection();
-        
+
         // Criar elemento temporário
         const tempElement = document.createElement('div');
         tempElement.textContent = text;
         tempElement.style.position = 'absolute';
         tempElement.style.left = '-9999px';
         document.body.appendChild(tempElement);
-        
+
         range.selectNodeContents(tempElement);
         selection.removeAllRanges();
         selection.addRange(range);
-        
+
         const successful = document.execCommand('copy');
         selection.removeAllRanges();
         document.body.removeChild(tempElement);
-        
+
         if (successful) {
             showNotification('Informações copiadas para a área de transferência!', 'success');
         } else {
@@ -904,7 +906,7 @@ function showCopyManualModal(text) {
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     // Criar modal
     const modal = document.createElement('div');
     modal.id = 'copyManualModal';
@@ -932,9 +934,9 @@ function showCopyManualModal(text) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
-    
+
     // Focar no input automaticamente
     setTimeout(() => {
         const input = modal.querySelector('input');
@@ -956,22 +958,22 @@ function closeCopyManualModal() {
 // Função para testar suporte ao clipboard
 function testClipboardSupport() {
     console.log('=== TESTE DE SUPORTE AO CLIPBOARD ===');
-    
+
     // Verificar se a API Clipboard está disponível
     console.log('navigator.clipboard disponível:', !!navigator.clipboard);
     console.log('window.isSecureContext:', window.isSecureContext);
-    
+
     // Verificar se document.execCommand está disponível
     console.log('document.execCommand disponível:', !!document.execCommand);
-    
+
     // Testar se estamos em contexto seguro (HTTPS ou localhost)
     const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost';
     console.log('Contexto seguro:', isSecure);
-    
+
     // Verificar user agent para identificar o sistema operacional
     const userAgent = navigator.userAgent;
     console.log('User Agent:', userAgent);
-    
+
     if (userAgent.includes('Linux')) {
         console.log('Sistema operacional detectado: Linux');
     } else if (userAgent.includes('Windows')) {
@@ -979,7 +981,7 @@ function testClipboardSupport() {
     } else if (userAgent.includes('Mac')) {
         console.log('Sistema operacional detectado: macOS');
     }
-    
+
     return {
         clipboardAPI: !!navigator.clipboard,
         secureContext: isSecure,
@@ -994,12 +996,12 @@ window.testClipboardSupport = testClipboardSupport;
 // Função para testar cópia no Linux
 function testLinuxCopy() {
     console.log('=== TESTE DE CÓPIA NO LINUX ===');
-    
+
     const testText = 'teste-copia-linux-' + Date.now();
-    
+
     // Testar todos os métodos
     console.log('Testando cópia com texto:', testText);
-    
+
     // Método 1: Clipboard API
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(testText)
@@ -1008,7 +1010,7 @@ function testLinuxCopy() {
     } else {
         console.log('⚠️ Clipboard API não disponível');
     }
-    
+
     // Método 2: execCommand
     try {
         const textArea = document.createElement('textarea');
@@ -1023,7 +1025,7 @@ function testLinuxCopy() {
     } catch (error) {
         console.log('❌ execCommand falhou:', error);
     }
-    
+
     // Método 3: Range selection
     try {
         const range = document.createRange();
@@ -1033,11 +1035,11 @@ function testLinuxCopy() {
         tempElement.style.position = 'absolute';
         tempElement.style.left = '-9999px';
         document.body.appendChild(tempElement);
-        
+
         range.selectNodeContents(tempElement);
         selection.removeAllRanges();
         selection.addRange(range);
-        
+
         const success = document.execCommand('copy');
         selection.removeAllRanges();
         document.body.removeChild(tempElement);
@@ -1053,37 +1055,37 @@ window.testLinuxCopy = testLinuxCopy;
 // Função para carregar databases dos servidores selecionados (progressiva)
 async function loadDatabases() {
     const selectedServers = getSelectedServers();
-    
+
     if (selectedServers.length === 0) {
         showNotification('Selecione pelo menos um servidor.', 'warning');
         return;
     }
-    
+
     // Mostrar indicador discreto de carregamento
     const btnLoadDatabases = document.getElementById('btnLoadDatabases');
     const loadingIndicator = document.getElementById('loadingIndicator');
     const loadingText = document.getElementById('loadingText');
-    
+
     // Desabilitar botão e mostrar indicador
     btnLoadDatabases.disabled = true;
     btnLoadDatabases.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Carregando...';
     loadingIndicator.classList.remove('hidden');
     loadingText.textContent = 'Iniciando carregamento progressivo...';
-    
+
     // Limpar resultados anteriores
     const databasesSection = document.getElementById('databasesSection');
     const resultsSummary = document.getElementById('resultsSummary');
     if (resultsSummary) resultsSummary.remove();
     databasesSection.style.display = 'none';
-    
+
     // Inicializar dados
     allDatabasesData = [];
     currentPage = 1;
-    
+
     try {
         // Usar carregamento progressivo
         await loadDatabasesProgressive(selectedServers, loadingText);
-        
+
     } catch (error) {
         console.error('Erro ao carregar databases:', error);
         showNotification('Erro ao conectar com o servidor.', 'error');
@@ -1100,10 +1102,10 @@ async function loadDatabasesProgressive(serverIds, loadingText) {
     try {
         // Mostrar skeleton loading
         showSkeletonLoading();
-        
+
         // Toast de início
         showToast('Iniciando carregamento progressivo...', 'info', 3000);
-        
+
         const response = await fetch(`${API_BASE}/servers/list-databases-progressive`, {
             method: 'POST',
             headers: {
@@ -1112,17 +1114,17 @@ async function loadDatabasesProgressive(serverIds, loadingText) {
             },
             body: JSON.stringify({ serverIds: serverIds })
         });
-        
+
         if (!response.ok) {
             throw new Error('Erro ao iniciar carregamento progressivo');
         }
-        
+
         const data = await response.json();
         const sessionId = data.sessionId;
-        
+
         // Toast de progresso iniciado
         showToast('Carregamento iniciado! Verificando progresso...', 'success', 2000);
-        
+
         // Polling para verificar progresso
         const pollInterval = setInterval(async () => {
             try {
@@ -1131,39 +1133,39 @@ async function loadDatabasesProgressive(serverIds, loadingText) {
                         'Authorization': `Bearer ${getAuthToken()}`
                     }
                 });
-                
+
                 if (!progressResponse.ok) {
                     throw new Error('Erro ao verificar progresso');
                 }
-                
+
                 const progressData = await progressResponse.json();
-                
+
                 if (progressData.success) {
                     const { status, completed, total, results, progress } = progressData.data;
-                    
+
                     // Atualizar texto de progresso
                     loadingText.textContent = `Processando: ${completed}/${total} servidores (${Math.round(progress)}%)`;
-                    
+
                     // Atualizar dados se houver novos resultados
                     if (results.length > allDatabasesData.length) {
                         allDatabasesData = results;
                         hideSkeletonLoading();
                         displayDatabasesGrid(allDatabasesData);
-                        
+
                         // Toast de progresso
                         if (completed > 0 && completed < total) {
                             showToast(`${completed}/${total} servidores processados`, 'info', 2000);
                         }
                     }
-                    
+
                     // Verificar se concluído
                     if (status === 'completed') {
                         clearInterval(pollInterval);
                         loadingText.textContent = '✓ Carregamento concluído!';
-                        
+
                         // Toast de conclusão
                         showToast('Carregamento concluído! Atualizando tamanhos...', 'success', 3000);
-                        
+
                         // Atualizar tamanhos em background
                         updateSizesInBackground(serverIds);
                     } else if (status === 'error') {
@@ -1181,7 +1183,7 @@ async function loadDatabasesProgressive(serverIds, loadingText) {
                 throw error;
             }
         }, 1000); // Verificar a cada segundo
-        
+
         // Timeout de segurança (5 minutos)
         setTimeout(() => {
             clearInterval(pollInterval);
@@ -1189,7 +1191,7 @@ async function loadDatabasesProgressive(serverIds, loadingText) {
             showToast('Timeout no carregamento progressivo', 'error', 5000);
             throw new Error('Timeout no carregamento progressivo');
         }, 300000);
-        
+
     } catch (error) {
         console.error('Erro no carregamento progressivo:', error);
         hideSkeletonLoading();
@@ -1201,20 +1203,20 @@ async function loadDatabasesProgressive(serverIds, loadingText) {
 // Função para atualizar tamanhos em background
 async function updateSizesInBackground(serverIds) {
     if (!serverIds || serverIds.length === 0) return;
-    
+
     // Toast de início da atualização de tamanhos
     showToast('Iniciando atualização de tamanhos em background...', 'info', 2000);
-    
+
     // Aguardar um pouco antes de começar a atualizar tamanhos
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     let updatedCount = 0;
-    
+
     for (const serverId of serverIds) {
         try {
             console.log(`Tentando atualizar tamanhos para servidor: ${serverId}`);
             console.log(`URL: ${API_BASE}/servers/${serverId}/update-sizes`);
-            
+
             const response = await fetch(`${API_BASE}/servers/${serverId}/update-sizes`, {
                 method: 'GET',
                 headers: {
@@ -1222,16 +1224,16 @@ async function updateSizesInBackground(serverIds) {
                     'Authorization': `Bearer ${getAuthToken()}`
                 }
             });
-            
+
             console.log(`Response status: ${response.status}`);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const result = await response.json();
             console.log('Result:', result);
-            
+
             if (result.success && result.data.sizes) {
                 // Atualizar tamanhos na tabela
                 result.data.sizes.forEach(sizeData => {
@@ -1249,7 +1251,7 @@ async function updateSizesInBackground(serverIds) {
             showToast(`Erro ao atualizar tamanhos: ${error.message}`, 'error', 3000);
         }
     }
-    
+
     // Toast de conclusão
     if (updatedCount > 0) {
         showToast(`${updatedCount} tamanhos atualizados com sucesso!`, 'success', 3000);
@@ -1259,51 +1261,176 @@ async function updateSizesInBackground(serverIds) {
 }
 
 // Função para filtrar e paginar databases (com debounce)
+// const filterAndPaginateDatabases = debounce((page) => {
+//     if (!allDatabasesData.length) return;
+
+//     // Verificar se os elementos existem antes de acessar
+//     const serverSearchElement = document.getElementById('serverSearch');
+//     const databaseSearchElement = document.getElementById('databaseSearch');
+//     const statusFilterElement = document.getElementById('statusFilter');
+//     const versaoNeocorpFilterElement = document.getElementById('versaoNeocorpFilter');
+//     const versaoNeocontabilFilterElement = document.getElementById('versaoNeocontabilFilter');
+//     const perPageElement = document.getElementById('databasesPerPage');
+
+//     const serverSearch = serverSearchElement ? serverSearchElement.value.trim().toLowerCase() : '';
+//     const databaseSearch = databaseSearchElement ? databaseSearchElement.value.trim().toLowerCase() : '';
+//     const statusFilter = statusFilterElement ? statusFilterElement.value : '';
+//     const versaoNeocorpFilter = versaoNeocorpFilterElement ? versaoNeocorpFilterElement.value.trim() : '';
+//     const versaoNeocontabilFilter = versaoNeocontabilFilterElement ? versaoNeocontabilFilterElement.value.trim() : '';
+//     const perPage = perPageElement ? parseInt(perPageElement.value, 10) : 10;
+
+//     if (page) currentPage = page; else currentPage = 1;
+
+//     // Filtra databases
+//     let filtered = [];
+//     allDatabasesData.forEach(serverData => {
+//         // Filtrar por status
+//         if (statusFilter && statusFilter !== '') {
+//             if (statusFilter === 'success' && !serverData.success) return;
+//             if (statusFilter === 'error' && serverData.success) return;
+//         }
+
+//         // Filtrar por servidor
+//         if (serverSearch && !serverData.serverName.toLowerCase().includes(serverSearch)) return;
+
+//         // Filtrar por versão da grid (campo version da database)
+//         if (versaoNeocorpFilter) {
+//             const hasMatchingVersion = serverData.databases && serverData.databases.some(db =>
+//                 db.neocorpVersion &&
+//                 (
+//                     db.neocorpVersion === versaoNeocorpFilter ||
+//                     db.neocorpVersion.startsWith(versaoNeocorpFilter + '.')
+//                 )
+//             );
+
+//             if (!hasMatchingVersion) return;
+//         }
+
+//         if (versaoNeocontabilFilter) {
+//             const hasMatchingVersion = serverData.databases && serverData.databases.some(db =>
+//                 db.neoContabilVersion &&
+//                 (
+//                     db.neoContabilVersion === versaoNeocontabilFilter ||
+//                     db.neoContabilVersion.startsWith(versaoNeocontabilFilter + '.')
+//                 )
+//             );
+
+//             if (!hasMatchingVersion) return;
+//         }
+
+//         if (serverData.success && serverData.databases && serverData.databases.length > 0) {
+//             const dbs = serverData.databases.filter(db => {
+//                 // Filtrar por nome da database
+//                 if (databaseSearch && !db.name.toLowerCase().includes(databaseSearch)) return false;
+//                 return true;
+//             });
+//             if (dbs.length > 0) {
+//                 filtered.push({ ...serverData, databases: dbs });
+//             }
+//         } else if (!serverData.success) {
+//             filtered.push(serverData);
+//         }
+//     });
+
+//     // Achatar todas as databases para paginação global
+//     let flat = [];
+//     filtered.forEach(serverData => {
+//         if (serverData.success && serverData.databases) {
+//             serverData.databases.forEach(db => {
+//                 flat.push({
+//                     ...db,
+//                     serverName: serverData.serverName,
+//                     serverHost: serverData.serverHost
+//                 });
+//             });
+//         }
+//     });
+//     // Adiciona erros como linhas separadas
+//     filtered.forEach(serverData => {
+//         if (!serverData.success) {
+//             flat.push({
+//                 error: true,
+//                 serverName: serverData.serverName,
+//                 errorMsg: serverData.error
+//             });
+//         }
+//     });
+
+//     // Paginação
+//     const total = flat.length;
+//     const totalPages = Math.max(1, Math.ceil(total / perPage));
+//     if (currentPage > totalPages) currentPage = totalPages;
+//     const start = (currentPage - 1) * perPage;
+//     const end = start + perPage;
+//     const pageData = flat.slice(start, end);
+
+//     // Atualizar contador de resultados
+//     updateResultsCount(total, flat.length);
+
+//     renderDatabasesTable(pageData, total, totalPages);
+//     renderDatabasesPagination(totalPages);
+// }, 300);
+
+// Função para filtrar e paginar databases (com debounce)
 const filterAndPaginateDatabases = debounce((page) => {
     if (!allDatabasesData.length) return;
-    
+
     // Verificar se os elementos existem antes de acessar
     const serverSearchElement = document.getElementById('serverSearch');
     const databaseSearchElement = document.getElementById('databaseSearch');
     const statusFilterElement = document.getElementById('statusFilter');
-    const versionFilterElement = document.getElementById('versionFilter');
+    const versaoNeocorpFilterElement = document.getElementById('versaoNeocorpFilter');
+    const versaoNeocontabilFilterElement = document.getElementById('versaoNeocontabilFilter');
     const perPageElement = document.getElementById('databasesPerPage');
-    
+
     const serverSearch = serverSearchElement ? serverSearchElement.value.trim().toLowerCase() : '';
     const databaseSearch = databaseSearchElement ? databaseSearchElement.value.trim().toLowerCase() : '';
     const statusFilter = statusFilterElement ? statusFilterElement.value : '';
-    const versionFilter = versionFilterElement ? versionFilterElement.value.trim() : '';
+    const versaoNeocorpFilter = versaoNeocorpFilterElement ? versaoNeocorpFilterElement.value.trim() : '';
+    const versaoNeocontabilFilter = versaoNeocontabilFilterElement ? versaoNeocontabilFilterElement.value.trim() : '';
     const perPage = perPageElement ? parseInt(perPageElement.value, 10) : 10;
-    
-    if (page) currentPage = page; else currentPage = 1;
+
+    currentPage = page || 1;
 
     // Filtra databases
     let filtered = [];
     allDatabasesData.forEach(serverData => {
         // Filtrar por status
-        if (statusFilter && statusFilter !== '') {
+        if (statusFilter) {
             if (statusFilter === 'success' && !serverData.success) return;
             if (statusFilter === 'error' && serverData.success) return;
         }
-        
+
         // Filtrar por servidor
         if (serverSearch && !serverData.serverName.toLowerCase().includes(serverSearch)) return;
-        
-        // Filtrar por versão da grid (campo version da database)
-        if (versionFilter && versionFilter !== '') {
-            // Verificar se alguma database do servidor tem a versão filtrada
-            const hasMatchingVersion = serverData.databases && serverData.databases.some(db => 
-                db.version && db.version.includes(versionFilter)
-            );
-            if (!hasMatchingVersion) return;
-        }
-        
+
         if (serverData.success && serverData.databases && serverData.databases.length > 0) {
+            // Filtrar cada database individualmente
             const dbs = serverData.databases.filter(db => {
-                // Filtrar por nome da database
+                // Filtro por nome
                 if (databaseSearch && !db.name.toLowerCase().includes(databaseSearch)) return false;
+
+                // Filtro por versão NeoCorp
+                if (versaoNeocorpFilter) {
+                    if (!db.neocorpVersion ||
+                        !(db.neocorpVersion === versaoNeocorpFilter ||
+                            db.neocorpVersion.startsWith(versaoNeocorpFilter + '.'))) {
+                        return false;
+                    }
+                }
+
+                // Filtro por versão NeoContabil
+                if (versaoNeocontabilFilter) {
+                    if (!db.neoContabilVersion ||
+                        !(db.neoContabilVersion === versaoNeocontabilFilter ||
+                            db.neoContabilVersion.startsWith(versaoNeocontabilFilter + '.'))) {
+                        return false;
+                    }
+                }
+
                 return true;
             });
+
             if (dbs.length > 0) {
                 filtered.push({ ...serverData, databases: dbs });
             }
@@ -1344,11 +1471,10 @@ const filterAndPaginateDatabases = debounce((page) => {
     const end = start + perPage;
     const pageData = flat.slice(start, end);
 
-    // Atualizar contador de resultados
     updateResultsCount(total, flat.length);
-
     renderDatabasesTable(pageData, total, totalPages);
     renderDatabasesPagination(totalPages);
+
 }, 300);
 
 // Função para atualizar contador de resultados
@@ -1368,19 +1494,21 @@ function clearFilters() {
     const serverSearch = document.getElementById('serverSearch');
     const databaseSearch = document.getElementById('databaseSearch');
     const statusFilter = document.getElementById('statusFilter');
-    const versionFilter = document.getElementById('versionFilter');
-    
+    const versaoNeocorpFilter = document.getElementById('versaoNeocorpFilter');
+    const versaoNeocontabilFilter = document.getElementById('versaoNeocontabilFilter');
+
     if (serverSearch) serverSearch.value = '';
     if (databaseSearch) databaseSearch.value = '';
     if (statusFilter) statusFilter.value = '';
-    if (versionFilter) versionFilter.value = '';
-    
+    if (versaoNeocorpFilter) versaoNeocorpFilter.value = '';
+    if (versaoNeocontabilFilter) versaoNeocontabilFilter.value = '';
+
     // Resetar página para 1
     currentPage = 1;
-    
+
     // Reaplicar filtros
     filterAndPaginateDatabases();
-    
+
     // Toast de confirmação
     showToast('Filtros limpos!', 'success', 2000);
 }
@@ -1389,12 +1517,12 @@ function clearFilters() {
 function renderDatabasesTable(pageData, total, totalPages) {
     const databasesSection = document.getElementById('databasesSection');
     let databasesGrid = document.getElementById('databasesGrid');
-    
+
     if (!databasesSection) {
         console.error('Elemento databasesSection não encontrado');
         return;
     }
-    
+
     // Se databasesGrid não existe, criar
     if (!databasesGrid) {
         console.log('Criando elemento databasesGrid');
@@ -1402,13 +1530,7 @@ function renderDatabasesTable(pageData, total, totalPages) {
         databasesGrid.id = 'databasesGrid';
         databasesSection.appendChild(databasesGrid);
     }
-    
-    if (!pageData.length) {
-        databasesGrid.innerHTML = `<div class="alert alert-info"><p>Nenhuma database encontrada.</p></div>`;
-        databasesSection.style.display = 'block';
-        return;
-    }
-    
+
     if (!pageData.length) {
         databasesGrid.innerHTML = `<div class="alert alert-info"><p>Nenhuma database encontrada.</p></div>`;
         databasesSection.style.display = 'block';
@@ -1421,7 +1543,8 @@ function renderDatabasesTable(pageData, total, totalPages) {
                     <tr>
                         <th>Servidor</th>
                         <th>Nome</th>
-                        <th>Versão</th>
+                        <th>NeoCorp</th>
+                        <th>NeoContábil</th>
                         <th>Tamanho</th>
                         <th>Dono</th>
                         <th>Comentário</th>
@@ -1432,27 +1555,37 @@ function renderDatabasesTable(pageData, total, totalPages) {
     `;
     pageData.forEach((db, index) => {
         if (db.error) {
-            html += `<tr><td colspan="6"><span class="text-error"><strong>${db.serverName}:</strong> ${db.errorMsg || 'Erro ao conectar com o servidor'}</span></td></tr>`;
+            html += `<tr><td colspan="8"><span class="text-error"><strong>${db.serverName}:</strong> ${db.errorMsg || 'Erro ao conectar com o servidor'}</span></td></tr>`;
         } else {
             const comment = db.comment || '';
             const commentDisplay = comment.length > 50 ? comment.substring(0, 50) + '...' : comment;
             const hasLongComment = comment.length > 50;
-            
+
             html += `<tr>
                 <td>${db.serverName}</td>
                 <td class="break-all">${db.name}</td>
-                <td>${db.version ? `<span class="badge badge-info">${db.version}</span>` : '<span class="text-gray-400">N/A</span>'}</td>
+                <td>
+        ${db.neocorpVersion
+                    ? `<span class="badge badge-info">${db.neocorpVersion}</span>`
+                    : '<span class="text-gray-400">N/A</span>'}
+    </td>
+
+    <td>
+        ${db.neoContabilVersion
+                    ? `<span class="badge badge-secondary">${db.neoContabilVersion}</span>`
+                    : '<span class="text-gray-400">N/A</span>'}
+    </td>
                 <td data-database="${db.name}">${formatSize(db.size)}</td>
                 <td>${db.owner || 'N/A'}</td>
                 <td class="max-w-xs">
-                    ${comment ? 
-                        `<span class="${hasLongComment ? 'cursor-pointer text-primary hover:text-primary-focus' : ''}" 
+                    ${comment ?
+                    `<span class="${hasLongComment ? 'cursor-pointer text-primary hover:text-primary-focus' : ''}" 
                               ${hasLongComment ? `onclick="showCommentModal('${db.name}', '${comment.replace(/'/g, "\\'")}', '${db.serverName}')"` : ''}
                               title="${hasLongComment ? 'Clique para ver completo' : comment}">
                             ${commentDisplay}
-                        </span>` : 
-                        '<span class="text-gray-400">-</span>'
-                    }
+                        </span>` :
+                    '<span class="text-gray-400">-</span>'
+                }
                 </td>
                 <td><button class="btn btn-outline btn-info btn-sm" onclick="copyDatabaseInfo('${db.serverHost}', '${db.name}')" title="Copiar"><i class="fas fa-copy"></i></button></td>
             </tr>`;
@@ -1470,7 +1603,7 @@ function showCommentModal(databaseName, comment, serverName) {
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     // Criar modal
     const modal = document.createElement('div');
     modal.id = 'commentModal';
@@ -1516,7 +1649,7 @@ function showCommentModal(databaseName, comment, serverName) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
 }
 
@@ -1531,7 +1664,7 @@ function closeCommentModal() {
 // Função para exibir paginação
 function renderDatabasesPagination(totalPages) {
     let pagination = document.getElementById('databasesPagination');
-    
+
     // Se pagination não existe, criar
     if (!pagination) {
         console.log('Criando elemento databasesPagination');
@@ -1541,7 +1674,7 @@ function renderDatabasesPagination(totalPages) {
             pagination.id = 'databasesPagination';
             pagination.className = 'join';
             pagination.style.display = 'none';
-            
+
             // Encontrar o container correto para inserir
             const paginationContainer = databasesSection.querySelector('.flex.justify-center.mt-6');
             if (paginationContainer) {
@@ -1554,19 +1687,19 @@ function renderDatabasesPagination(totalPages) {
             return;
         }
     }
-    
+
     if (totalPages <= 1) {
         pagination.style.display = 'none';
         return;
     }
-    
+
     let html = '<div class="join">';
-    
+
     // Botão Anterior
     html += `<button class="join-item btn btn-outline btn-sm" ${currentPage === 1 ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage - 1})" title="Página Anterior">
         <i class="fas fa-chevron-left"></i>
     </button>`;
-    
+
     // Números das páginas
     for (let i = 1; i <= totalPages; i++) {
         if (i === currentPage) {
@@ -1575,14 +1708,14 @@ function renderDatabasesPagination(totalPages) {
             html += `<button class="join-item btn btn-outline btn-sm" onclick="filterAndPaginateDatabases(${i})">${i}</button>`;
         }
     }
-    
+
     // Botão Próxima
     html += `<button class="join-item btn btn-outline btn-sm" ${currentPage === totalPages ? 'disabled' : ''} onclick="filterAndPaginateDatabases(${currentPage + 1})" title="Próxima Página">
         <i class="fas fa-chevron-right"></i>
     </button>`;
-    
+
     html += '</div>';
-    
+
     pagination.innerHTML = html;
     pagination.style.display = 'flex';
     pagination.style.justifyContent = 'center';
@@ -1593,12 +1726,12 @@ function renderDatabasesPagination(totalPages) {
 function displayDatabasesGrid(databasesData) {
     allDatabasesData = databasesData;
     currentPage = 1;
-    
+
     // Aguardar um pouco para garantir que o DOM esteja pronto
     setTimeout(() => {
         // Mostrar resumo dos resultados
         showResultsSummary(databasesData);
-        
+
         filterAndPaginateDatabases();
     }, 100);
 }
@@ -1611,11 +1744,11 @@ function showResultsSummary(databasesData) {
     const totalDatabases = databasesData.reduce((total, server) => {
         return total + (server.success && server.databases ? server.databases.length : 0);
     }, 0);
-    
+
     // Verificar se há dados do cache
     const fromCache = databasesData.some(server => server.fromCache);
     const cacheIndicator = fromCache ? '<span class="badge badge-warning ml-2">Cache</span>' : '';
-    
+
     // Criar ou atualizar o resumo
     let summaryHtml = `
         <div class="alert alert-info mb-4">
@@ -1656,7 +1789,7 @@ function showResultsSummary(databasesData) {
             </div>
         </div>
     `;
-    
+
     // Adicionar detalhes dos servidores com erro
     const failedServersList = databasesData.filter(server => !server.success);
     if (failedServersList.length > 0) {
@@ -1673,7 +1806,7 @@ function showResultsSummary(databasesData) {
             </div>
         `;
     }
-    
+
     // Inserir o resumo antes da seção de databases
     const databasesSection = document.getElementById('databasesSection');
     if (databasesSection && databasesSection.parentNode) {
@@ -1681,7 +1814,7 @@ function showResultsSummary(databasesData) {
         if (existingSummary) {
             existingSummary.remove();
         }
-        
+
         const summaryDiv = document.createElement('div');
         summaryDiv.id = 'resultsSummary';
         summaryDiv.innerHTML = summaryHtml;
@@ -1692,15 +1825,15 @@ function showResultsSummary(databasesData) {
 // Função para forçar atualização do cache (progressivo)
 async function forceCacheUpdate() {
     const selectedServers = getSelectedServers();
-    
+
     if (selectedServers.length === 0) {
         showNotification('Selecione pelo menos um servidor.', 'warning');
         return;
     }
-    
+
     try {
         showToast('Limpando cache...', 'info', 2000);
-        
+
         // Primeiro, limpar cache no backend
         const clearResponse = await fetch(`${API_BASE}/servers/force-cache-update`, {
             method: 'POST',
@@ -1710,40 +1843,40 @@ async function forceCacheUpdate() {
             },
             body: JSON.stringify({ serverIds: selectedServers })
         });
-        
+
         if (!clearResponse.ok) {
             throw new Error('Erro ao limpar cache no servidor');
         }
-        
+
         const clearResult = await clearResponse.json();
         showToast('Cache limpo! Carregando dados atualizados...', 'success', 2000);
-        
+
         // Limpar resultados anteriores
         const databasesSection = document.getElementById('databasesSection');
         const resultsSummary = document.getElementById('resultsSummary');
         if (resultsSummary) resultsSummary.remove();
         if (databasesSection) databasesSection.style.display = 'none';
-        
+
         // Inicializar dados
         allDatabasesData = [];
         currentPage = 1;
-        
+
         // Mostrar indicador de carregamento
         const btnLoadDatabases = document.getElementById('btnLoadDatabases');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const loadingText = document.getElementById('loadingText');
-        
+
         if (btnLoadDatabases) {
             btnLoadDatabases.disabled = true;
             btnLoadDatabases.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Atualizando...';
         }
-        
+
         if (loadingIndicator) loadingIndicator.classList.remove('hidden');
         if (loadingText) loadingText.textContent = 'Carregando dados atualizados...';
-        
+
         // Usar carregamento progressivo
         await loadDatabasesProgressive(selectedServers, loadingText);
-        
+
     } catch (error) {
         console.error('Erro ao forçar atualização de cache:', error);
         showToast('Erro ao atualizar cache', 'error', 5000);
@@ -1751,12 +1884,12 @@ async function forceCacheUpdate() {
         // Restaurar botão
         const btnLoadDatabases = document.getElementById('btnLoadDatabases');
         const loadingIndicator = document.getElementById('loadingIndicator');
-        
+
         if (btnLoadDatabases) {
             btnLoadDatabases.disabled = false;
             btnLoadDatabases.innerHTML = '<i class="fas fa-search mr-2"></i>Listar Databases';
         }
-        
+
         if (loadingIndicator) loadingIndicator.classList.add('hidden');
     }
 }
@@ -1765,17 +1898,17 @@ async function forceCacheUpdate() {
 function refreshDatabases() {
     const databasesSection = document.getElementById('databasesSection');
     const resultsSummary = document.getElementById('resultsSummary');
-    
+
     // Ocultar seções
     databasesSection.style.display = 'none';
     if (resultsSummary) {
         resultsSummary.remove();
     }
-    
+
     // Limpar dados
     allDatabasesData = [];
     currentPage = 1;
-    
+
     loadDatabases();
 }
 
@@ -1790,10 +1923,10 @@ function openObjectSearchModal() {
     if (modal) {
         // Carregar checkboxes dos servidores
         renderObjectSearchServerCheckboxes();
-        
+
         // Mostrar modal
         modal.showModal();
-        
+
         // Focar no campo de busca
         setTimeout(() => {
             const searchInput = document.getElementById('objectSearchTerm');
@@ -1809,7 +1942,7 @@ function closeObjectSearchModal() {
     const modal = document.getElementById('objectSearchModal');
     if (modal) {
         modal.close();
-        
+
         // Limpar resultados
         clearObjectSearchResults();
     }
@@ -1818,7 +1951,7 @@ function closeObjectSearchModal() {
 // Função para renderizar checkboxes dos servidores no modal de busca
 function renderObjectSearchServerCheckboxes() {
     const container = document.getElementById('objectSearchServerCheckboxes');
-    
+
     if (servers.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-sm">Nenhum servidor disponível</p>';
         return;
@@ -1843,7 +1976,7 @@ function renderObjectSearchServerCheckboxes() {
             `).join('')}
         </div>
     `;
-    
+
     // Adicionar event listener programaticamente para evitar duplicação
     const selectAllCheckbox = document.getElementById('selectAllObjectServers');
     if (selectAllCheckbox) {
@@ -1858,7 +1991,7 @@ function renderObjectSearchServerCheckboxes() {
 function toggleAllObjectServers() {
     const selectAllCheckbox = document.getElementById('selectAllObjectServers');
     const serverCheckboxes = document.querySelectorAll('#objectSearchServerCheckboxes input[type="checkbox"][value]');
-    
+
     serverCheckboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
     });
@@ -1877,56 +2010,56 @@ async function searchObjects() {
     const objectType = document.getElementById('objectTypeFilter').value;
     const searchLimit = document.getElementById('objectSearchLimit').value;
     const selectedServers = getSelectedObjectServers();
-    
+
     // Validações
     if (!searchTerm) {
         showNotification('Digite um termo de busca', 'warning');
         return;
     }
-    
+
     if (searchTerm.length < 3) {
         showNotification('Termo de busca deve ter pelo menos 3 caracteres', 'warning');
         return;
     }
-    
+
     if (selectedServers.length === 0) {
         showNotification('Selecione pelo menos um servidor', 'warning');
         return;
     }
-    
+
     if (!objectType) {
         showNotification('Selecione um tipo de objeto', 'warning');
         return;
     }
-    
+
     // Mostrar loading
     const btnSearch = document.getElementById('btnSearchObjectsExecute');
     const originalText = btnSearch.innerHTML;
     btnSearch.disabled = true;
     btnSearch.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Buscando...';
-    
+
     try {
-                const response = await fetch(`${API_BASE}/servers/search-objects`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getAuthToken()}`
-                    },
-                    body: JSON.stringify({
-                        searchTerm: searchTerm,
-                        searchType: searchType,
-                        objectType: objectType,
-                        searchLimit: parseInt(searchLimit),
-                        serverIds: selectedServers
-                    })
-                });
-        
+        const response = await fetch(`${API_BASE}/servers/search-objects`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify({
+                searchTerm: searchTerm,
+                searchType: searchType,
+                objectType: objectType,
+                searchLimit: parseInt(searchLimit),
+                serverIds: selectedServers
+            })
+        });
+
         if (!response.ok) {
             throw new Error('Erro ao buscar objetos');
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             objectSearchResults = result.data || [];
             // Armazenar summary para uso nas estatísticas
@@ -1936,7 +2069,7 @@ async function searchObjects() {
         } else {
             showNotification(result.message || 'Erro ao buscar objetos', 'error');
         }
-        
+
     } catch (error) {
         console.error('Erro ao buscar objetos:', error);
         showNotification('Erro ao conectar com o servidor', 'error');
@@ -1952,24 +2085,24 @@ function displayObjectSearchResults(results) {
     const resultsDiv = document.getElementById('objectSearchResults');
     const statsDiv = document.getElementById('objectSearchStats');
     const tableDiv = document.getElementById('objectSearchTable');
-    
+
     if (!results.length) {
         resultsDiv.style.display = 'none';
         return;
     }
-    
+
     // Mostrar seção de resultados
     resultsDiv.style.display = 'block';
-    
+
     // Estatísticas
     const totalObjects = results.length;
     const objectTypes = [...new Set(results.map(r => r.object_type))];
     const servers = [...new Set(results.map(r => r.server_name))];
-    
+
     // Verificar se há mais resultados (baseado na resposta da API)
     const hasMore = window.lastSearchSummary && window.lastSearchSummary.hasMore;
     const totalFound = window.lastSearchSummary && window.lastSearchSummary.totalFound;
-    
+
     statsDiv.innerHTML = `
         <div class="flex items-center justify-between">
             <div>
@@ -1997,7 +2130,7 @@ function displayObjectSearchResults(results) {
             </div>
         </div>
     `;
-    
+
     // Tabela de resultados
     let tableHtml = `
         <table class="table table-zebra w-full">
@@ -2014,11 +2147,11 @@ function displayObjectSearchResults(results) {
             </thead>
             <tbody>
     `;
-    
+
     results.forEach(obj => {
         const info = getObjectInfo(obj);
         const actions = getObjectActions(obj);
-        
+
         tableHtml += `
             <tr>
                 <td>
@@ -2048,7 +2181,7 @@ function displayObjectSearchResults(results) {
             </tr>
         `;
     });
-    
+
     tableHtml += '</tbody></table>';
     tableDiv.innerHTML = tableHtml;
 }
@@ -2056,34 +2189,34 @@ function displayObjectSearchResults(results) {
 // Função para obter informações do objeto
 function getObjectInfo(obj) {
     const info = [];
-    
+
     if (obj.size) {
         info.push({ label: 'Tamanho', value: formatSize(obj.size) });
     }
-    
+
     if (obj.owner) {
         info.push({ label: 'Dono', value: obj.owner });
     }
-    
+
     if (obj.description) {
         info.push({ label: 'Descrição', value: obj.description.substring(0, 50) + (obj.description.length > 50 ? '...' : '') });
     }
-    
+
     if (obj.created_at) {
         info.push({ label: 'Criado', value: new Date(obj.created_at).toLocaleDateString('pt-BR') });
     }
-    
+
     if (obj.modified_at) {
         info.push({ label: 'Modificado', value: new Date(obj.modified_at).toLocaleDateString('pt-BR') });
     }
-    
+
     return info;
 }
 
 // Função para obter ações do objeto
 function getObjectActions(obj) {
     const actions = [];
-    
+
     // Botão para ver SQL
     if (obj.sql_definition) {
         actions.push(`
@@ -2092,8 +2225,8 @@ function getObjectActions(obj) {
             </button>
         `);
     }
-    
-    
+
+
     return actions;
 }
 
@@ -2136,7 +2269,7 @@ function showObjectSQL(objectName, sqlDefinition, serverName, objectSize, object
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     // Criar modal
     const modal = document.createElement('div');
     modal.id = 'objectSQLModal';
@@ -2204,7 +2337,7 @@ function showObjectSQL(objectName, sqlDefinition, serverName, objectSize, object
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
 }
 
@@ -2253,16 +2386,16 @@ function clearObjectSearch() {
     document.getElementById('objectSearchType').value = 'contains';
     document.getElementById('objectTypeFilter').value = 'table';
     document.getElementById('objectSearchLimit').value = '25';
-    
+
     // Desmarcar todos os servidores
     const checkboxes = document.querySelectorAll('#objectSearchServerCheckboxes input[type="checkbox"][value]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
-    
+
     // Limpar resultados
     clearObjectSearchResults();
-    
+
     showNotification('Filtros limpos!', 'success');
 }
 
@@ -2272,6 +2405,6 @@ function clearObjectSearchResults() {
     if (resultsDiv) {
         resultsDiv.style.display = 'none';
     }
-    
+
     objectSearchResults = [];
 } 

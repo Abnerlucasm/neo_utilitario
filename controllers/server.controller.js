@@ -100,10 +100,10 @@ async function getDatabaseCache(serverId) {
 // Função para testar conexão com banco de dados
 async function testDatabaseConnection(serverData) {
     const { host, port, username, password, type } = serverData;
-    
+
     try {
         let sequelize;
-        
+
         switch (type) {
             case 'postgresql':
                 const { Sequelize } = require('sequelize');
@@ -120,7 +120,7 @@ async function testDatabaseConnection(serverData) {
                     }
                 });
                 break;
-                
+
             case 'mysql':
                 const { Sequelize: MySQLSequelize } = require('sequelize');
                 sequelize = new MySQLSequelize('mysql', username, decryptPassword(password), {
@@ -136,7 +136,7 @@ async function testDatabaseConnection(serverData) {
                     }
                 });
                 break;
-                
+
             case 'sqlserver':
                 const { Sequelize: MSSQLSequelize } = require('sequelize');
                 sequelize = new MSSQLSequelize('master', username, decryptPassword(password), {
@@ -152,19 +152,19 @@ async function testDatabaseConnection(serverData) {
                     }
                 });
                 break;
-                
+
             default:
                 throw new Error('Tipo de banco de dados não suportado');
         }
-        
+
         await sequelize.authenticate();
         await sequelize.close();
-        
+
         return { success: true, message: 'Conexão estabelecida com sucesso' };
     } catch (error) {
-        return { 
-            success: false, 
-            message: `Erro na conexão: ${error.message}` 
+        return {
+            success: false,
+            message: `Erro na conexão: ${error.message}`
         };
     }
 }
@@ -172,7 +172,7 @@ async function testDatabaseConnection(serverData) {
 // Função para executar consulta em múltiplos servidores
 async function executeQueryOnServers(servers, query) {
     const results = [];
-    
+
     for (const server of servers) {
         try {
             const decryptedPassword = decryptPassword(server.password);
@@ -185,9 +185,9 @@ async function executeQueryOnServers(servers, query) {
                 });
                 continue;
             }
-            
+
             let sequelize;
-            
+
             switch (server.type) {
                 case 'postgresql':
                     const { Sequelize } = require('sequelize');
@@ -204,7 +204,7 @@ async function executeQueryOnServers(servers, query) {
                         }
                     });
                     break;
-                    
+
                 default:
                     results.push({
                         serverId: server.id,
@@ -214,18 +214,18 @@ async function executeQueryOnServers(servers, query) {
                     });
                     continue;
             }
-            
+
             await sequelize.authenticate();
             const [queryResults] = await sequelize.query(query);
             await sequelize.close();
-            
+
             results.push({
                 serverId: server.id,
                 serverName: server.name,
                 success: true,
                 data: queryResults
             });
-            
+
         } catch (error) {
             results.push({
                 serverId: server.id,
@@ -235,7 +235,7 @@ async function executeQueryOnServers(servers, query) {
             });
         }
     }
-    
+
     return results;
 }
 
@@ -243,11 +243,11 @@ async function executeQueryOnServers(servers, query) {
 async function processServersProgressive(sessionId) {
     const session = global.progressiveSessions[sessionId];
     if (!session) return;
-    
+
     try {
         for (let i = 0; i < session.servers.length; i++) {
             const server = session.servers[i];
-            
+
             // Verificar cache primeiro
             logger.info(`[${i + 1}/${session.servers.length}] Verificando cache para servidor: ${server.name}`);
             const cachedResult = await getDatabaseCache(server.id);
@@ -257,9 +257,9 @@ async function processServersProgressive(sessionId) {
                 session.completed++;
                 continue;
             }
-            
+
             logger.info(`[${i + 1}/${session.servers.length}] Cache não encontrado, conectando ao servidor: ${server.name}`);
-            
+
             try {
                 const decryptedPassword = decryptPassword(server.password);
                 if (!decryptedPassword) {
@@ -273,7 +273,7 @@ async function processServersProgressive(sessionId) {
                     session.completed++;
                     continue;
                 }
-                
+
                 // Conectar ao servidor
                 const { Sequelize } = require('sequelize');
                 const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
@@ -292,9 +292,9 @@ async function processServersProgressive(sessionId) {
                         timeout: 20000
                     }
                 });
-                
+
                 await sequelize.authenticate();
-                
+
                 // Buscar databases básicas
                 const [databases] = await sequelize.query(`
                     SELECT 
@@ -309,7 +309,7 @@ async function processServersProgressive(sessionId) {
                 `, {
                     timeout: 25000
                 });
-                
+
                 // Buscar versões
                 for (let j = 0; j < databases.length; j++) {
                     const db = databases[j];
@@ -322,33 +322,40 @@ async function processServersProgressive(sessionId) {
                             pool: { max: 1, min: 0, acquire: 5000, idle: 3000 },
                             retry: { max: 1, timeout: 3000 }
                         });
-                        
-                        const [versionResult] = await dbSequelize.query(`
-                            SELECT versaover as version 
-                            FROM public.versao 
-                            WHERE dataver IS NOT NULL
-                            AND sistemaver = 1
+
+                        const [versionResult] = await dbSequelize.query(
+                            `
+                            SELECT 
+                            v.versaover as neocorp_version,
+                            p.ultimaversao as neocontabil_version
+                            FROM public.versao v
+                            LEFT JOIN public.proprietaria p ON true
+                            WHERE v.dataver IS NOT NULL
+                            AND v.sistemaver = 1
                             LIMIT 1
-                        `, {
-                            timeout: 5000
-                        });
-                        
+                            `,
+                            {
+                                timeout: 5000
+                            });
+
                         await dbSequelize.close();
-                        db.version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
-                        
+                        db.neocorpVersion = versionResult.length > 0 ? versionResult[0].neocorp_version : 'N/A';
+                        db.neoContabilVersion = versionResult.length > 0 ? versionResult[0].neocontabil_version : 'N/A';
+
                     } catch (versionError) {
-                        db.version = 'N/A';
+                        db.neocorpVersion = 'N/A';
+                        db.neoContabilVersion = 'N/A';
                     }
-                    
+
                     // Inicializar tamanho
                     db.size = 'Carregando...';
                 }
-                
+
                 await sequelize.close();
-                
+
                 // Salvar sucesso no cache
                 await saveDatabaseCache(server.id, server.name, server.host, databases, 'success');
-                
+
                 // Adicionar resultado à sessão
                 session.results.push({
                     serverId: server.id,
@@ -357,13 +364,13 @@ async function processServersProgressive(sessionId) {
                     success: true,
                     databases: databases
                 });
-                
+
             } catch (error) {
                 logger.error(`Erro ao processar servidor ${server.name}:`, error);
-                
+
                 // Salvar erro no cache
                 await saveDatabaseCache(server.id, server.name, server.host, null, 'error', error.message);
-                
+
                 session.results.push({
                     serverId: server.id,
                     serverName: server.name,
@@ -372,12 +379,12 @@ async function processServersProgressive(sessionId) {
                     error: error.message
                 });
             }
-            
+
             session.completed++;
         }
-        
+
         session.status = 'completed';
-        
+
     } catch (error) {
         logger.error('Erro no processamento progressivo:', error);
         session.status = 'error';
@@ -400,7 +407,7 @@ class ServerController {
                 ],
                 order: [['name', 'ASC']]
             });
-            
+
             res.json({
                 success: true,
                 data: servers
@@ -413,7 +420,7 @@ class ServerController {
             });
         }
     }
-    
+
     // Obter servidor por ID
     async getServer(req, res) {
         try {
@@ -427,14 +434,14 @@ class ServerController {
                     }
                 ]
             });
-            
+
             if (!server) {
                 return res.status(404).json({
                     success: false,
                     message: 'Servidor não encontrado'
                 });
             }
-            
+
             res.json({
                 success: true,
                 data: server
@@ -447,7 +454,7 @@ class ServerController {
             });
         }
     }
-    
+
     // Criar novo servidor
     async createServer(req, res) {
         try {
@@ -460,7 +467,7 @@ class ServerController {
                 type,
                 description
             } = req.body;
-            
+
             // Validar dados obrigatórios
             if (!name || !host || !username || !password) {
                 return res.status(400).json({
@@ -468,22 +475,22 @@ class ServerController {
                     message: 'Nome, host, usuário e senha são obrigatórios'
                 });
             }
-            
+
             // Criptografar senha
             const encryptedPassword = encryptPassword(password);
-            
+
             // Verificar se já existe servidor com mesmo host e porta
             const existingServer = await Server.findOne({
                 where: { host, port: port || 5432 }
             });
-            
+
             if (existingServer) {
                 return res.status(400).json({
                     success: false,
                     message: 'Já existe um servidor cadastrado com este host e porta'
                 });
             }
-            
+
             // Criar servidor sem testar conexão automaticamente
             const server = await Server.create({
                 name,
@@ -496,7 +503,7 @@ class ServerController {
                 createdBy: req.user.id,
                 connectionStatus: 'offline' // Inicialmente offline até testar
             });
-            
+
             res.status(201).json({
                 success: true,
                 message: 'Servidor criado com sucesso',
@@ -504,7 +511,7 @@ class ServerController {
             });
         } catch (error) {
             console.error('Erro ao criar servidor:', error);
-            
+
             // Verificar se é um erro de constraint única
             if (error.name === 'SequelizeUniqueConstraintError') {
                 const fields = error.errors.map(err => err.path).join(', ');
@@ -513,7 +520,7 @@ class ServerController {
                     message: `Já existe um servidor com os mesmos dados: ${fields}`
                 });
             }
-            
+
             // Verificar se é um erro de validação
             if (error.name === 'SequelizeValidationError') {
                 const messages = error.errors.map(err => err.message).join(', ');
@@ -522,20 +529,20 @@ class ServerController {
                     message: `Erro de validação: ${messages}`
                 });
             }
-            
+
             res.status(500).json({
                 success: false,
                 message: 'Erro interno do servidor'
             });
         }
     }
-    
+
     // Atualizar servidor
     async updateServer(req, res) {
         try {
             const { id } = req.params;
             const updateData = req.body;
-            
+
             const server = await Server.findByPk(id);
             if (!server) {
                 return res.status(404).json({
@@ -543,17 +550,17 @@ class ServerController {
                     message: 'Servidor não encontrado'
                 });
             }
-            
+
             // Se a senha foi fornecida, criptografar
             if (updateData.password) {
                 updateData.password = encryptPassword(updateData.password);
             }
-            
+
             updateData.updatedBy = req.user.id;
             // Não alterar o status de conexão automaticamente
-            
+
             await server.update(updateData);
-            
+
             res.json({
                 success: true,
                 message: 'Servidor atualizado com sucesso',
@@ -561,7 +568,7 @@ class ServerController {
             });
         } catch (error) {
             console.error('Erro ao atualizar servidor:', error);
-            
+
             // Verificar se é um erro de constraint única
             if (error.name === 'SequelizeUniqueConstraintError') {
                 const fields = error.errors.map(err => err.path).join(', ');
@@ -570,7 +577,7 @@ class ServerController {
                     message: `Já existe um servidor com os mesmos dados: ${fields}`
                 });
             }
-            
+
             // Verificar se é um erro de validação
             if (error.name === 'SequelizeValidationError') {
                 const messages = error.errors.map(err => err.message).join(', ');
@@ -579,19 +586,19 @@ class ServerController {
                     message: `Erro de validação: ${messages}`
                 });
             }
-            
+
             res.status(500).json({
                 success: false,
                 message: 'Erro interno do servidor'
             });
         }
     }
-    
+
     // Deletar servidor (soft delete)
     async deleteServer(req, res) {
         try {
             const { id } = req.params;
-            
+
             const server = await Server.findByPk(id);
             if (!server) {
                 return res.status(404).json({
@@ -599,9 +606,9 @@ class ServerController {
                     message: 'Servidor não encontrado'
                 });
             }
-            
+
             await server.destroy();
-            
+
             res.json({
                 success: true,
                 message: 'Servidor removido com sucesso'
@@ -614,12 +621,12 @@ class ServerController {
             });
         }
     }
-    
+
     // Testar conexão de um servidor
     async testConnection(req, res) {
         try {
             const { id } = req.params;
-            
+
             const server = await Server.findByPk(id);
             if (!server) {
                 return res.status(404).json({
@@ -627,15 +634,15 @@ class ServerController {
                     message: 'Servidor não encontrado'
                 });
             }
-            
+
             const result = await testDatabaseConnection(server);
-            
+
             // Atualizar status da conexão
             await server.update({
                 connectionStatus: result.success ? 'online' : 'error',
                 lastConnection: new Date()
             });
-            
+
             res.json({
                 success: true,
                 data: result
@@ -648,19 +655,19 @@ class ServerController {
             });
         }
     }
-    
+
     // Executar consulta em múltiplos servidores
     async executeQuery(req, res) {
         try {
             const { query, serverIds } = req.body;
-            
+
             if (!query || !serverIds || !Array.isArray(serverIds)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Query e lista de servidores são obrigatórios'
                 });
             }
-            
+
             // Buscar servidores ativos
             const servers = await Server.findAll({
                 where: {
@@ -668,16 +675,16 @@ class ServerController {
                     isActive: true
                 }
             });
-            
+
             if (servers.length === 0) {
                 return res.status(400).json({
                     success: false,
                     message: 'Nenhum servidor válido encontrado'
                 });
             }
-            
+
             const results = await executeQueryOnServers(servers, query);
-            
+
             res.json({
                 success: true,
                 data: results
@@ -690,25 +697,25 @@ class ServerController {
             });
         }
     }
-    
+
     // Obter estatísticas dos servidores
     async getServerStats(req, res) {
         try {
             const totalServers = await Server.count({
                 where: { isActive: true }
             });
-            
+
             const activeServers = await Server.count({
-                where: { 
+                where: {
                     isActive: true,
                     connectionStatus: 'online'
                 }
             });
-            
+
             // Calcular médias de RAM e CPU (placeholder - implementar conforme necessário)
             const averageMemory = 0;
             const averageCpu = 0;
-            
+
             res.json({
                 totalServers,
                 activeServers,
@@ -728,350 +735,244 @@ class ServerController {
     async listDatabases(req, res) {
         try {
             const { serverIds } = req.body;
-            
+
             if (!serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
                 return res.status(400).json({
                     success: false,
                     message: 'IDs dos servidores são obrigatórios'
                 });
             }
-            
+
             logger.info(`Iniciando listagem de databases para ${serverIds.length} servidores`);
-            
-            // Buscar servidores
+
             const servers = await Server.findAll({
-                where: { 
+                where: {
                     id: serverIds,
-                    isActive: true 
+                    isActive: true
                 }
             });
-            
+
             if (servers.length === 0) {
-                logger.warn('Nenhum servidor ativo encontrado para os IDs fornecidos');
                 return res.status(404).json({
                     success: false,
                     message: 'Nenhum servidor encontrado'
                 });
             }
-            
-            logger.info(`Processando ${servers.length} servidores: ${servers.map(s => s.name).join(', ')}`);
-            
-            // Processar servidores em paralelo com cache
+
             const results = await Promise.allSettled(
                 servers.map(async (server, index) => {
-                    return new Promise(async (resolve) => {
-                        logger.info(`[${index + 1}/${servers.length}] Verificando cache para servidor: ${server.name} (${server.host})`);
-                        
-                        // Verificar cache primeiro
-                        const cachedResult = await getDatabaseCache(server.id);
-                        if (cachedResult) {
-                            logger.info(`[${index + 1}/${servers.length}] Usando cache para ${server.name}`);
-                            resolve(cachedResult.data);
-                            return;
+
+                    const cachedResult = await getDatabaseCache(server.id);
+                    if (cachedResult) {
+                        logger.info(`Usando cache para ${server.name}`);
+                        return cachedResult.data;
+                    }
+
+                    const timeout = setTimeout(() => {
+                        logger.warn(`Timeout ao conectar com ${server.name}`);
+                    }, 90000);
+
+                    try {
+
+                        const decryptedPassword = decryptPassword(server.password);
+                        if (!decryptedPassword) {
+                            throw new Error("Erro ao descriptografar senha");
                         }
-                        
-                        logger.info(`[${index + 1}/${servers.length}] Cache não encontrado, conectando ao servidor: ${server.name} (${server.host})`);
-                        
-                        // Timeout progressivo: 90 segundos para servidores lentos
-                        const timeout = setTimeout(() => {
-                            logger.warn(`[${index + 1}/${servers.length}] Timeout ao conectar com ${server.name}`);
-                            const errorResult = {
-                                serverId: server.id,
-                                serverName: server.name,
-                                serverHost: server.host,
-                                success: false,
-                                error: 'Timeout: Conexão excedeu 90 segundos'
-                            };
-                            
-                            // Salvar erro no cache
-                            saveDatabaseCache(server.id, server.name, server.host, null, 'error', errorResult.error);
-                            resolve(errorResult);
-                        }, 90000);
-                        
+
+                        const { Sequelize } = require('sequelize');
+
+                        const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                            host: server.host,
+                            port: server.port,
+                            dialect: 'postgres',
+                            logging: false,
+                            pool: {
+                                max: 3,
+                                min: 0,
+                                acquire: 45000,
+                                idle: 15000
+                            }
+                        });
+
+                        await sequelize.authenticate();
+
+                        let databases;
+
                         try {
-                            const decryptedPassword = decryptPassword(server.password);
-                            if (!decryptedPassword) {
-                                logger.error(`[${index + 1}/${servers.length}] Erro ao descriptografar senha para ${server.name}`);
-                                clearTimeout(timeout);
-                                resolve({
-                                    serverId: server.id,
-                                    serverName: server.name,
-                                    serverHost: server.host,
-                                    success: false,
-                                    error: 'Erro ao descriptografar senha'
-                                });
-                                return;
-                            }
-                            
-                            let sequelize;
-                            
-                            switch (server.type) {
-                                case 'postgresql':
-                                    logger.info(`[${index + 1}/${servers.length}] Configurando conexão PostgreSQL para ${server.name}`);
-                                    const { Sequelize } = require('sequelize');
-                                    sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
-                                        host: server.host,
-                                        port: server.port,
-                                        dialect: 'postgres',
-                                        logging: false,
-                                        pool: {
-                                            max: 3,
-                                            min: 0,
-                                            acquire: 45000, // 45 segundos para aquisição (aumentado para servidores lentos)
-                                            idle: 15000
-                                        },
-                                        retry: {
-                                            max: 2, // Aumentar tentativas
-                                            timeout: 20000 // 20 segundos para retry
-                                        }
-                                    });
-                                    break;
-                                    
-                                default:
-                                    logger.warn(`[${index + 1}/${servers.length}] Tipo de banco não suportado: ${server.type}`);
-                                    clearTimeout(timeout);
-                                    resolve({
-                                        serverId: server.id,
-                                        serverName: server.name,
-                                        serverHost: server.host,
-                                        success: false,
-                                        error: 'Tipo de banco não suportado'
-                                    });
-                                    return;
-                            }
-                            
-                            logger.info(`[${index + 1}/${servers.length}] Autenticando com ${server.name}...`);
-                            try {
-                                await sequelize.authenticate();
-                                logger.info(`[${index + 1}/${servers.length}] Conexão estabelecida com ${server.name}`);
-                            } catch (authError) {
-                                logger.error(`[${index + 1}/${servers.length}] Erro na autenticação com ${server.name}:`, authError.message);
-                                clearTimeout(timeout);
-                                resolve({
-                                    serverId: server.id,
-                                    serverName: server.name,
-                                    serverHost: server.host,
-                                    success: false,
-                                    error: `Erro de autenticação: ${authError.message}`
-                                });
-                                return;
-                            }
-                            
-                            // Query para listar databases (PostgreSQL) com timeout aumentado
-                            logger.info(`[${index + 1}/${servers.length}] Executando query para listar databases em ${server.name}`);
-                            let databases;
-                            try {
-                                // Query básica para listar databases
-                                [databases] = await sequelize.query(`
-                                    SELECT 
-                                        d.datname as name,
-                                        u.usename as owner,
-                                        COALESCE(sd.description, '') as comment
-                                    FROM pg_database d
-                                    LEFT JOIN pg_user u ON d.datdba = u.usesysid
-                                    LEFT JOIN pg_shdescription sd ON sd.objoid = d.oid
-                                    WHERE d.datistemplate = false
-                                    ORDER BY d.datname
-                                `, {
-                                    timeout: 15000 // Timeout reduzido para query básica
-                                });
-                                
-                                                            // Buscar versões junto com a listagem (síncrono)
-                            logger.info(`[${index + 1}/${servers.length}] Buscando versões das ${databases.length} databases em ${server.name}`);
-                            for (let i = 0; i < databases.length; i++) {
-                                const db = databases[i];
-                                try {
-                                    // Conectar na database específica para buscar versão
-                                    const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
-                                        host: server.host,
-                                        port: server.port,
-                                        dialect: 'postgres',
-                                        logging: false,
-                                        pool: {
-                                            max: 1,
-                                            min: 0,
-                                            acquire: 5000,
-                                            idle: 3000
-                                        },
-                                        retry: {
-                                            max: 1,
-                                            timeout: 3000
-                                        }
-                                    });
-                                    
-                                    // Buscar versão da database
-                                    const [versionResult] = await dbSequelize.query(`
-                                        SELECT versaover as version 
-                                        FROM public.versao 
-                                        WHERE dataver IS NOT NULL
-                                        AND sistemaver = 1
-                                        LIMIT 1
-                                    `, {
-                                        timeout: 5000
-                                    });
-                                    
-                                    await dbSequelize.close();
-                                    
-                                    // Adicionar versão ao resultado
-                                    db.version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
-                                    
-                                } catch (versionError) {
-                                    logger.warn(`[${index + 1}/${servers.length}] Erro ao buscar versão da database ${db.name}: ${versionError.message}`);
-                                    db.version = 'N/A';
-                                }
-                            }
-                            
-                            // Enviar dados do servidor imediatamente (progressivo)
-                            const serverData = {
-                                serverId: server.id,
-                                serverName: server.name,
-                                serverHost: server.host,
-                                success: true,
-                                databases: databases
-                            };
-                            
-                            // Enviar via WebSocket ou SSE se disponível
-                            if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
-                                res.write(`data: ${JSON.stringify({
-                                    type: 'server_data',
-                                    data: serverData
-                                })}\n\n`);
-                            }
-                                
-                                // Garantir que todos os campos existam
-                                databases.forEach(db => {
-                                    db.size = 'Carregando...';
-                                    db.version = db.version || 'N/A';
-                                    db.owner = db.owner || 'N/A';
-                                    db.comment = db.comment || '';
-                                });
-                                
-                                // Buscar tamanhos em segundo plano (assíncrono)
-                                setTimeout(async () => {
-                                    logger.info(`[${index + 1}/${servers.length}] Buscando tamanhos das ${databases.length} databases em ${server.name} (background)`);
-                                    
-                                    // Criar nova conexão para buscar tamanhos
-                                    const sizeSequelize = new Sequelize('postgres', server.username, decryptedPassword, {
-                                        host: server.host,
-                                        port: server.port,
-                                        dialect: 'postgres',
-                                        logging: false,
-                                        pool: {
-                                            max: 1,
-                                            min: 0,
-                                            acquire: 10000,
-                                            idle: 5000
-                                        },
-                                        retry: {
-                                            max: 1,
-                                            timeout: 5000
-                                        }
-                                    });
-                                    
-                                    try {
-                                        await sizeSequelize.authenticate();
-                                        
-                                        for (let i = 0; i < databases.length; i++) {
-                                            try {
-                                                const [sizeResult] = await sizeSequelize.query(`
-                                                    SELECT pg_size_pretty(pg_database_size('${databases[i].name}')) as size
-                                                `, {
-                                                    timeout: 5000
-                                                });
-                                                databases[i].size = sizeResult[0]?.size || 'N/A';
-                                            } catch (sizeError) {
-                                                logger.warn(`[${index + 1}/${servers.length}] Erro ao buscar tamanho da database ${databases[i].name}: ${sizeError.message}`);
-                                                databases[i].size = 'N/A';
-                                            }
-                                        }
-                                        
-                                        await sizeSequelize.close();
-                                    } catch (error) {
-                                        logger.error(`[${index + 1}/${servers.length}] Erro ao conectar para buscar tamanhos: ${error.message}`);
-                                        await sizeSequelize.close();
-                                    }
-                                }, 100);
-                            } catch (queryError) {
-                                logger.error(`[${index + 1}/${servers.length}] Erro na query principal de ${server.name}:`, queryError.message);
-                                clearTimeout(timeout);
-                                resolve({
-                                    serverId: server.id,
-                                    serverName: server.name,
-                                    serverHost: server.host,
-                                    success: false,
-                                    error: `Erro na query: ${queryError.message}`
-                                });
-                                return;
-                            }
-                            
-                            // Versões já foram buscadas junto com a listagem
-                            
-                            await sequelize.close();
+
+                            [databases] = await sequelize.query(`
+                            SELECT 
+                                d.datname as name,
+                                u.usename as owner,
+                                COALESCE(sd.description, '') as comment
+                            FROM pg_database d
+                            LEFT JOIN pg_user u ON d.datdba = u.usesysid
+                            LEFT JOIN pg_shdescription sd ON sd.objoid = d.oid
+                            WHERE d.datistemplate = false
+                            ORDER BY d.datname
+                        `);
+
+                        } catch (queryError) {
+
                             clearTimeout(timeout);
-                            
-                            logger.info(`[${index + 1}/${servers.length}] ${server.name}: ${databases.length} databases encontradas`);
-                            
-                            // Log de debug para verificar os dados retornados
-                            if (databases.length > 0) {
-                                logger.info(`[${index + 1}/${servers.length}] Exemplo de database: ${JSON.stringify(databases[0])}`);
-                            }
-                            
-                            const successResult = {
-                                serverId: server.id,
-                                serverName: server.name,
-                                serverHost: server.host,
-                                success: true,
-                                databases: databases
-                            };
-                            
-                            // Salvar sucesso no cache
-                            await saveDatabaseCache(server.id, server.name, server.host, databases, 'success');
-                            resolve(successResult);
-                            
-                        } catch (error) {
-                            clearTimeout(timeout);
-                            logger.error(`[${index + 1}/${servers.length}] Erro ao conectar com ${server.name}: ${error.message}`);
-                            const errorResult = {
+
+                            return {
                                 serverId: server.id,
                                 serverName: server.name,
                                 serverHost: server.host,
                                 success: false,
-                                error: error.message
+                                error: queryError.message
                             };
-                            
-                            // Salvar erro no cache
-                            await saveDatabaseCache(server.id, server.name, server.host, null, 'error', error.message);
-                            resolve(errorResult);
                         }
-                    });
+
+                        for (let i = 0; i < databases.length; i++) {
+
+                            const db = databases[i];
+
+                            try {
+
+                                const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
+                                    host: server.host,
+                                    port: server.port,
+                                    dialect: 'postgres',
+                                    logging: false,
+                                    pool: {
+                                        max: 1,
+                                        min: 0,
+                                        acquire: 5000,
+                                        idle: 3000
+                                    }
+                                });
+
+                                const [versionResult] = await dbSequelize.query(`
+                                SELECT 
+                                    v.versaover as neocorp_version,
+                                    p.ultimaversao as neocontabil_version
+                                FROM public.versao v
+                                LEFT JOIN public.proprietaria p ON true
+                                WHERE v.dataver IS NOT NULL
+                                AND v.sistemaver = 1
+                                LIMIT 1
+                            `);
+
+                                await dbSequelize.close();
+
+                                db.neocorpVersion = versionResult.length > 0 ? versionResult[0].neocorp_version : 'N/A';
+                                db.neoContabilVersion = versionResult.length > 0 ? versionResult[0].neocontabil_version : 'N/A';
+
+                            } catch (versionError) {
+
+                                logger.warn(`Erro ao buscar versão da database ${db.name}: ${versionError.message}`);
+
+                                db.neocorpVersion = 'N/A';
+                                db.neoContabilVersion = 'N/A';
+                            }
+                        }
+
+                        databases.forEach(db => {
+                            db.size = 'Carregando...';
+                            db.neocorpVersion = db.neocorpVersion || 'N/A';
+                            db.neoContabilVersion = db.neoContabilVersion || 'N/A';
+                            db.owner = db.owner || 'N/A';
+                            db.comment = db.comment || '';
+                        });
+
+                        const successResult = {
+                            serverId: server.id,
+                            serverName: server.name,
+                            serverHost: server.host,
+                            success: true,
+                            databases
+                        };
+
+                        await saveDatabaseCache(server.id, server.name, server.host, databases, 'success');
+
+                        if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
+                            res.write(`data: ${JSON.stringify({
+                                type: 'server_data',
+                                data: successResult
+                            })}\n\n`);
+                        }
+
+                        setTimeout(async () => {
+
+                            try {
+
+                                const sizeSequelize = new Sequelize('postgres', server.username, decryptedPassword, {
+                                    host: server.host,
+                                    port: server.port,
+                                    dialect: 'postgres',
+                                    logging: false
+                                });
+
+                                await sizeSequelize.authenticate();
+
+                                for (let i = 0; i < databases.length; i++) {
+
+                                    try {
+
+                                        const [sizeResult] = await sizeSequelize.query(`
+                                        SELECT pg_size_pretty(pg_database_size('${databases[i].name}')) as size
+                                    `);
+
+                                        databases[i].size = sizeResult[0]?.size || 'N/A';
+
+                                    } catch (sizeError) {
+
+                                        databases[i].size = 'N/A';
+                                    }
+                                }
+
+                                await sizeSequelize.close();
+
+                            } catch (error) {
+                                logger.error(`Erro ao buscar tamanhos: ${error.message}`);
+                            }
+
+                        }, 100);
+
+                        await sequelize.close();
+
+                        clearTimeout(timeout);
+
+                        return successResult;
+
+                    } catch (error) {
+
+                        clearTimeout(timeout);
+
+                        await saveDatabaseCache(server.id, server.name, server.host, null, 'error', error.message);
+
+                        return {
+                            serverId: server.id,
+                            serverName: server.name,
+                            serverHost: server.host,
+                            success: false,
+                            error: error.message
+                        };
+                    }
                 })
             );
-            
-            // Converter resultados do Promise.allSettled para o formato esperado
+
             const processedResults = results.map(result => {
                 if (result.status === 'fulfilled') {
                     return result.value;
-                } else {
-                    logger.error('Erro inesperado no processamento:', result.reason);
-                    return {
-                        serverId: 'unknown',
-                        serverName: 'Unknown',
-                        serverHost: 'unknown',
-                        success: false,
-                        error: result.reason?.message || 'Erro desconhecido'
-                    };
                 }
+
+                return {
+                    success: false,
+                    error: result.reason?.message || 'Erro desconhecido'
+                };
             });
-            
-            // Calcular estatísticas finais
+
             const totalServers = processedResults.length;
+
             const successfulServers = processedResults.filter(r => r.success).length;
+
             const totalDatabases = processedResults.reduce((total, server) => {
                 return total + (server.success && server.databases ? server.databases.length : 0);
             }, 0);
-            
-            logger.info(`Listagem concluída: ${successfulServers}/${totalServers} servidores conectados, ${totalDatabases} databases encontradas`);
-            
+
             res.json({
                 success: true,
                 data: processedResults,
@@ -1081,9 +982,11 @@ class ServerController {
                     totalDatabases
                 }
             });
-            
+
         } catch (error) {
+
             logger.error('Erro ao listar databases:', error);
+
             res.status(500).json({
                 success: false,
                 message: 'Erro interno do servidor'
@@ -1095,21 +998,21 @@ class ServerController {
     async forceCacheUpdate(req, res) {
         try {
             const { serverIds } = req.body;
-            
+
             if (!serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
                 return res.status(400).json({
                     success: false,
                     message: 'IDs dos servidores são obrigatórios'
                 });
             }
-            
+
             logger.info(`Forçando atualização de cache para ${serverIds.length} servidores`);
-            
+
             // Limpar cache existente
             await DatabaseCache.destroy({
                 where: { serverId: serverIds }
             });
-            
+
             res.json({
                 success: true,
                 message: 'Cache limpo com sucesso. Execute a consulta novamente para atualizar.'
@@ -1127,14 +1030,14 @@ class ServerController {
     async updateServerData(req, res) {
         try {
             const { serverId } = req.params;
-            
+
             if (!serverId) {
                 return res.status(400).json({
                     success: false,
                     message: 'ID do servidor é obrigatório'
                 });
             }
-            
+
             // Buscar servidor
             const server = await Server.findByPk(serverId);
             if (!server) {
@@ -1143,9 +1046,9 @@ class ServerController {
                     message: 'Servidor não encontrado'
                 });
             }
-            
+
             logger.info(`Atualizando dados específicos do servidor: ${server.name} (${server.host})`);
-            
+
             const decryptedPassword = decryptPassword(server.password);
             if (!decryptedPassword) {
                 return res.status(500).json({
@@ -1153,7 +1056,7 @@ class ServerController {
                     message: 'Erro ao descriptografar senha'
                 });
             }
-            
+
             // Conectar ao servidor
             const { Sequelize } = require('sequelize');
             const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
@@ -1172,10 +1075,10 @@ class ServerController {
                     timeout: 10000
                 }
             });
-            
+
             try {
                 await sequelize.authenticate();
-                
+
                 // Buscar databases básicas
                 const [databases] = await sequelize.query(`
                     SELECT 
@@ -1190,10 +1093,10 @@ class ServerController {
                 `, {
                     timeout: 15000
                 });
-                
+
                 // Buscar tamanhos e versões em paralelo
                 const updatedDatabases = [];
-                
+
                 for (const db of databases) {
                     try {
                         // Buscar tamanho
@@ -1202,9 +1105,10 @@ class ServerController {
                         `, {
                             timeout: 5000
                         });
-                        
+
                         // Buscar versão
-                        let version = 'N/A';
+                        let neocorpVersion = 'N/A';
+                        let neoContabilVersion = 'N/A';
                         try {
                             const dbSequelize = new Sequelize(db.name, server.username, decryptedPassword, {
                                 host: server.host,
@@ -1214,45 +1118,53 @@ class ServerController {
                                 pool: { max: 1, min: 0, acquire: 5000, idle: 3000 },
                                 retry: { max: 1, timeout: 3000 }
                             });
-                            
+
                             const [versionResult] = await dbSequelize.query(`
-                                SELECT versaover as version 
-                                FROM public.versao 
-                                WHERE dataver IS NOT NULL
-                                AND sistemaver = 1
-                                LIMIT 1
-                            `, {
+    SELECT 
+        v.versaover as neocorp_version,
+        p.ultimaversao as neocontabil_version
+    FROM public.versao v
+    LEFT JOIN public.proprietaria p ON true
+    WHERE v.dataver IS NOT NULL
+    AND v.sistemaver = 1
+    LIMIT 1
+`, {
                                 timeout: 5000
                             });
-                            
+
                             await dbSequelize.close();
-                            version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
+                            if (versionResult.length > 0) {
+                                neocorpVersion = versionResult[0].neocorp_version || 'N/A';
+                                neoContabilVersion = versionResult[0].neocontabil_version || 'N/A';
+                            }
                         } catch (versionError) {
                             logger.warn(`Erro ao buscar versão da database ${db.name}: ${versionError.message}`);
                         }
-                        
+
                         updatedDatabases.push({
                             name: db.name,
                             size: sizeResult[0]?.size || 'N/A',
                             owner: db.owner,
                             comment: db.comment,
-                            version: version
+                            neocorpVersion: neocorpVersion,
+                            neoContabilVersion: neoContabilVersion
                         });
-                        
+
                     } catch (error) {
                         logger.warn(`Erro ao processar database ${db.name}: ${error.message}`);
                         updatedDatabases.push({
                             name: db.name,
-                            size: 'N/A',
+                            size: sizeResult[0]?.size || 'N/A',
                             owner: db.owner,
                             comment: db.comment,
-                            version: 'N/A'
+                            neocorpVersion: neocorpVersion,
+                            neoContabilVersion: neoContabilVersion
                         });
                     }
                 }
-                
+
                 await sequelize.close();
-                
+
                 res.json({
                     success: true,
                     data: {
@@ -1262,12 +1174,12 @@ class ServerController {
                         databases: updatedDatabases
                     }
                 });
-                
+
             } catch (error) {
                 await sequelize.close();
                 throw error;
             }
-            
+
         } catch (error) {
             logger.error('Erro ao atualizar dados do servidor:', error);
             res.status(500).json({
@@ -1282,14 +1194,14 @@ class ServerController {
     async updateDatabaseSizes(req, res) {
         try {
             const { serverId } = req.params;
-            
+
             if (!serverId) {
                 return res.status(400).json({
                     success: false,
                     message: 'ID do servidor é obrigatório'
                 });
             }
-            
+
             // Buscar servidor
             const server = await Server.findByPk(serverId);
             if (!server) {
@@ -1298,9 +1210,9 @@ class ServerController {
                     message: 'Servidor não encontrado'
                 });
             }
-            
+
             logger.info(`Atualizando tamanhos das databases do servidor: ${server.name} (${server.host})`);
-            
+
             const decryptedPassword = decryptPassword(server.password);
             if (!decryptedPassword) {
                 return res.status(500).json({
@@ -1308,7 +1220,7 @@ class ServerController {
                     message: 'Erro ao descriptografar senha'
                 });
             }
-            
+
             // Conectar ao servidor
             const { Sequelize } = require('sequelize');
             const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
@@ -1327,10 +1239,10 @@ class ServerController {
                     timeout: 10000
                 }
             });
-            
+
             try {
                 await sequelize.authenticate();
-                
+
                 // Buscar databases básicas
                 const [databases] = await sequelize.query(`
                     SELECT 
@@ -1341,7 +1253,7 @@ class ServerController {
                 `, {
                     timeout: 15000
                 });
-                
+
                 // Buscar tamanhos
                 const sizes = [];
                 for (const db of databases) {
@@ -1351,12 +1263,12 @@ class ServerController {
                         `, {
                             timeout: 5000
                         });
-                        
+
                         sizes.push({
                             name: db.name,
                             size: sizeResult[0]?.size || 'N/A'
                         });
-                        
+
                     } catch (error) {
                         logger.warn(`Erro ao buscar tamanho da database ${db.name}: ${error.message}`);
                         sizes.push({
@@ -1365,9 +1277,9 @@ class ServerController {
                         });
                     }
                 }
-                
+
                 await sequelize.close();
-                
+
                 res.json({
                     success: true,
                     data: {
@@ -1376,12 +1288,12 @@ class ServerController {
                         sizes: sizes
                     }
                 });
-                
+
             } catch (error) {
                 await sequelize.close();
                 throw error;
             }
-            
+
         } catch (error) {
             logger.error('Erro ao atualizar tamanhos das databases:', error);
             res.status(500).json({
@@ -1403,16 +1315,16 @@ class ServerController {
                     message: 'Token de autenticação necessário'
                 });
             }
-            
+
             const { serverIds } = req.body;
-            
+
             if (!serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
                 return res.status(400).json({
                     success: false,
                     message: 'IDs dos servidores são obrigatórios'
                 });
             }
-            
+
             // Configurar headers para SSE
             res.writeHead(200, {
                 'Content-Type': 'text/event-stream',
@@ -1421,17 +1333,17 @@ class ServerController {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': 'Cache-Control'
             });
-            
+
             logger.info(`Iniciando listagem progressiva de databases para ${serverIds.length} servidores`);
-            
+
             // Buscar servidores
             const servers = await Server.findAll({
-                where: { 
+                where: {
                     id: serverIds,
-                    isActive: true 
+                    isActive: true
                 }
             });
-            
+
             if (servers.length === 0) {
                 res.write(`data: ${JSON.stringify({
                     type: 'error',
@@ -1440,18 +1352,18 @@ class ServerController {
                 res.end();
                 return;
             }
-            
+
             // Enviar início do processo
             res.write(`data: ${JSON.stringify({
                 type: 'start',
                 totalServers: servers.length,
                 message: 'Iniciando carregamento...'
             })}\n\n`);
-            
+
             // Processar servidores sequencialmente
             for (let i = 0; i < servers.length; i++) {
                 const server = servers[i];
-                
+
                 // Enviar progresso
                 res.write(`data: ${JSON.stringify({
                     type: 'progress',
@@ -1460,7 +1372,7 @@ class ServerController {
                     serverName: server.name,
                     message: `Conectando com ${server.name}...`
                 })}\n\n`);
-                
+
                 try {
                     const decryptedPassword = decryptPassword(server.password);
                     if (!decryptedPassword) {
@@ -1472,7 +1384,7 @@ class ServerController {
                         })}\n\n`);
                         continue;
                     }
-                    
+
                     // Conectar ao servidor
                     const { Sequelize } = require('sequelize');
                     const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
@@ -1491,9 +1403,9 @@ class ServerController {
                             timeout: 20000
                         }
                     });
-                    
+
                     await sequelize.authenticate();
-                    
+
                     // Buscar databases básicas
                     const [databases] = await sequelize.query(`
                         SELECT 
@@ -1508,7 +1420,7 @@ class ServerController {
                     `, {
                         timeout: 25000
                     });
-                    
+
                     // Buscar versões
                     for (let j = 0; j < databases.length; j++) {
                         const db = databases[j];
@@ -1521,30 +1433,35 @@ class ServerController {
                                 pool: { max: 1, min: 0, acquire: 5000, idle: 3000 },
                                 retry: { max: 1, timeout: 3000 }
                             });
-                            
+
                             const [versionResult] = await dbSequelize.query(`
-                                SELECT versaover as version 
-                                FROM public.versao 
-                                WHERE dataver IS NOT NULL
-                                AND sistemaver = 1
-                                LIMIT 1
-                            `, {
+    SELECT 
+        v.versaover as neocorp_version,
+        p.ultimaversao as neocontabil_version
+    FROM public.versao v
+    LEFT JOIN public.proprietaria p ON true
+    WHERE v.dataver IS NOT NULL
+    AND v.sistemaver = 1
+    LIMIT 1
+`, {
                                 timeout: 5000
                             });
-                            
+
                             await dbSequelize.close();
-                            db.version = versionResult.length > 0 ? versionResult[0].version : 'N/A';
-                            
+                            db.neocorpVersion = versionResult.length > 0 ? versionResult[0].neocorp_version : 'N/A';
+                            db.neoContabilVersion = versionResult.length > 0 ? versionResult[0].neocontabil_version : 'N/A';
+
                         } catch (versionError) {
-                            db.version = 'N/A';
+                            db.neocorpVersion = 'N/A';
+                            db.neoContabilVersion = 'N/A';
                         }
-                        
+
                         // Inicializar tamanho
                         db.size = 'Carregando...';
                     }
-                    
+
                     await sequelize.close();
-                    
+
                     // Enviar dados do servidor
                     res.write(`data: ${JSON.stringify({
                         type: 'server_data',
@@ -1554,7 +1471,7 @@ class ServerController {
                         success: true,
                         databases: databases
                     })}\n\n`);
-                    
+
                 } catch (error) {
                     logger.error(`Erro ao processar servidor ${server.name}:`, error);
                     res.write(`data: ${JSON.stringify({
@@ -1565,15 +1482,15 @@ class ServerController {
                     })}\n\n`);
                 }
             }
-            
+
             // Enviar finalização
             res.write(`data: ${JSON.stringify({
                 type: 'complete',
                 message: 'Carregamento concluído'
             })}\n\n`);
-            
+
             res.end();
-            
+
         } catch (error) {
             logger.error('Erro na listagem progressiva:', error);
             res.write(`data: ${JSON.stringify({
@@ -1589,31 +1506,31 @@ class ServerController {
     async listDatabasesProgressive(req, res) {
         try {
             const { serverIds } = req.body;
-            
+
             if (!serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
                 return res.status(400).json({
                     success: false,
                     message: 'IDs dos servidores são obrigatórios'
                 });
             }
-            
+
             logger.info(`Iniciando carregamento progressivo real para ${serverIds.length} servidores`);
-            
+
             // Buscar servidores
             const servers = await Server.findAll({
-                where: { 
+                where: {
                     id: serverIds,
-                    isActive: true 
+                    isActive: true
                 }
             });
-            
+
             if (servers.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: 'Nenhum servidor ativo encontrado'
                 });
             }
-            
+
             // Iniciar processamento em background
             const sessionId = Date.now().toString();
             global.progressiveSessions = global.progressiveSessions || {};
@@ -1624,17 +1541,17 @@ class ServerController {
                 total: servers.length,
                 status: 'processing'
             };
-            
+
             // Processar servidores em background
             processServersProgressive(sessionId);
-            
+
             res.json({
                 success: true,
                 sessionId: sessionId,
                 totalServers: servers.length,
                 message: 'Carregamento progressivo iniciado'
             });
-            
+
         } catch (error) {
             logger.error('Erro ao iniciar carregamento progressivo:', error);
             res.status(500).json({
@@ -1644,21 +1561,21 @@ class ServerController {
             });
         }
     }
-    
+
     // Verificar progresso do carregamento
     async checkProgressiveProgress(req, res) {
         try {
             const { sessionId } = req.params;
-            
+
             if (!global.progressiveSessions || !global.progressiveSessions[sessionId]) {
                 return res.status(404).json({
                     success: false,
                     message: 'Sessão não encontrada'
                 });
             }
-            
+
             const session = global.progressiveSessions[sessionId];
-            
+
             res.json({
                 success: true,
                 data: {
@@ -1669,14 +1586,14 @@ class ServerController {
                     progress: (session.completed / session.total) * 100
                 }
             });
-            
+
             // Limpar sessão se concluída
             if (session.status === 'completed') {
                 setTimeout(() => {
                     delete global.progressiveSessions[sessionId];
                 }, 60000); // Limpar após 1 minuto
             }
-            
+
         } catch (error) {
             logger.error('Erro ao verificar progresso:', error);
             res.status(500).json({
@@ -1691,14 +1608,14 @@ class ServerController {
     async searchObjects(req, res) {
         try {
             const { searchTerm, searchType = 'contains', objectType, searchLimit = 25, serverIds } = req.body;
-            
+
             if (!searchTerm || !serverIds || !Array.isArray(serverIds) || serverIds.length === 0) {
                 return res.status(400).json({
                     success: false,
                     message: 'Termo de busca e IDs dos servidores são obrigatórios'
                 });
             }
-            
+
             // Validação de termo de busca (mínimo 3 caracteres)
             if (searchTerm.length < 3) {
                 return res.status(400).json({
@@ -1706,31 +1623,31 @@ class ServerController {
                     message: 'Termo de busca deve ter pelo menos 3 caracteres'
                 });
             }
-            
+
             logger.info(`Iniciando busca de objetos: "${searchTerm}" em ${serverIds.length} servidores`);
-            
+
             // Buscar servidores
             const servers = await Server.findAll({
-                where: { 
+                where: {
                     id: serverIds,
-                    isActive: true 
+                    isActive: true
                 }
             });
-            
+
             logger.info(`Servidores encontrados: ${servers.length}`, servers.map(s => ({ id: s.id, name: s.name, host: s.host })));
-            
+
             if (servers.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: 'Nenhum servidor ativo encontrado'
                 });
             }
-            
-                // Configurações de performance
-                const MAX_OBJECTS_PER_SERVER = Math.min(searchLimit, 250); // Limite de objetos por servidor
-                const SEARCH_TIMEOUT = 30000; // 30 segundos timeout por servidor
-                const MAX_TOTAL_OBJECTS = searchLimit; // Limite total de objetos
-            
+
+            // Configurações de performance
+            const MAX_OBJECTS_PER_SERVER = Math.min(searchLimit, 250); // Limite de objetos por servidor
+            const SEARCH_TIMEOUT = 30000; // 30 segundos timeout por servidor
+            const MAX_TOTAL_OBJECTS = searchLimit; // Limite total de objetos
+
             // Processar servidores em paralelo com timeout
             const results = await Promise.allSettled(
                 servers.map(async (server) => {
@@ -1745,7 +1662,7 @@ class ServerController {
                                 error: 'Timeout: Busca excedeu 30 segundos'
                             });
                         }, SEARCH_TIMEOUT);
-                        
+
                         try {
                             const decryptedPassword = decryptPassword(server.password);
                             if (!decryptedPassword) {
@@ -1759,7 +1676,7 @@ class ServerController {
                                 });
                                 return;
                             }
-                            
+
                             // Conectar ao servidor com configurações otimizadas
                             const { Sequelize } = require('sequelize');
                             const sequelize = new Sequelize('postgres', server.username, decryptedPassword, {
@@ -1778,18 +1695,18 @@ class ServerController {
                                     timeout: 10000
                                 }
                             });
-                            
+
                             await sequelize.authenticate();
                             logger.info(`Conectado ao servidor ${server.name}, iniciando busca de objetos...`);
-                            
-                                // Buscar objetos com limite
-                                const objects = await searchObjectsInServer(sequelize, searchTerm, searchType, objectType, server, MAX_OBJECTS_PER_SERVER);
-                            
+
+                            // Buscar objetos com limite
+                            const objects = await searchObjectsInServer(sequelize, searchTerm, searchType, objectType, server, MAX_OBJECTS_PER_SERVER);
+
                             logger.info(`Servidor ${server.name}: encontrados ${objects.length} objetos`);
-                            
+
                             await sequelize.close();
                             clearTimeout(timeout);
-                            
+
                             resolve({
                                 serverId: server.id,
                                 serverName: server.name,
@@ -1797,7 +1714,7 @@ class ServerController {
                                 success: true,
                                 objects: objects
                             });
-                            
+
                         } catch (error) {
                             clearTimeout(timeout);
                             logger.error(`Erro ao buscar objetos no servidor ${server.name}:`, error);
@@ -1812,7 +1729,7 @@ class ServerController {
                     });
                 })
             );
-            
+
             // Processar resultados
             const allObjects = [];
             const processedResults = results.map(result => {
@@ -1841,13 +1758,13 @@ class ServerController {
                     };
                 }
             });
-            
+
             // Limitar total de objetos retornados
             const limitedObjects = allObjects.slice(0, MAX_TOTAL_OBJECTS);
             const hasMore = allObjects.length > MAX_TOTAL_OBJECTS;
-            
+
             logger.info(`Busca concluída: ${limitedObjects.length} objetos encontrados${hasMore ? ` (limitado de ${allObjects.length})` : ''}`);
-            
+
             res.json({
                 success: true,
                 data: limitedObjects,
@@ -1859,7 +1776,7 @@ class ServerController {
                     successfulServers: processedResults.filter(r => r.success).length
                 }
             });
-            
+
         } catch (error) {
             logger.error('Erro ao buscar objetos:', error);
             res.status(500).json({
@@ -1874,7 +1791,7 @@ class ServerController {
 // Função auxiliar para buscar objetos em um servidor específico
 async function searchObjectsInServer(sequelize, searchTerm, searchType, objectType, server, maxObjects) {
     const objects = [];
-    
+
     // Construir padrão de busca baseado no tipo
     let searchPattern;
     switch (searchType) {
@@ -1892,7 +1809,7 @@ async function searchObjectsInServer(sequelize, searchTerm, searchType, objectTy
             searchPattern = `%${searchTerm}%`;
             break;
     }
-    
+
     try {
         // Buscar databases do servidor (limitado para performance)
         const [databases] = await sequelize.query(`
@@ -1904,9 +1821,9 @@ async function searchObjectsInServer(sequelize, searchTerm, searchType, objectTy
         `, {
             timeout: 5000
         });
-        
+
         logger.info(`Servidor ${server.name}: encontradas ${databases.length} databases`);
-        
+
         // Buscar objetos em cada database (máximo 5 databases para performance)
         for (const db of databases.slice(0, 5)) {
             try {
@@ -1919,48 +1836,48 @@ async function searchObjectsInServer(sequelize, searchTerm, searchType, objectTy
                     pool: { max: 1, min: 0, acquire: 5000, idle: 3000 },
                     retry: { max: 1, timeout: 5000 }
                 });
-                
+
                 await dbSequelize.authenticate();
                 logger.info(`Conectado na database ${db.name}, buscando objetos do tipo: ${objectType || 'todos'}`);
-                
-                        // Buscar objetos baseado no tipo com limite
-                        const dbObjects = await searchObjectsByType(dbSequelize, searchPattern, searchType, objectType, db.name, Math.floor(maxObjects / databases.length));
+
+                // Buscar objetos baseado no tipo com limite
+                const dbObjects = await searchObjectsByType(dbSequelize, searchPattern, searchType, objectType, db.name, Math.floor(maxObjects / databases.length));
                 logger.info(`Database ${db.name}: encontrados ${dbObjects.length} objetos`);
                 objects.push(...dbObjects);
-                
+
                 // Parar se atingiu o limite
                 if (objects.length >= maxObjects) {
                     await dbSequelize.close();
                     break;
                 }
-                
+
                 await dbSequelize.close();
-                
+
             } catch (dbError) {
                 logger.warn(`Erro ao buscar objetos na database ${db.name}: ${dbError.message}`);
                 continue;
             }
         }
-        
+
     } catch (error) {
         logger.error(`Erro ao buscar objetos no servidor ${server.name}:`, error);
         throw error;
     }
-    
+
     return objects.slice(0, maxObjects);
 }
 
 // Função para buscar objetos por tipo
 async function searchObjectsByType(sequelize, searchPattern, searchType, objectType, databaseName, maxObjects = 50) {
     const objects = [];
-    
+
     try {
         if (!objectType || objectType === 'table') {
             logger.info(`Buscando tabelas com padrão: ${searchPattern}`);
-            
+
             // Escolher operador baseado no tipo de busca
             const operator = searchType === 'exact' ? '=' : 'ILIKE';
-            
+
             // Buscar tabelas (versão simplificada e mais robusta)
             const [tables] = await sequelize.query(`
                 SELECT 
@@ -1981,7 +1898,7 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 bind: [searchPattern, maxObjects],
                 timeout: 8000
             });
-            
+
             // Obter DDL real para cada tabela usando funções nativas do PostgreSQL
             for (const table of tables) {
                 try {
@@ -2005,7 +1922,7 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                     `, {
                         timeout: 5000
                     });
-                    
+
                     // Construir DDL manualmente
                     let ddl = `CREATE TABLE ${table.schema_name}.${table.object_name} (\n`;
                     const columnDefs = columns.map(col => {
@@ -2016,7 +1933,7 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                     });
                     ddl += columnDefs.join(',\n');
                     ddl += `\n);`;
-                    
+
                     objects.push({
                         ...table,
                         database_name: databaseName,
@@ -2032,11 +1949,11 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 }
             }
         }
-        
+
         if (!objectType || objectType === 'column') {
             // Escolher operador baseado no tipo de busca
             const operator = searchType === 'exact' ? '=' : 'ILIKE';
-            
+
             // Buscar colunas (versão simplificada)
             const [columns] = await sequelize.query(`
                 SELECT 
@@ -2065,14 +1982,14 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 bind: [searchPattern, maxObjects],
                 timeout: 8000
             });
-            
+
             objects.push(...columns.map(column => ({
                 ...column,
                 database_name: databaseName,
                 sql_definition: `-- Coluna: ${column.schema_name}.${column.table_name}.${column.object_name}\n-- Tipo: ${column.data_type}\n-- Nullable: ${column.is_nullable}\n-- Posição: ${column.ordinal_position}\n-- Default: ${column.column_default || 'NULL'}\n-- Descrição: ${column.description || 'N/A'}\n-- Dono: ${column.owner}`
             })));
         }
-        
+
         if (!objectType || objectType === 'index') {
             // Buscar índices (otimizada)
             const [indexes] = await sequelize.query(`
@@ -2093,7 +2010,7 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 bind: [searchPattern, maxObjects],
                 timeout: 8000
             });
-            
+
             // Obter DDL real para cada índice
             for (const index of indexes) {
                 try {
@@ -2105,9 +2022,9 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                     `, {
                         timeout: 5000
                     });
-                    
+
                     const ddl = ddlResult[0]?.ddl || `-- Índice: ${index.schema_name}.${index.object_name}\n-- Tabela: ${index.table_name}\n-- Tamanho: ${index.size}`;
-                    
+
                     objects.push({
                         ...index,
                         database_name: databaseName,
@@ -2123,7 +2040,7 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 }
             }
         }
-        
+
         if (!objectType || objectType === 'view') {
             // Buscar views (otimizada)
             const [views] = await sequelize.query(`
@@ -2143,7 +2060,7 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 bind: [searchPattern, maxObjects],
                 timeout: 8000
             });
-            
+
             // Obter DDL real para cada view usando funções nativas
             for (const view of views) {
                 try {
@@ -2157,9 +2074,9 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                     `, {
                         timeout: 5000
                     });
-                    
+
                     const ddl = ddlResult[0]?.ddl || `-- View: ${view.schema_name}.${view.object_name}\n-- Tamanho: ${view.size}\n-- Dono: ${view.owner}`;
-                    
+
                     objects.push({
                         ...view,
                         database_name: databaseName,
@@ -2175,7 +2092,7 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 }
             }
         }
-        
+
         if (!objectType || objectType === 'function' || objectType === 'procedure') {
             // Buscar funções e procedures (otimizada)
             const [functions] = await sequelize.query(`
@@ -2200,14 +2117,14 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 bind: [searchPattern, maxObjects],
                 timeout: 8000
             });
-            
+
             objects.push(...functions.map(func => ({
                 ...func,
                 database_name: databaseName,
                 sql_definition: `-- ${func.object_type}: ${func.schema_name}.${func.object_name}\n-- Retorno: ${func.return_type}\n-- Argumentos: ${func.arguments}`
             })));
         }
-        
+
         if (!objectType || objectType === 'trigger') {
             // Buscar triggers (otimizada)
             const [triggers] = await sequelize.query(`
@@ -2229,14 +2146,14 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 bind: [searchPattern, maxObjects],
                 timeout: 8000
             });
-            
+
             objects.push(...triggers.map(trigger => ({
                 ...trigger,
                 database_name: databaseName,
                 sql_definition: `-- Trigger: ${trigger.schema_name}.${trigger.object_name}\n-- Tabela: ${trigger.table_name}\n-- Evento: ${trigger.event_manipulation} ${trigger.action_timing}`
             })));
         }
-        
+
         if (!objectType || objectType === 'sequence') {
             // Buscar sequências (otimizada)
             const [sequences] = await sequelize.query(`
@@ -2256,14 +2173,14 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 bind: [searchPattern, maxObjects],
                 timeout: 8000
             });
-            
+
             objects.push(...sequences.map(seq => ({
                 ...seq,
                 database_name: databaseName,
                 sql_definition: `-- Sequência: ${seq.schema_name}.${seq.object_name}\n-- Tamanho: ${seq.size}\n-- Dono: ${seq.owner}`
             })));
         }
-        
+
         if (!objectType || objectType === 'constraint') {
             // Buscar constraints (otimizada)
             const [constraints] = await sequelize.query(`
@@ -2284,19 +2201,19 @@ async function searchObjectsByType(sequelize, searchPattern, searchType, objectT
                 bind: [searchPattern, maxObjects],
                 timeout: 8000
             });
-            
+
             objects.push(...constraints.map(constraint => ({
                 ...constraint,
                 database_name: databaseName,
                 sql_definition: `-- Constraint: ${constraint.schema_name}.${constraint.object_name}\n-- Tabela: ${constraint.table_name}\n-- Tipo: ${constraint.constraint_type}`
             })));
         }
-        
+
     } catch (error) {
         logger.error(`Erro ao buscar objetos por tipo na database ${databaseName}:`, error);
         throw error;
     }
-    
+
     return objects;
 }
 
