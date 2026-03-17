@@ -1,7 +1,7 @@
 module.exports = [
     {
         name: 'Sugestões',
-        path: '/sugestoes',
+        path: 'https://github.com/Abnerlucasm/neo_utilitario/issues',
         description: 'Acesso ao sistema de sugestões',
         icon: 'fas fa-lightbulb'
     },

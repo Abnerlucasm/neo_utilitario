@@ -459,7 +459,6 @@ class NeoNavbar extends HTMLElement {
             'glassfish': 'fa-server',
             'consultabd': 'fa-database',
             'sugestoes-dev': 'fa-lightbulb',
-            'recursos-dev': 'fa-cogs',
             'utilitarios': 'fa-tools',
             'index': 'fa-home'
         };
@@ -473,7 +472,6 @@ class NeoNavbar extends HTMLElement {
             'glassfish': 'Glassfish',
             'consultabd': 'Consulta de Bancos',
             'sugestoes-dev': 'Sugestões',
-            'recursos-dev': 'Recursos em Desenvolvimento',
             'utilitarios': 'Utilitários',
             'index': 'Início'
         };
@@ -515,18 +513,18 @@ class NeoNavbar extends HTMLElement {
             
             // Usar ThemeManager se disponível
             if (window.ThemeManager) {
-                const theme = savedSettings.theme || 'light';
+                const theme = savedSettings.theme || 'corporate';
                 window.ThemeManager.setTheme(theme);
-                this.state.isDarkTheme = theme === 'dark';
+                this.state.isDarkTheme = theme === 'forest';
             } else {
                 // Fallback para aplicação direta do DaisyUI
-                const theme = savedSettings.theme || 'light';
+                const theme = savedSettings.theme || 'corporate';
                 document.documentElement.setAttribute('data-theme', theme);
-                this.state.isDarkTheme = theme === 'dark';
+                this.state.isDarkTheme = theme === 'forest';
             }
             
             // Aplicar tema ao navbar
-            this.applyThemeToNavbar(savedSettings.theme || 'light');
+            this.applyThemeToNavbar(savedSettings.theme || 'corporate');
             
             // Inicializar seletor de temas
             this.initializeThemeSelector();
@@ -557,7 +555,7 @@ class NeoNavbar extends HTMLElement {
         if (navbar) {
             navbar.setAttribute('data-theme', theme);
             // Aplicar cor de fundo translúcida baseada no tema
-            const opacity = theme === 'dark' ? 0.9 : 0.8;
+            const opacity = theme === 'forest' ? 0.9 : 0.8;
             navbar.style.backgroundColor = `hsl(var(--b1) / ${opacity})`;
             navbar.style.backdropFilter = 'blur(12px)';
             navbar.style.borderBottom = `1px solid hsl(var(--bc) / 0.1)`;

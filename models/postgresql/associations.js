@@ -10,7 +10,6 @@ const definePermission = require('./Permission');
 const defineService = require('./Service');
 const defineSession = require('./session');
 const defineResource = require('./Resource');
-const defineSuggestion = require('./suggestion');
 const defineGlassfish = require('./Glassfish');
 const defineMenu = require('./Menu');
 const defineRolePermission = require('./RolePermission');
@@ -26,7 +25,6 @@ const Permission = definePermission(sequelize);
 const Service = defineService(sequelize);
 const Session = defineSession(sequelize);
 const Resource = defineResource(sequelize);
-const Suggestion = defineSuggestion(sequelize);
 const Glassfish = defineGlassfish(sequelize);
 const Menu = defineMenu(sequelize);
 const RolePermission = defineRolePermission(sequelize);
@@ -172,7 +170,6 @@ module.exports = {
     Permission,
     Service,
     Session,
-    Suggestion,
     Glassfish,
     Menu,
     RolePermission,

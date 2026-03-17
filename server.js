@@ -30,7 +30,6 @@ const initServer = require('./scripts/init-server');
 // Importar routers
 const authRouter = require('./routes/auth');
 const glassfishRouter = require('./routes/glassfish');
-const suggestionsRouter = require('./routes/suggestions');
 const rolesRouter = require('./routes/roles');
 const menuRouter = require('./routes/menus');
 
@@ -210,7 +209,6 @@ app.use('/api/auth', authRouter);
 // Aplicar middleware de autenticação para rotas protegidas
 app.use('/api/user', authMiddleware, userRouter);
 app.use('/api/glassfish', authMiddleware, glassfishRouter);
-app.use('/api/suggestions', authMiddleware, suggestionsRouter);
 
 // Configurar rota diagnóstica direta (para verificação)
 app.get('/api/test', (req, res) => {

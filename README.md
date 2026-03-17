@@ -1,12 +1,11 @@
 # NeoHub - Plataforma de Colaboração
 
-**NeoHub** é uma plataforma integrada para gerenciamento de serviços, sugestões e utilitários da equipe Neo. O sistema permite que os usuários gerenciem tarefas, colaborem em projetos e acessem utilitários de forma eficiente.
+**NeoHub** é uma plataforma integrada para gerenciamento de serviços e utilitários da equipe Neo. O sistema permite que os usuários gerenciem tarefas, colaborem em projetos e acessem utilitários de forma eficiente.
 
 ## 🚀 Funcionalidades
 
 - **Gerenciamento de Serviços Glassfish**: Controle completo de servidores Glassfish via SSH
 - **Consulta de Bancos de Dados**: Interface para consultar múltiplos servidores de banco de dados
-- **Sistema de Sugestões**: Envie e visualize sugestões de desenvolvimento
 - **Gerenciamento de Usuários**: Controle completo de usuários, roles e permissões
 - **Sistema de Menus Dinâmicos**: Menus configuráveis via banco de dados
 - **Sistema de Recursos**: Gerenciamento de recursos e permissões granulares

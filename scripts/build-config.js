@@ -27,14 +27,12 @@ const buildConfig = {
             'public/js/theme-manager.js',
             'public/js/apply-theme-immediate.js',
             'public/js/utilitarios.js',
-            'public/js/recursos-dev.js',
-            'public/js/sugestoes-dev.js',
             'public/js/user-settings.js',
             'public/js/auth.js',
             'public/js/avatar-manager.js',
             'public/components/navbar/navbar.js',
             'public/components/footer/footer.js',
-            'public/components/theme-selector/theme-selector-modern.js'
+            'public/components/theme-selector/theme-selector.js'
         ],
         css: [
             'public/css/neohub-core.css',
