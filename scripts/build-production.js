@@ -175,8 +175,6 @@ class ProductionBuilder {
         const htmlFiles = [
             'public/pages/index.html',
             'public/pages/utilitarios.html',
-            'public/pages/recursos-dev.html',
-            'public/pages/sugestoes-dev.html',
             'public/pages/user-settings.html',
             'public/pages/glassfish.html',
             'public/pages/consultabd.html',

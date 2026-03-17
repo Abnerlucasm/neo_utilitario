@@ -25,17 +25,9 @@
   },
   {
     "title": "Sugestões",
-    "path": "/pages/sugestoes-dev.html",
+    "path": "https://github.com/Abnerlucasm/neo_utilitario/issues",
     "icon": "fas fa-lightbulb",
     "order": 4,
-    "is_admin_only": false,
-    "is_active": true
-  },
-  {
-    "title": "Recursos em Desenvolvimento",
-    "path": "/pages/recursos-dev.html",
-    "icon": "fas fa-cogs",
-    "order": 5,
     "is_admin_only": false,
     "is_active": true
   },

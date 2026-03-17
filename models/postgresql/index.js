@@ -164,7 +164,6 @@ module.exports = {
     Service,
     Session,
     Resource,
-    Suggestion,
     Glassfish,
     Menu,
     Server,
