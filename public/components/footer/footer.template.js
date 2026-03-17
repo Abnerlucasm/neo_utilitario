@@ -16,7 +16,7 @@ export function getFooterTemplate(isDark = false) {
                     </svg>
                     Contribua no GitHub
                 </a>
-                <p class="text-sm opacity-70">© ${new Date().getFullYear()} Neo. Todos os direitos reservados.</p>
+                <p class="text-sm opacity-70">© ${new Date().getFullYear()} Neo Sistemas. Todos os direitos reservados.</p>
             </div>
         </footer>
     `;

@@ -10,7 +10,7 @@ class NeoFooter extends HTMLElement {
 
     setupTheme() {
         const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-        const theme = userSettings.theme || 'light';
+        const theme = userSettings.theme || 'corporate';
         this.applyTheme(theme);
 
         document.addEventListener('theme-changed', (e) => {
@@ -41,7 +41,7 @@ class NeoFooter extends HTMLElement {
                        rel="noopener noreferrer">
                         Contribua no GitHub
                     </a>
-                    <p class="text-sm opacity-70">© ${new Date().getFullYear()} Neo. Todos os direitos reservados.</p>
+                    <p class="text-sm opacity-70">© ${new Date().getFullYear()} Neo Sistemas. Todos os direitos reservados.</p>
                 </div>
             </footer>
         `;
