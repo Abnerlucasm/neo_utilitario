@@ -18,6 +18,38 @@
     "stop": "pm2 stop neodeploy",
     "restart": "pm2 restart neodeploy"
   },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "connect-pg-simple": "^10.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-session": "^1.18.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide": "^0.577.0",
+    "multer": "^1.4.5-lts.1",
+    "node-ssh": "^13.2.0",
+    "nodemailer": "^8.0.2",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "pg": "^8.13.3",
+    "qrcode": "^1.5.4",
+    "sequelize": "^6.37.5",
+    "speakeasy": "^2.0.0",
+    "ssh2": "^1.16.0",
+    "turndown": "^7.2.0",
+    "umzug": "^3.7.2",
+    "uuid": "^11.1.0",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "ws": "^8.18.0",
+    "xml2js": "^0.6.2"
+  },
   "keywords": [
     "pwa",
     "dashboard",
@@ -30,12 +62,10 @@
     "node": ">=14.0.0"
   },
   "devDependencies": {
-    "pm2": "^5.3.0"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.6",
-    "helmet": "^7.1.0",
-    "compression": "^1.7.4"
+    "autoprefixer": "^10.4.27",
+    "daisyui": "^5.5.19",
+    "pm2": "^5.3.0",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.1"
   }
 }
