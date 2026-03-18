@@ -57,12 +57,23 @@ router.get('/', async (req, res) => {
         const whereClause = {};
         
         if (type) {
-            // Tratar múltiplos tipos separados por vírgula
-            if (type.includes(',')) {
-                const types = type.split(',').map(t => t.trim());
-                whereClause.type = { [Op.in]: types };
-            } else {
-                whereClause.type = type;
+            // Normalizar "type" para string para evitar confusão de tipos (array vs string)
+            let typeStr = null;
+            if (typeof type === 'string') {
+                typeStr = type;
+            } else if (Array.isArray(type)) {
+                // Junta múltiplos parâmetros "type" em uma única string, compatível com a lógica existente
+                typeStr = type.join(',');
+            }
+
+            if (typeStr) {
+                // Tratar múltiplos tipos separados por vírgula
+                if (typeStr.includes(',')) {
+                    const types = typeStr.split(',').map(t => t.trim());
+                    whereClause.type = { [Op.in]: types };
+                } else {
+                    whereClause.type = typeStr;
+                }
             }
         }
         
