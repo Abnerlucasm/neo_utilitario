@@ -2,7 +2,7 @@ const Theme = {
     KEY: 'neohub-theme',
 
     init() {
-        const theme = localStorage.getItem(this.KEY) || 'corporate';
+        const theme = localStorage.getItem(this.KEY);
         this.apply(theme);
     },
 
@@ -16,7 +16,7 @@ const Theme = {
     },
 
     get() {
-        return localStorage.getItem(this.KEY) || 'corporate';
+        return localStorage.getItem(this.KEY);
     }
 };
 

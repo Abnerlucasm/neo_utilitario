@@ -316,12 +316,6 @@ class NeoNavbar extends HTMLElement {
                 window.location.href = '/pages/user-settings.html';
             });
         }
-
-        window.addEventListener('storage', (event) => {
-            if (event.key === 'theme') {
-                this.applyThemeToNavbar(event.newValue);
-            }
-        });
     }
 
     highlightCurrentPage() {

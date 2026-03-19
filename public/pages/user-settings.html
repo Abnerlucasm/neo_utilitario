@@ -5,19 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações do Usuário - NeoHub</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
-
-    <!-- CSS Core NeoHub -->
-    <link rel="stylesheet" href="/css/neohub-core.css">
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Scripts de tema -->
     <script src="/services/theme/theme-service.js"></script>
     <script type="module" src="/components/theme-selector/theme-selector.js"></script>
 
-    <!-- Script para aplicar tema imediatamente -->
+    <!-- CSS Core NeoHub -->
+    <link rel="stylesheet" href="/css/neohub-core.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
         :root {
@@ -352,7 +351,6 @@
                     // Preencher campos básicos do token primeiro
                     const nameValue = tokenData.name || tokenData.username || tokenData.email?.split('@')[0] || 'Usuário';
                     const emailValue = tokenData.email || '';
-                    const themeValue = tokenData.theme || localStorage.getItem('theme');
 
                     console.log('Valores extraídos:', { nameValue, emailValue, themeValue });
 
