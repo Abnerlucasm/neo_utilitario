@@ -3,12 +3,12 @@ class LoginManager {
         this.form = document.getElementById('loginForm');
         this.passwordInput = document.getElementById('password');
         this.togglePassword = document.getElementById('togglePassword');
-        
+
         if (!this.form) {
             console.error('Formulário de login não encontrado');
             return;
         }
-        
+
         this.setupEventListeners();
         this.setupPasswordToggle();
     }
@@ -19,7 +19,7 @@ class LoginManager {
                 // Alternar tipo do input
                 const type = this.passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 this.passwordInput.setAttribute('type', type);
-                
+
                 // Alternar ícone
                 const icon = this.togglePassword.querySelector('i');
                 icon.classList.toggle('fa-eye');
@@ -31,12 +31,17 @@ class LoginManager {
     setupEventListeners() {
         this.form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const formData = new FormData(e.target);
             const data = {
                 email: formData.get('email'),
                 password: formData.get('password')
             };
+
+            if (!data.email || !data.password) {
+                this.showError("Email e senha são obrigatórios");
+                return;
+            }
 
             try {
                 const response = await fetch('/api/auth/login', {
@@ -115,6 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Inicializar o gerenciador de login
     if (typeof LoginManager === 'function') {
-    new LoginManager();
+        new LoginManager();
     }
 }); 

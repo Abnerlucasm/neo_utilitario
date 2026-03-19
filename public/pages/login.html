@@ -46,8 +46,7 @@
 
         <!-- HEADER -->
         <div class="flex flex-col items-center gap-2">
-            <img src="/assets/neo-logo-small.png"
-                class="mb-2 mx-auto max-h-20 w-auto object-contain">
+            <img src="/assets/neo-logo-small.png" class="mb-2 mx-auto max-h-20 w-auto object-contain">
 
             <h1 class="text-2xl font-bold text-neo">Bem-vindo ao NeoHub</h1>
 
@@ -73,12 +72,8 @@
                         <i class="fas fa-envelope"></i>
                     </span>
 
-                    <input
-                        class="input input-bordered w-full pl-10"
-                        type="email"
-                        placeholder="seu@email.com"
-                        required
-                    />
+                    <input class="input input-bordered w-full pl-10" type="email" name="email" id="email" required
+                        placeholder="seu@email.com" />
                 </div>
             </div>
 
@@ -93,15 +88,10 @@
                         <i class="fas fa-lock"></i>
                     </span>
 
-                    <input
-                        class="input input-bordered w-full pl-10 pr-10"
-                        type="password"
-                        placeholder="Sua senha"
-                        required
-                    />
+                    <input class="input input-bordered w-full pl-10 pr-10" type="password" name="password" id="password"
+                        required placeholder="Sua senha" />
 
-                    <span
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 cursor-pointer"
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 cursor-pointer"
                         id="togglePassword">
                         <i class="fas fa-eye"></i>
                     </span>
@@ -109,8 +99,7 @@
             </div>
 
             <!-- BOTÃO -->
-            <button type="submit"
-                class="btn btn-neo btn-block text-base font-semibold flex items-center gap-2">
+            <button type="submit" class="btn btn-neo btn-block text-base font-semibold flex items-center gap-2">
                 <i class="fas fa-sign-in-alt"></i>
                 Entrar
             </button>
