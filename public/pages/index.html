@@ -1,50 +1,38 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeoHub - Dashboard</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- DaisyUI -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/>
-    
-    <!-- CSS Core NeoHub -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+
+    <!-- CSS -->
     <link rel="stylesheet" href="/css/neohub-core.css">
-    
-    <!-- CSS específico da página Index -->
     <link rel="stylesheet" href="/css/pages/index.css">
-    
-    <!-- Sistema de Temas -->
+
+    <!-- Tema -->
     <script src="/js/theme-manager.js"></script>
-    <script src="/components/theme-selector/theme-selector-modern.js"></script>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    
-    <!-- Meta tags para PWA -->
-    <meta name="theme-color" content="#00d1b2">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="NeoHub">
-    
-    <!-- Ícones para Apple -->
-    <link rel="apple-touch-icon" href="/icons/icon-128x128.png">
-    
-    <!-- Script para aplicar tema imediatamente -->
+    <script src="/components/theme-selector/theme-selector.js"></script>
     <script src="/js/apply-theme-immediate.js"></script>
 
-
+    <!-- Outros -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 </head>
-<body class="bg-base-200 min-h-screen">
+
+<body class="bg-base-200 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
     <neo-navbar></neo-navbar>
 
-    <!-- Hero Section com Gradiente -->
+    <!-- Hero -->
     <section class="hero-neohub">
         <div class="hero-content">
             <h1 class="brand-title">
@@ -52,8 +40,7 @@
                 <span>Hub</span>
             </h1>
             <h2 class="brand-subtitle">Seu portal centralizado de recursos e ferramentas</h2>
-            
-            <!-- Botão PWA no Hero -->
+
             <div class="hero-actions mt-8">
                 <button id="hero-install-button" class="btn btn-primary btn-lg pulsate" style="display: none;">
                     <i class="fas fa-download mr-2"></i>
@@ -63,155 +50,150 @@
         </div>
     </section>
 
-    <div class="container mx-auto px-4">
-        <!-- Seção de Boas-vindas -->
-        <div class="welcome-section">
-            <h2 id="greeting" class="text-3xl font-bold text-center mb-8"></h2>
-        </div>
+    <!-- Conteúdo principal -->
+    <main class="flex-grow">
+        <div class="container mx-auto px-4">
 
-        <!-- Grid de Cards -->
-        <div class="menu-opcoes">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Card Glassfish -->
-                <div class="card bg-base-100 shadow-xl card-hover" data-resource="glassfish">
-                    <div class="card-body">
-                        <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-server text-4xl text-info"></i>
+            <!-- Boas-vindas -->
+            <div class="welcome-section">
+                <h2 id="greeting" class="text-3xl font-bold text-center mb-8"></h2>
+            </div>
+
+            <!-- Cards -->
+            <div class="menu-opcoes">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+
+                    <!-- Card Glassfish -->
+                    <div class="card bg-base-100 shadow-xl card-hover" data-resource="glassfish">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-server text-4xl text-info"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="card-title text-xl">Glassfish</h3>
+                                    <p class="text-base-content/70">Gerenciamento de Aplicações</p>
+                                </div>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="card-title text-xl">Glassfish</h3>
-                                <p class="text-base-content/70">Gerenciamento de Aplicações</p>
+                            <div class="card-actions justify-end">
+                                <a href="/pages/glassfish.html" class="btn btn-info btn-sm">
+                                    <i class="fas fa-external-link-alt mr-1"></i>
+                                    Acessar
+                                </a>
                             </div>
-                        </div>
-                        <div class="card-actions justify-end">
-                            <a href="/pages/glassfish.html" class="btn btn-info btn-sm">
-                                <i class="fas fa-external-link-alt mr-1"></i>
-                                Acessar
-                            </a>
                         </div>
                     </div>
-                </div>
 
-                <!-- Card Consulta Banco de Dados -->
-                <div class="card bg-base-100 shadow-xl card-hover">
-                    <div class="card-body">
-                        <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-database text-4xl text-primary"></i>
+                    <!-- Card Consulta Banco de Dados -->
+                    <div class="card bg-base-100 shadow-xl card-hover">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-database text-4xl text-primary"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="card-title text-xl">Consulta Banco de Dados</h3>
+                                    <p class="text-base-content/70">Gerenciamento de Servidores</p>
+                                </div>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="card-title text-xl">Consulta Banco de Dados</h3>
-                                <p class="text-base-content/70">Gerenciamento de Servidores</p>
+                            <div class="card-actions justify-end">
+                                <a href="/pages/consultabd.html" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-external-link-alt mr-1"></i>
+                                    Acessar
+                                </a>
                             </div>
-                        </div>
-                        <div class="card-actions justify-end">
-                            <a href="/pages/consultabd.html" class="btn btn-primary btn-sm">
-                                <i class="fas fa-external-link-alt mr-1"></i>
-                                Acessar
-                            </a>
                         </div>
                     </div>
-                </div>
 
-                <!-- Card Sugestões -->
-                <div class="card bg-base-100 shadow-xl card-hover">
-                    <div class="card-body">
-                        <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-lightbulb text-4xl text-error"></i>
+                    <!-- Card Sugestões -->
+                    <div class="card bg-base-100 shadow-xl card-hover">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-lightbulb text-4xl text-error"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="card-title text-xl">Sugestões</h3>
+                                    <p class="text-base-content/70">Compartilhe Ideias</p>
+                                </div>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="card-title text-xl">Sugestões</h3>
-                                <p class="text-base-content/70">Compartilhe Ideias</p>
+                            <p class="text-base-content/70 mb-4">
+                                Contribua com sugestões para melhorar nossa plataforma.
+                            </p>
+                            <div class="card-actions justify-end">
+                                <a href="https://github.com/Abnerlucasm/neo_utilitario/issues"
+                                    class="btn btn-error btn-sm">
+                                    <i class="fas fa-external-link-alt mr-1"></i>
+                                    Acessar
+                                </a>
                             </div>
-                        </div>
-                        <p class="text-base-content/70 mb-4">Contribua com sugestões para melhorar nossa plataforma.</p>
-                        <div class="card-actions justify-end">
-                            <a href="/pages/sugestoes-dev.html" class="btn btn-error btn-sm">
-                                <i class="fas fa-external-link-alt mr-1"></i>
-                                Acessar
-                            </a>
                         </div>
                     </div>
-                </div>
 
-                <!-- Card Recursos em Desenvolvimento -->
-                <div class="card bg-base-100 shadow-xl card-hover">
-                    <div class="card-body">
-                        <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-cogs text-4xl text-warning"></i>
+                    <!-- Card Utilitários -->
+                    <div class="card bg-base-100 shadow-xl card-hover">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-tools text-4xl text-info"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="card-title text-xl">Utilitários</h3>
+                                    <p class="text-base-content/70">Ferramentas e Utilitários</p>
+                                </div>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="card-title text-xl">Recursos em Desenvolvimento</h3>
-                                <p class="text-base-content/70">Veja o que está sendo desenvolvido</p>
+                            <p class="text-base-content/70 mb-4">
+                                Veja as ferramentas e utilitários disponíveis.
+                            </p>
+                            <div class="card-actions justify-end">
+                                <a href="/pages/utilitarios.html" class="btn btn-info btn-sm">
+                                    <i class="fas fa-external-link-alt mr-1"></i>
+                                    Acessar
+                                </a>
                             </div>
-                        </div>
-                        <p class="text-base-content/70 mb-4">Veja o que está sendo desenvolvido e contribua com sugestões.</p>
-                        <div class="card-actions justify-end">
-                            <a href="/pages/recursos-dev.html" class="btn btn-warning btn-sm">
-                                <i class="fas fa-external-link-alt mr-1"></i>
-                                Acessar
-                            </a>
                         </div>
                     </div>
-                </div>
 
-                <!-- Card Utilitários -->
-                <div class="card bg-base-100 shadow-xl card-hover">
-                    <div class="card-body">
-                        <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-tools text-4xl text-info"></i>
+                    <!-- Card Configurações -->
+                    <div class="card bg-base-100 shadow-xl card-hover">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-cog text-4xl text-base-content/70"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="card-title text-xl">Configurações</h3>
+                                    <p class="text-base-content/70">Personalize</p>
+                                </div>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="card-title text-xl">Utilitários</h3>
-                                <p class="text-base-content/70">Ferramentas e Utilitários</p>
+                            <p class="text-base-content/70 mb-4">
+                                Ajuste suas preferências e configurações do sistema.
+                            </p>
+                            <div class="card-actions justify-end">
+                                <a href="/pages/user-settings.html" class="btn btn-ghost btn-sm">
+                                    <i class="fas fa-external-link-alt mr-1"></i>
+                                    Acessar
+                                </a>
                             </div>
-                        </div>
-                        <p class="text-base-content/70 mb-4">Veja as ferramentas e utilitários disponíveis.</p>
-                        <div class="card-actions justify-end">
-                            <a href="/pages/utilitarios.html" class="btn btn-info btn-sm">
-                                <i class="fas fa-external-link-alt mr-1"></i>
-                                Acessar
-                            </a>
                         </div>
                     </div>
-                </div>
 
-                <!-- Card Configurações -->
-                <div class="card bg-base-100 shadow-xl card-hover">
-                    <div class="card-body">
-                        <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-cog text-4xl text-base-content/70"></i>
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="card-title text-xl">Configurações</h3>
-                                <p class="text-base-content/70">Personalize</p>
-                            </div>
-                        </div>
-                        <p class="text-base-content/70 mb-4">Ajuste suas preferências e configurações do sistema.</p>
-                        <div class="card-actions justify-end">
-                            <a href="/pages/user-settings.html" class="btn btn-ghost btn-sm">
-                                <i class="fas fa-external-link-alt mr-1"></i>
-                                Acessar
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <neo-footer></neo-footer>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <neo-footer class="mt-10"></neo-footer>
 
     <!-- Scripts -->
     <script src="/js/auth.js"></script>
     <script src="/js/avatar-manager.js"></script>
     <script type="module" src="/components/navbar/navbar.js"></script>
     <script type="module" src="/components/footer/footer.js"></script>
-    <script src="/js/index.js"></script>    
+    <script src="/js/index.js"></script>
+
 </body>
+
 </html>
