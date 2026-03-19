@@ -1607,48 +1607,67 @@ function showCommentModal(databaseName, comment, serverName) {
     // Criar modal
     const modal = document.createElement('div');
     modal.id = 'commentModal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.className = 'modal modal-open';
+
     modal.innerHTML = `
-        <div class="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
-            <div class="flex justify-between items-center p-6 border-b">
-                <h3 class="text-lg font-semibold">Comentário da Database</h3>
-                <button onclick="closeCommentModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times"></i>
-                </button>
+    <div class="modal-box max-w-2xl">
+
+        <!-- HEADER -->
+        <div class="flex justify-between items-center border-b pb-4 mb-4">
+            <h3 class="text-lg font-semibold text-base-content">
+                Comentário da Database
+            </h3>
+
+            <button onclick="closeCommentModal()" class="btn btn-sm btn-ghost">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="space-y-4">
+
+            <div>
+                <label class="label">
+                    <span class="label-text font-medium">Servidor:</span>
+                </label>
+                <p class="text-base-content/70">${serverName}</p>
             </div>
-            
-            <div class="flex-1 overflow-y-auto p-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="label">
-                            <span class="label-text font-medium">Servidor:</span>
-                        </label>
-                        <p class="text-base-content/70">${serverName}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="label">
-                            <span class="label-text font-medium">Database:</span>
-                        </label>
-                        <p class="text-base-content/70 font-mono">${databaseName}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="label">
-                            <span class="label-text font-medium">Comentário:</span>
-                        </label>
-                        <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
-                            <p class="whitespace-pre-wrap text-base-content/80">${comment}</p>
-                        </div>
-                    </div>
+
+            <div>
+                <label class="label">
+                    <span class="label-text font-medium">Database:</span>
+                </label>
+                <p class="text-base-content/70 font-mono">${databaseName}</p>
+            </div>
+
+            <div>
+                <label class="label">
+                    <span class="label-text font-medium">Comentário:</span>
+                </label>
+
+                <div class="bg-base-200 p-4 rounded-lg max-h-96 overflow-y-auto">
+                    <p class="whitespace-pre-wrap text-base-content/80">
+                        ${comment}
+                    </p>
                 </div>
             </div>
-            
-            <div class="flex justify-end p-6 border-t bg-gray-50">
-                <button onclick="closeCommentModal()" class="btn btn-primary">Fechar</button>
-            </div>
+
         </div>
-    `;
+
+        <!-- FOOTER -->
+        <div class="modal-action">
+            <button onclick="closeCommentModal()" class="btn btn-primary">
+                Fechar
+            </button>
+        </div>
+
+    </div>
+
+    <!-- BACKDROP -->
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+`;
 
     document.body.appendChild(modal);
 }
