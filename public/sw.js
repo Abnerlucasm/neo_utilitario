@@ -11,8 +11,6 @@ const urlsToCache = [
     '/js/index.js',
     '/js/glassfish.js',
     '/js/auth.js',
-    '/js/theme-manager.js',
-    '/js/apply-theme-immediate.js',
     '/js/utilitarios.js',
     '/js/user-settings.js',
     '/components/navbar/navbar.js',

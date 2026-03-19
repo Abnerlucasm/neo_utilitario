@@ -7,7 +7,7 @@ class UserSettings {
         const settings = localStorage.getItem('userSettings');
         return settings ? JSON.parse(settings) : {
             userName: '',
-            theme: 'light',
+            theme: user.theme,
             lastOpenedTabs: [],
             preferences: {}
         };

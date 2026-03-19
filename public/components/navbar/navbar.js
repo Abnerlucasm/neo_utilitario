@@ -1,5 +1,5 @@
 // Template otimizado do navbar
-function getNavbarTemplate(isDarkTheme = false) {
+function getNavbarTemplate() {
     return `
         <nav class="navbar fixed top-0 w-full z-50 backdrop-blur-md shadow-lg">
             <div class="navbar-start">
@@ -52,7 +52,7 @@ function getNavbarTemplate(isDarkTheme = false) {
 class NeoNavbar extends HTMLElement {
     constructor() {
         super();
-        
+
         // Estado simplificado
         this.state = {
             isDarkTheme: false,
@@ -60,17 +60,16 @@ class NeoNavbar extends HTMLElement {
             isAdmin: false,
             initialized: false
         };
-        
+
     }
 
     async connectedCallback() {
         try {
             // Evitar inicialização duplicada
             if (this.state.initialized) return;
-            
+
             // Carregar template
-            const template = getNavbarTemplate(this.state.isDarkTheme);
-            this.innerHTML = template;
+            this.innerHTML = getNavbarTemplate();
 
             // Garantir FontAwesome e CSS
             this.ensureFontAwesome();
@@ -78,7 +77,7 @@ class NeoNavbar extends HTMLElement {
 
             // Inicializar
             await this.initialize();
-            
+
             this.state.initialized = true;
         } catch (error) {
             console.error('Erro ao inicializar navbar:', error);
@@ -86,119 +85,42 @@ class NeoNavbar extends HTMLElement {
     }
 
     ensureFontAwesome() {
-            if (!document.querySelector('link[href*="font-awesome"]')) {
-                const fontAwesome = document.createElement('link');
-                fontAwesome.rel = 'stylesheet';
-                fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
-                document.head.appendChild(fontAwesome);
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            const fontAwesome = document.createElement('link');
+            fontAwesome.rel = 'stylesheet';
+            fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+            document.head.appendChild(fontAwesome);
         }
     }
 
     ensureDaisyUI() {
-        // Garantir que o DaisyUI esteja carregado
-        if (!document.querySelector('link[href*="daisyui"]')) {
-            const daisyUI = document.createElement('link');
-            daisyUI.rel = 'stylesheet';
-            daisyUI.href = 'https://cdn.jsdelivr.net/npm/daisyui@5/dist/full.css';
-            document.head.appendChild(daisyUI);
-        }
-
-        // Garantir que o Tailwind esteja configurado
         if (!window.tailwind) {
             const script = document.createElement('script');
             script.src = 'https://cdn.tailwindcss.com';
-            script.onload = () => {
-                // Carregar configuração centralizada
-                const configScript = document.createElement('script');
-                configScript.src = '/js/tailwind-config.js';
-                document.head.appendChild(configScript);
-            };
             document.head.appendChild(script);
         }
 
-        // Adicionar CSS específico para garantir que o navbar funcione corretamente
-        const styleId = 'navbar-custom-styles';
-        if (!document.getElementById(styleId)) {
-            const style = document.createElement('style');
-            style.id = styleId;
-            style.textContent = `
-                /* Garantir que o navbar seja sempre visível */
-                .navbar {
-                    position: fixed !important;
-                    top: 0 !important;
-                    width: 100% !important;
-                    z-index: 50 !important;
-                    background-color: hsl(var(--b1)) !important;
-                    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
-                }
-                
-                /* Garantir que o menu burger seja sempre visível */
-                .navbar-end label[for="sidebar-toggle"] {
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                }
-                
-                .navbar-end .btn-ghost.btn-circle {
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                }
-                
-                /* Garantir que o breadcrumb seja horizontal */
-                .breadcrumbs {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    align-items: center !important;
-                    gap: 0.5rem !important;
-                    flex-wrap: wrap !important;
-                }
-                
-                /* Garantir que o drawer funcione corretamente */
-                .drawer {
-                    position: relative !important;
-                }
-                
-                .drawer-side {
-                    position: fixed !important;
-                    top: 0 !important;
-                    right: 0 !important;
-                    height: 100vh !important;
-                    z-index: 50 !important;
-                }
-                
-                /* Garantir que os ícones sejam visíveis */
-                .fas, .far, .fal, .fab {
-                    font-family: "Font Awesome 6 Free" !important;
-                    font-weight: 900 !important;
-                }
-                
-                /* Garantir que o tema seja aplicado corretamente */
-                [data-theme] {
-                    color-scheme: light dark;
-                }
-                
-                /* Garantir que o conteúdo não fique sob o navbar */
-                body {
-                    padding-top: 4rem !important;
-                }
-            `;
-            document.head.appendChild(style);
+        if (!document.querySelector('link[href*="daisyui"]')) {
+
+            const daisyBase = document.createElement('link');
+            daisyBase.rel = 'stylesheet';
+            daisyBase.href = 'https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css';
+
+            document.head.appendChild(daisyBase);
         }
     }
 
     async initialize() {
         try {
             // Carregar configurações e verificar autenticação
-            await this.loadUserSettings();
             await this.checkUserAuth();
-            
+
             // Carregar menus dinamicamente
             await this.loadMenus();
-            
+
             // Configurar eventos
             this.setupEventListeners();
-            
+
             // Atualizar componentes
             this.updateBreadcrumb();
             this.highlightCurrentPage();
@@ -263,9 +185,9 @@ class NeoNavbar extends HTMLElement {
                 this.renderEmptyMenu();
                 return;
             }
-            
+
             console.log('Navbar: Carregando menus da API...');
-            
+
             // Carregar menus da API
             const response = await fetch('/api/menus', {
                 headers: {
@@ -279,10 +201,10 @@ class NeoNavbar extends HTMLElement {
 
             const menus = await response.json();
             console.log('Navbar: Menus carregados da API:', menus.length, 'menus');
-            
+
             this.state.menus = this.transformMenus(menus);
             console.log('Navbar: Menus transformados:', this.state.menus.length, 'menus');
-            
+
             this.renderMenus();
         } catch (error) {
             console.error('Erro ao carregar menus:', error);
@@ -292,7 +214,7 @@ class NeoNavbar extends HTMLElement {
 
     transformMenus(menus) {
         if (!Array.isArray(menus)) return [];
-        
+
         return menus.map(menu => ({
             id: menu.id,
             titulo: menu.title,
@@ -377,7 +299,7 @@ class NeoNavbar extends HTMLElement {
                         </li>
                     `;
     }
-    
+
     setupEventListeners() {
         // Botão do usuário
         const userMenuBtn = this.querySelector('#userMenuBtn');
@@ -395,22 +317,9 @@ class NeoNavbar extends HTMLElement {
             });
         }
 
-        // Listener para mudanças de tema do módulo de personalização
-        document.addEventListener('themeChanged', (event) => {
-            this.applyThemeToNavbar(event.detail.theme);
-        });
-        
-        // Listener para mudanças via localStorage (outras abas)
         window.addEventListener('storage', (event) => {
-            if (event.key === 'userSettings') {
-                try {
-                    const settings = JSON.parse(event.newValue);
-                    if (settings.theme) {
-                        this.applyThemeToNavbar(settings.theme);
-                    }
-                } catch (error) {
-                    console.error('Erro ao processar mudanças de tema:', error);
-                }
+            if (event.key === 'theme') {
+                this.applyThemeToNavbar(event.newValue);
             }
         });
     }
@@ -418,15 +327,15 @@ class NeoNavbar extends HTMLElement {
     highlightCurrentPage() {
         const currentPath = window.location.pathname;
         const links = this.querySelectorAll('.menu-list a');
-        
+
         links.forEach(link => {
             const linkPath = link.getAttribute('href');
-            
-            if (linkPath === currentPath || 
+
+            if (linkPath === currentPath ||
                 (currentPath.endsWith('/') && linkPath === currentPath + 'index.html') ||
                 (linkPath.endsWith('/index.html') && currentPath === linkPath.replace('index.html', ''))) {
                 link.classList.add('active');
-                
+
                 const parentDetails = link.closest('details');
                 if (parentDetails) {
                     parentDetails.setAttribute('open', '');
@@ -487,10 +396,10 @@ class NeoNavbar extends HTMLElement {
             breadcrumbHTML += `
                 <li class="flex items-center">
                     ${isLast
-                        ? `<span class="flex items-center gap-2 font-semibold"><i class="fas ${iconClass}"></i><span>${label}</span></span>`
-                        : `<a href="${path}" class="flex items-center gap-2"><i class="fas ${iconClass}"></i><span>${label}</span></a>
+                    ? `<span class="flex items-center gap-2 font-semibold"><i class="fas ${iconClass}"></i><span>${label}</span></span>`
+                    : `<a href="${path}" class="flex items-center gap-2"><i class="fas ${iconClass}"></i><span>${label}</span></a>
                            <span class="mx-2 text-base-content/60">›</span>`
-                    }
+                }
                 </li>
             `;
         });
@@ -505,66 +414,9 @@ class NeoNavbar extends HTMLElement {
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
     }
-
-    async loadUserSettings() {
-        try {
-            // Carregar configurações básicas do usuário
-            const savedSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-            
-            // Usar ThemeManager se disponível
-            if (window.ThemeManager) {
-                const theme = savedSettings.theme || 'corporate';
-                window.ThemeManager.setTheme(theme);
-                this.state.isDarkTheme = theme === 'forest';
-            } else {
-                // Fallback para aplicação direta do DaisyUI
-                const theme = savedSettings.theme || 'corporate';
-                document.documentElement.setAttribute('data-theme', theme);
-                this.state.isDarkTheme = theme === 'forest';
-            }
-            
-            // Aplicar tema ao navbar
-            this.applyThemeToNavbar(savedSettings.theme || 'corporate');
-            
-            // Inicializar seletor de temas
-            this.initializeThemeSelector();
-        } catch (error) {
-            console.error('Erro ao carregar configurações:', error);
-        }
-    }
-    
-    initializeThemeSelector() {
-        // Aguardar o seletor de temas estar disponível
-        const themeSelector = this.querySelector('theme-selector');
-        if (themeSelector) {
-            // O componente já se inicializa automaticamente
-            console.log('Seletor de temas inicializado');
-        } else {
-            // Tentar novamente após um pequeno delay
-            setTimeout(() => {
-                const themeSelector = this.querySelector('theme-selector');
-                if (themeSelector) {
-                    console.log('Seletor de temas inicializado (delay)');
-                }
-            }, 100);
-        }
-    }
-
-    applyThemeToNavbar(theme) {
-        const navbar = this.querySelector('.navbar');
-        if (navbar) {
-            navbar.setAttribute('data-theme', theme);
-            // Aplicar cor de fundo translúcida baseada no tema
-            const opacity = theme === 'forest' ? 0.9 : 0.8;
-            navbar.style.backgroundColor = `hsl(var(--b1) / ${opacity})`;
-            navbar.style.backdropFilter = 'blur(12px)';
-            navbar.style.borderBottom = `1px solid hsl(var(--bc) / 0.1)`;
-            navbar.classList.remove('scrolled');
-        }
-    }
 }
 
 // Registrar componente
 if (!customElements.get('neo-navbar')) {
-customElements.define('neo-navbar', NeoNavbar);
+    customElements.define('neo-navbar', NeoNavbar);
 }

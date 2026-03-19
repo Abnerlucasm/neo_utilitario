@@ -12,7 +12,7 @@ class NeoFooter extends HTMLElement {
 
     setupTheme() {
         const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-        const theme = userSettings.theme || 'corporate';
+        const theme = userSettings.theme;
         this.applyTheme(theme);
 
         document.addEventListener('theme-changed', (e) => {

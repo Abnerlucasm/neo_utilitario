@@ -1,48 +1,53 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações do Usuário - NeoHub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-    
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+
     <!-- CSS Core NeoHub -->
     <link rel="stylesheet" href="/css/neohub-core.css">
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
+
+    <!-- Scripts de tema -->
+    <script src="/services/theme/theme-service.js"></script>
+    <script type="module" src="/components/theme-selector/theme-selector.js"></script>
+
     <!-- Script para aplicar tema imediatamente -->
-    <script src="/js/apply-theme-immediate.js"></script>
+
     <style>
-      :root {
-        --color-neo: #b6ce3f;
-      }
-      .btn-neo, .text-neo {
-        background-color: var(--color-neo) !important;
-        color: #fff !important;
-        border: none;
-      }
-      .btn-neo:hover, .text-neo:hover {
-        background-color: #a0b82e !important;
-        color: #fff !important;
-      }
-      .link-neo {
-        color: var(--color-neo) !important;
-      }
-      .link-neo:hover {
-        text-decoration: underline;
-        color: #a0b82e !important;
-      }
-      
-      /* Garantir que os temas do DaisyUI funcionem */
-      html[data-theme] {
-        color-scheme: light dark;
-      }
-      
-      
+        :root {
+            --color-neo: #b6ce3f;
+        }
+
+        .btn-neo,
+        .text-neo {
+            background-color: var(--color-neo) !important;
+            color: #fff !important;
+            border: none;
+        }
+
+        .btn-neo:hover,
+        .text-neo:hover {
+            background-color: #a0b82e !important;
+            color: #fff !important;
+        }
+
+        .link-neo {
+            color: var(--color-neo) !important;
+        }
+
+        .link-neo:hover {
+            text-decoration: underline;
+            color: #a0b82e !important;
+        }
     </style>
 </head>
+
 <body class="bg-base-200 min-h-screen">
     <!-- Navbar sempre visível -->
     <neo-navbar></neo-navbar>
@@ -51,12 +56,15 @@
         <!-- Header com avatar e upload -->
         <div class="mb-8 flex flex-col items-center">
             <div class="avatar mb-4 relative group">
-                <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all duration-200" onclick="openAvatarModal()">
+                <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all duration-200"
+                    onclick="openAvatarModal()">
                     <img id="userAvatar" src="/assets/avatar-default.png" alt="Avatar do usuário">
                     <!-- Overlay com ícone de ação -->
-                    <div class="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <div
+                        class="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                         <div class="flex gap-2">
-                            <button type="button" class="btn btn-sm btn-primary shadow-lg border-2 border-white/20" onclick="event.stopPropagation(); openAvatarModal()">
+                            <button type="button" class="btn btn-sm btn-primary shadow-lg border-2 border-white/20"
+                                onclick="event.stopPropagation(); openAvatarModal()">
                                 <i class="fas fa-edit text-white"></i>
                             </button>
                         </div>
@@ -86,7 +94,8 @@
                                     <span class="label-text font-medium">Nome</span>
                                 </label>
                                 <div class="relative">
-                                    <input class="input input-bordered w-full pl-10 rounded-lg" type="text" id="userName" placeholder="Seu nome" readonly>
+                                    <input class="input input-bordered w-full pl-10 rounded-lg" type="text"
+                                        id="userName" placeholder="Seu nome" readonly>
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50">
                                         <i class="fas fa-user"></i>
                                     </span>
@@ -97,13 +106,15 @@
                                     <span class="label-text font-medium">Email</span>
                                 </label>
                                 <div class="relative">
-                                    <input class="input input-bordered w-full pl-10 rounded-lg" type="email" id="userEmail" readonly disabled>
+                                    <input class="input input-bordered w-full pl-10 rounded-lg" type="email"
+                                        id="userEmail" readonly disabled>
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50">
                                         <i class="fas fa-envelope"></i>
                                     </span>
                                 </div>
                                 <label class="label justify-end">
-                                    <span class="label-text-alt text-base-content/50">O email não pode ser alterado</span>
+                                    <span class="label-text-alt text-base-content/50">O email não pode ser
+                                        alterado</span>
                                 </label>
                             </div>
                         </div>
@@ -123,7 +134,8 @@
                             <div class="flex items-center gap-4 p-4 bg-base-100 rounded-lg border">
                                 <div class="flex-1">
                                     <div class="text-sm text-base-content/70 mb-2">Sua senha atual está segura</div>
-                                    <div class="text-xs text-base-content/50">Última alteração: <span id="lastPasswordChange">Não disponível</span></div>
+                                    <div class="text-xs text-base-content/50">Última alteração: <span
+                                            id="lastPasswordChange">Não disponível</span></div>
                                 </div>
                                 <button type="button" id="changePasswordBtn" class="btn btn-outline btn-sm">
                                     <i class="fas fa-key mr-2"></i>
@@ -179,8 +191,11 @@
                         <span class="label-text font-medium">Senha Atual</span>
                     </label>
                     <div class="relative">
-                        <input type="password" id="currentPassword" class="input input-bordered w-full pr-12" placeholder="Digite sua senha atual" required>
-                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content" onclick="togglePasswordVisibility('currentPassword')">
+                        <input type="password" id="currentPassword" class="input input-bordered w-full pr-12"
+                            placeholder="Digite sua senha atual" required>
+                        <button type="button"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content"
+                            onclick="togglePasswordVisibility('currentPassword')">
                             <i class="fas fa-eye" id="currentPasswordIcon"></i>
                         </button>
                     </div>
@@ -191,8 +206,11 @@
                         <span class="label-text-alt text-base-content/50">Mínimo 6 caracteres</span>
                     </label>
                     <div class="relative">
-                        <input type="password" id="newPassword" class="input input-bordered w-full pr-12" placeholder="Digite a nova senha" required minlength="6">
-                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content" onclick="togglePasswordVisibility('newPassword')">
+                        <input type="password" id="newPassword" class="input input-bordered w-full pr-12"
+                            placeholder="Digite a nova senha" required minlength="6">
+                        <button type="button"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content"
+                            onclick="togglePasswordVisibility('newPassword')">
                             <i class="fas fa-eye" id="newPasswordIcon"></i>
                         </button>
                     </div>
@@ -202,8 +220,11 @@
                         <span class="label-text font-medium">Confirmar Nova Senha</span>
                     </label>
                     <div class="relative">
-                        <input type="password" id="confirmPassword" class="input input-bordered w-full pr-12" placeholder="Digite novamente a nova senha" required minlength="6">
-                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content" onclick="togglePasswordVisibility('confirmPassword')">
+                        <input type="password" id="confirmPassword" class="input input-bordered w-full pr-12"
+                            placeholder="Digite novamente a nova senha" required minlength="6">
+                        <button type="button"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content"
+                            onclick="togglePasswordVisibility('confirmPassword')">
                             <i class="fas fa-eye" id="confirmPasswordIcon"></i>
                         </button>
                     </div>
@@ -226,7 +247,7 @@
                 <i class="fas fa-camera mr-2"></i>
                 Alterar Foto de Perfil
             </h3>
-            
+
             <div class="space-y-4">
                 <!-- Preview do avatar -->
                 <div class="flex justify-center">
@@ -236,15 +257,16 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Input de arquivo -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text font-medium">Selecionar Imagem</span>
                     </label>
-                    <input type="file" id="avatarFileInput" class="file-input file-input-bordered w-full" accept="image/*">
+                    <input type="file" id="avatarFileInput" class="file-input file-input-bordered w-full"
+                        accept="image/*">
                 </div>
-                
+
                 <!-- Área de crop -->
                 <div id="cropArea" style="display: none;">
                     <label class="label">
@@ -255,18 +277,23 @@
                             <!-- Controles de zoom -->
                             <div class="flex items-center gap-4 w-full">
                                 <label class="text-sm font-medium">Zoom:</label>
-                                <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1" class="range range-sm flex-1">
+                                <input type="range" id="zoomSlider" min="0.5" max="3" step="0.1" value="1"
+                                    class="range range-sm flex-1">
                                 <span id="zoomValue" class="text-sm text-base-content/70">100%</span>
                             </div>
-                            
-                            <div class="relative overflow-hidden border border-base-300 rounded-lg" style="width: 300px; height: 300px;">
-                                <canvas id="cropCanvas" class="absolute top-0 left-0 cursor-move" style="transform-origin: 0 0;"></canvas>
+
+                            <div class="relative overflow-hidden border border-base-300 rounded-lg"
+                                style="width: 300px; height: 300px;">
+                                <canvas id="cropCanvas" class="absolute top-0 left-0 cursor-move"
+                                    style="transform-origin: 0 0;"></canvas>
                                 <div id="cropOverlay" class="absolute inset-0 pointer-events-none">
                                     <div class="absolute inset-0 bg-black bg-opacity-50"></div>
-                                    <div id="cropBox" class="absolute border-2 border-white border-dashed rounded-full w-32 h-32 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+                                    <div id="cropBox"
+                                        class="absolute border-2 border-white border-dashed rounded-full w-32 h-32 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                                    </div>
                                 </div>
                             </div>
-                            
+
                             <div class="flex gap-2">
                                 <button type="button" id="cropBtn" class="btn btn-primary btn-sm">
                                     <i class="fas fa-crop mr-1"></i>
@@ -285,10 +312,11 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="modal-action">
                 <button type="button" class="btn btn-ghost" onclick="closeAvatarModal()">Cancelar</button>
-                <button type="button" class="btn btn-error" onclick="removeAvatar()" id="removeAvatarBtn" style="display: none;">
+                <button type="button" class="btn btn-error" onclick="removeAvatar()" id="removeAvatarBtn"
+                    style="display: none;">
                     <i class="fas fa-trash mr-2"></i>
                     Remover
                 </button>
@@ -303,15 +331,12 @@
         </form>
     </dialog>
 
-    <script src="/components/theme-selector/theme-selector.js"></script>
     <script src="/js/avatar-manager.js"></script>
-    <script src="/js/theme-manager.js"></script>
-    <script type="module" src="/components/theme-selector/theme-selector.js"></script>
     <script>
 
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM carregado, iniciando configurações...');
-            
+
             // Aguardar um pouco para garantir que todos os elementos estejam disponíveis
             await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -323,14 +348,14 @@
                 try {
                     const tokenData = JSON.parse(atob(token.split('.')[1]));
                     console.log('Dados do token:', tokenData);
-                    
+
                     // Preencher campos básicos do token primeiro
                     const nameValue = tokenData.name || tokenData.username || tokenData.email?.split('@')[0] || 'Usuário';
                     const emailValue = tokenData.email || '';
-                    const themeValue = tokenData.theme || localStorage.getItem('theme') || 'light';
-                    
+                    const themeValue = tokenData.theme || localStorage.getItem('theme');
+
                     console.log('Valores extraídos:', { nameValue, emailValue, themeValue });
-                    
+
                     // Preencher campos imediatamente
                     const userNameInput = document.getElementById('userName');
                     const userEmailInput = document.getElementById('userEmail');
@@ -338,45 +363,34 @@
                         userNameInput: !!userNameInput,
                         userEmailInput: !!userEmailInput
                     });
-                    
+
                     if (userNameInput) {
                         userNameInput.value = nameValue;
                         console.log('Campo nome preenchido:', nameValue);
                     } else {
                         console.error('Campo userName não encontrado!');
                     }
-                    
+
                     if (userEmailInput) {
                         userEmailInput.value = emailValue;
                         console.log('Campo email preenchido:', emailValue);
                     } else {
                         console.error('Campo userEmail não encontrado!');
                     }
-                    
-                    // O tema agora é gerenciado pelo componente theme-selector
-                    console.log('Tema será aplicado pelo ThemeManager:', themeValue);
-                    
-                    // Aplicar tema usando o sistema global
-                    if (window.ThemeManager) {
-                        window.ThemeManager.setTheme(themeValue);
-                    } else {
-                        document.documentElement.setAttribute('data-theme', themeValue);
-                    }
-                    console.log('Tema aplicado:', themeValue);
-                    
+
                     // Tentar carregar dados completos do usuário
                     try {
                         console.log('Tentando carregar dados do servidor...');
-                    const response = await fetch('/api/user/profile', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const userData = await response.json();
+                        const response = await fetch('/api/user/profile', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+
+                        if (response.ok) {
+                            const userData = await response.json();
                             console.log('Dados completos do usuário carregados:', userData);
-                            
+
                             // Atualizar com dados do servidor se disponíveis
                             if (userData.name || userData.username) {
                                 const serverNameValue = userData.name || userData.username;
@@ -385,31 +399,21 @@
                                     console.log('Nome atualizado do servidor:', serverNameValue);
                                 }
                             }
-                            
+
                             if (userData.email) {
                                 if (userEmailInput) {
                                     userEmailInput.value = userData.email;
                                     console.log('Email atualizado do servidor:', userData.email);
                                 }
                             }
-                            
-                            if (userData.theme) {
-                                // Aplicar tema usando o sistema global
-                                if (window.ThemeManager) {
-                                    window.ThemeManager.setTheme(userData.theme);
+
+                            // Carregar avatar
+                            if (window.avatarManager) {
+                                await window.avatarManager.updateAvatarElement(userData.id, '#userAvatar');
+                            } else {
+                                document.getElementById('userAvatar').src = userData.avatar || '/assets/avatar-default.png';
+                            }
                         } else {
-                                    document.documentElement.setAttribute('data-theme', userData.theme);
-                                }
-                                console.log('Tema atualizado do servidor:', userData.theme);
-                        }
-                        
-                        // Carregar avatar
-                        if (window.avatarManager) {
-                            await window.avatarManager.updateAvatarElement(userData.id, '#userAvatar');
-                        } else {
-                            document.getElementById('userAvatar').src = userData.avatar || '/assets/avatar-default.png';
-                        }
-                    } else {
                             console.warn('Erro ao carregar dados do servidor:', response.status);
                             // Manter dados do token
                         }
@@ -417,14 +421,14 @@
                         console.warn('Erro ao conectar com servidor:', serverError);
                         // Manter dados do token
                     }
-                    
+
                 } catch (error) {
                     console.error('Erro ao processar token:', error);
                     // Valores padrão
                     const userNameInput = document.getElementById('userName');
                     const userEmailInput = document.getElementById('userEmail');
                     const userAvatar = document.getElementById('userAvatar');
-                    
+
                     if (userNameInput) userNameInput.value = 'Usuário';
                     if (userEmailInput) userEmailInput.value = '';
                     if (userAvatar) userAvatar.src = '/assets/avatar-default.png';
@@ -435,15 +439,14 @@
                 const userNameInput = document.getElementById('userName');
                 const userEmailInput = document.getElementById('userEmail');
                 const userAvatar = document.getElementById('userAvatar');
-                
+
                 if (userNameInput) userNameInput.value = 'Usuário';
                 if (userEmailInput) userEmailInput.value = '';
-                // Tema será gerenciado pelo componente theme-selector
                 if (userAvatar) userAvatar.src = '/assets/avatar-default.png';
             }
 
             // Função para mostrar toast
-            window.showToast = function(message, type = 'info') {
+            window.showToast = function (message, type = 'info') {
                 const toast = document.createElement('div');
                 toast.className = `alert alert-${type} fixed top-4 right-4 z-50 max-w-sm`;
                 toast.innerHTML = `
@@ -453,7 +456,7 @@
                     </div>
                 `;
                 document.body.appendChild(toast);
-                
+
                 setTimeout(() => {
                     toast.remove();
                 }, 3000);
@@ -464,43 +467,43 @@
             const avatarFileInput = document.getElementById('avatarFileInput');
             if (avatarFileInput) {
                 console.log('Elemento avatarFileInput encontrado, adicionando event listener');
-                avatarFileInput.addEventListener('change', function(e) {
+                avatarFileInput.addEventListener('change', function (e) {
                     console.log('Arquivo selecionado para upload');
-                const file = e.target.files[0];
-                if (file) {
+                    const file = e.target.files[0];
+                    if (file) {
                         console.log('Arquivo válido:', file.name, file.type, file.size);
-                    // Validar tipo de arquivo
-                    if (!file.type.startsWith('image/')) {
-                        showToast('Por favor, selecione apenas arquivos de imagem.', 'error');
-                        e.target.value = '';
-                        return;
-                    }
-                    
-                    // Validar tamanho (2MB)
-                    if (file.size > 2 * 1024 * 1024) {
-                        showToast('O arquivo deve ter no máximo 2MB.', 'error');
-                        e.target.value = '';
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        const previewImg = document.getElementById('avatarPreview');
-                        
+                        // Validar tipo de arquivo
+                        if (!file.type.startsWith('image/')) {
+                            showToast('Por favor, selecione apenas arquivos de imagem.', 'error');
+                            e.target.value = '';
+                            return;
+                        }
+
+                        // Validar tamanho (2MB)
+                        if (file.size > 2 * 1024 * 1024) {
+                            showToast('O arquivo deve ter no máximo 2MB.', 'error');
+                            e.target.value = '';
+                            return;
+                        }
+
+                        const reader = new FileReader();
+                        reader.onload = function (evt) {
+                            const previewImg = document.getElementById('avatarPreview');
+
                             if (previewImg) {
-                        previewImg.src = evt.target.result;
-                        previewImg.style.display = 'block';
+                                previewImg.src = evt.target.result;
+                                previewImg.style.display = 'block';
                             }
-                        
-                        // Inicializar crop
-                        initCrop(evt.target.result);
-                        
+
+                            // Inicializar crop
+                            initCrop(evt.target.result);
+
                             const saveBtn = document.getElementById('saveAvatarBtn');
                             if (saveBtn) {
                                 saveBtn.disabled = false;
                                 console.log('Botão de salvar habilitado');
                             }
-                            
+
                             const cropArea = document.getElementById('cropArea');
                             if (cropArea) {
                                 cropArea.style.display = 'block';
@@ -508,10 +511,10 @@
                             } else {
                                 console.error('Área de crop não encontrada!');
                             }
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
             } else {
                 console.error('Elemento avatarFileInput não encontrado!');
             }
@@ -531,32 +534,32 @@
             function initCrop(imageSrc) {
                 console.log('Inicializando crop com imagem:', imageSrc.substring(0, 50) + '...');
                 cropImage = new Image();
-                cropImage.onload = function() {
+                cropImage.onload = function () {
                     console.log('Imagem carregada para crop:', cropImage.width, 'x', cropImage.height);
                     cropCanvas = document.getElementById('cropCanvas');
                     cropCtx = cropCanvas.getContext('2d');
-                    
+
                     // Definir tamanho do canvas
                     cropCanvas.width = 300;
                     cropCanvas.height = 300;
-                    
+
                     // Resetar variáveis
                     cropZoom = 1;
                     cropOffsetX = 0;
                     cropOffsetY = 0;
-                    
+
                     // Atualizar slider de zoom
                     const zoomSlider = document.getElementById('zoomSlider');
                     const zoomValue = document.getElementById('zoomValue');
                     if (zoomSlider) zoomSlider.value = 1;
                     if (zoomValue) zoomValue.textContent = '100%';
-                    
+
                     // Desenhar imagem
                     drawCropImage();
-                    
+
                     // Configurar event listeners de arrastar
                     setupCropDragListeners();
-                    
+
                     // Garantir que a área de crop seja visível
                     const cropArea = document.getElementById('cropArea');
                     if (cropArea) {
@@ -572,31 +575,31 @@
             // Função para desenhar a imagem no canvas
             function drawCropImage() {
                 if (!cropCanvas || !cropCtx || !cropImage) return;
-                
+
                 const canvasWidth = cropCanvas.width;
                 const canvasHeight = cropCanvas.height;
-                
+
                 // Limpar canvas
                 cropCtx.clearRect(0, 0, canvasWidth, canvasHeight);
-                
+
                 // Calcular dimensões da imagem com zoom
                 const scaledWidth = cropImage.width * cropZoom;
                 const scaledHeight = cropImage.height * cropZoom;
-                
+
                 // Calcular posição para centralizar
                 const centerX = (canvasWidth - scaledWidth) / 2;
                 const centerY = (canvasHeight - scaledHeight) / 2;
-                
+
                 // Aplicar offset
                 const x = centerX + cropOffsetX;
                 const y = centerY + cropOffsetY;
-                
+
                 // Desenhar imagem
                 cropCtx.drawImage(cropImage, x, y, scaledWidth, scaledHeight);
             }
 
             // Função para abrir modal de avatar (definida globalmente)
-            window.openAvatarModal = function() {
+            window.openAvatarModal = function () {
                 console.log('Abrindo modal de avatar...');
                 const modal = document.getElementById('avatarModal');
                 if (modal) {
@@ -622,68 +625,68 @@
             // Função para aplicar crop
             function applyCrop() {
                 if (!cropCanvas || !cropCtx || !cropImage) return;
-                
+
                 console.log('Aplicando crop...');
                 const cropSize = 128; // Tamanho fixo para o crop circular
-                
+
                 // Criar canvas temporário para o crop
                 const tempCanvas = document.createElement('canvas');
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCanvas.width = cropSize;
                 tempCanvas.height = cropSize;
-                
+
                 // Calcular posição do crop no centro do canvas
                 const centerX = cropCanvas.width / 2;
                 const centerY = cropCanvas.height / 2;
                 const cropX = centerX - cropSize / 2;
                 const cropY = centerY - cropSize / 2;
-                
+
                 // Criar máscara circular
                 tempCtx.beginPath();
                 tempCtx.arc(cropSize / 2, cropSize / 2, cropSize / 2, 0, 2 * Math.PI);
                 tempCtx.clip();
-                
+
                 // Desenhar a parte cortada
                 tempCtx.drawImage(cropCanvas, cropX, cropY, cropSize, cropSize, 0, 0, cropSize, cropSize);
-                
+
                 // Atualizar preview
                 const previewImg = document.getElementById('avatarPreview');
                 if (previewImg) {
-                previewImg.src = tempCanvas.toDataURL('image/png');
+                    previewImg.src = tempCanvas.toDataURL('image/png');
                     console.log('Preview atualizado com crop');
                 }
-                
+
                 // Atualizar a imagem do avatar principal
                 const userAvatar = document.getElementById('userAvatar');
                 if (userAvatar) {
                     userAvatar.src = tempCanvas.toDataURL('image/png');
                     console.log('Avatar principal atualizado com crop');
                 }
-                
+
                 // Fechar modal
                 closeAvatarModal();
-                
+
                 // Mostrar toast de sucesso
                 showToast('Crop aplicado com sucesso!', 'success');
             }
 
             // Event listeners para crop
             document.getElementById('cropBtn').addEventListener('click', applyCrop);
-            document.getElementById('resetCropBtn').addEventListener('click', function() {
+            document.getElementById('resetCropBtn').addEventListener('click', function () {
                 if (cropImage) {
                     initCrop(cropImage.src);
                 }
             });
-            
+
             // Event listener para centralizar
-            document.getElementById('centerCropBtn').addEventListener('click', function() {
+            document.getElementById('centerCropBtn').addEventListener('click', function () {
                 cropOffsetX = 0;
                 cropOffsetY = 0;
                 drawCropImage();
             });
-            
+
             // Event listener para zoom
-            document.getElementById('zoomSlider').addEventListener('input', function() {
+            document.getElementById('zoomSlider').addEventListener('input', function () {
                 cropZoom = parseFloat(this.value);
                 const zoomValue = document.getElementById('zoomValue');
                 if (zoomValue) {
@@ -691,14 +694,14 @@
                 }
                 drawCropImage();
             });
-            
+
             // Função para configurar event listeners de arrastar
             function setupCropDragListeners() {
                 if (!cropCanvas) return;
-                
+
                 console.log('Configurando event listeners de arrastar para crop');
-                
-                cropCanvas.addEventListener('mousedown', function(e) {
+
+                cropCanvas.addEventListener('mousedown', function (e) {
                     e.preventDefault();
                     isDragging = true;
                     dragStartX = e.clientX - cropOffsetX;
@@ -706,8 +709,8 @@
                     cropCanvas.style.cursor = 'grabbing';
                     console.log('Iniciando arrastar:', dragStartX, dragStartY);
                 });
-                
-                cropCanvas.addEventListener('mousemove', function(e) {
+
+                cropCanvas.addEventListener('mousemove', function (e) {
                     if (isDragging) {
                         e.preventDefault();
                         cropOffsetX = e.clientX - dragStartX;
@@ -716,15 +719,15 @@
                         console.log('Arrastando:', cropOffsetX, cropOffsetY);
                     }
                 });
-                
-                cropCanvas.addEventListener('mouseup', function(e) {
+
+                cropCanvas.addEventListener('mouseup', function (e) {
                     e.preventDefault();
                     isDragging = false;
                     cropCanvas.style.cursor = 'move';
                     console.log('Parou de arrastar');
                 });
-                
-                cropCanvas.addEventListener('mouseleave', function(e) {
+
+                cropCanvas.addEventListener('mouseleave', function (e) {
                     e.preventDefault();
                     isDragging = false;
                     cropCanvas.style.cursor = 'move';
@@ -733,28 +736,28 @@
             }
 
             // Botão de troca de senha
-            document.getElementById('changePasswordBtn').addEventListener('click', function() {
+            document.getElementById('changePasswordBtn').addEventListener('click', function () {
                 document.getElementById('changePasswordModal').showModal();
             });
 
             // Formulário de troca de senha
-            document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+            document.getElementById('changePasswordForm').addEventListener('submit', async function (e) {
                 e.preventDefault();
-                
+
                 const currentPassword = document.getElementById('currentPassword').value;
                 const newPassword = document.getElementById('newPassword').value;
                 const confirmPassword = document.getElementById('confirmPassword').value;
-                
+
                 if (newPassword !== confirmPassword) {
                     showToast('As senhas não coincidem', 'error');
                     return;
                 }
-                
+
                 if (newPassword.length < 6) {
                     showToast('A nova senha deve ter pelo menos 6 caracteres', 'error');
                     return;
                 }
-                
+
                 try {
                     const response = await fetch('/api/user/profile', {
                         method: 'PUT',
@@ -767,7 +770,7 @@
                             password: newPassword
                         })
                     });
-                    
+
                     if (response.ok) {
                         showToast('Senha alterada com sucesso!', 'success');
                         closeChangePasswordModal();
@@ -781,19 +784,19 @@
             });
 
             // Botão de logout
-            document.getElementById('logoutButton').addEventListener('click', function() {
+            document.getElementById('logoutButton').addEventListener('click', function () {
                 if (confirm('Tem certeza que deseja sair da sua conta?')) {
                     // Limpar dados locais
                     localStorage.removeItem('auth_token');
                     localStorage.removeItem('userSettings');
-                    
+
                     // Redirecionar para login
                     window.location.href = '/pages/login.html';
                 }
             });
 
             // Função para fechar modal de troca de senha
-            window.closeChangePasswordModal = function() {
+            window.closeChangePasswordModal = function () {
                 document.getElementById('changePasswordModal').close();
                 document.getElementById('changePasswordForm').reset();
                 // Resetar visibilidade das senhas
@@ -801,10 +804,10 @@
             };
 
             // Função para alternar visibilidade da senha
-            window.togglePasswordVisibility = function(inputId) {
+            window.togglePasswordVisibility = function (inputId) {
                 const input = document.getElementById(inputId);
                 const icon = document.getElementById(inputId + 'Icon');
-                
+
                 if (input.type === 'password') {
                     input.type = 'text';
                     icon.className = 'fas fa-eye-slash';
@@ -827,44 +830,40 @@
                 });
             }
 
-            // Listener para mudanças de tema - simplificado
-            // O seletor de temas agora é um componente customizado
-            console.log('Seletor de temas configurado como componente customizado');
-
             // Funcionalidade de edição
             console.log('Configurando funcionalidade de edição...');
             const toggleEditBtn = document.getElementById('toggleEdit');
             const saveSettingsBtn = document.getElementById('saveSettings');
             const userNameInput = document.getElementById('userName');
-            
+
             console.log('Elementos encontrados:', {
                 toggleEditBtn: !!toggleEditBtn,
                 saveSettingsBtn: !!saveSettingsBtn,
                 userNameInput: !!userNameInput
             });
-            
+
             let isEditing = false;
-            
+
             if (toggleEditBtn) {
                 console.log('Botão de edição encontrado, adicionando event listener');
-                toggleEditBtn.addEventListener('click', function() {
+                toggleEditBtn.addEventListener('click', function () {
                     console.log('Botão de edição clicado, isEditing:', isEditing);
                     isEditing = !isEditing;
-                
+
                     if (isEditing) {
                         // Modo de edição
                         if (userNameInput) {
                             userNameInput.removeAttribute('readonly');
                             userNameInput.style.backgroundColor = 'var(--fallback-b1,oklch(var(--b1)/1))';
                         }
-                        
+
                         toggleEditBtn.innerHTML = '<i class="fas fa-times"></i> Cancelar';
                         toggleEditBtn.className = 'btn btn-outline btn-error rounded-lg';
-                        
+
                         if (saveSettingsBtn) {
                             saveSettingsBtn.style.display = 'block';
                         }
-                        
+
                         showToast('Modo de edição ativado', 'info');
                     } else {
                         // Cancelar edição
@@ -872,17 +871,17 @@
                             userNameInput.setAttribute('readonly', 'true');
                             userNameInput.style.backgroundColor = 'var(--fallback-b2,oklch(var(--b2)/1))';
                         }
-                        
+
                         toggleEditBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
                         toggleEditBtn.className = 'btn btn-outline btn-info rounded-lg';
-                        
+
                         if (saveSettingsBtn) {
                             saveSettingsBtn.style.display = 'none';
                         }
-                        
+
                         // Restaurar valores originais
-                const token = localStorage.getItem('auth_token');
-                if (token) {
+                        const token = localStorage.getItem('auth_token');
+                        if (token) {
                             try {
                                 const tokenData = JSON.parse(atob(token.split('.')[1]));
                                 if (userNameInput) {
@@ -892,58 +891,57 @@
                                 console.error('Erro ao restaurar valores:', error);
                             }
                         }
-                        
+
                         showToast('Edição cancelada', 'info');
                     }
                 });
             } else {
                 console.error('Botão de edição não encontrado!');
             }
-            
+
             if (saveSettingsBtn) {
                 console.log('Botão de salvar encontrado, adicionando event listener');
-                saveSettingsBtn.addEventListener('click', async function() {
+                saveSettingsBtn.addEventListener('click', async function () {
                     console.log('Botão de salvar clicado');
                     const token = localStorage.getItem('auth_token');
                     if (!token) {
                         showToast('Erro: usuário não autenticado', 'error');
                         return;
                     }
-                    
+
                     const originalText = saveSettingsBtn.innerHTML;
                     saveSettingsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
                     saveSettingsBtn.disabled = true;
-                    
+
                     try {
                         const response = await fetch('/api/user/profile', {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
                             body: JSON.stringify({
-                                name: userNameInput ? userNameInput.value : '',
-                                theme: window.ThemeManager ? window.ThemeManager.getCurrentTheme() : 'light'
+                                name: userNameInput ? userNameInput.value : ''
                             })
                         });
-                        
+
                         if (response.ok) {
                             showToast('Configurações salvas com sucesso!', 'success');
-                            
+
                             // Sair do modo de edição
                             isEditing = false;
                             if (userNameInput) {
                                 userNameInput.setAttribute('readonly', 'true');
                                 userNameInput.style.backgroundColor = 'var(--fallback-b2,oklch(var(--b2)/1))';
                             }
-                            
+
                             if (toggleEditBtn) {
                                 toggleEditBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
                                 toggleEditBtn.className = 'btn btn-outline btn-info rounded-lg';
                             }
-                            
+
                             saveSettingsBtn.style.display = 'none';
-                            
+
                             // Atualizar token se necessário
                             const userData = await response.json();
                             if (userData.token) {
@@ -971,22 +969,22 @@
         // Função openAvatarModal já definida acima
 
         // Função para fechar modal de avatar
-        window.closeAvatarModal = function() {
+        window.closeAvatarModal = function () {
             document.getElementById('avatarModal').close();
         };
 
         // Função para salvar avatar
-        window.saveAvatar = async function() {
+        window.saveAvatar = async function () {
             console.log('=== Função saveAvatar chamada ===');
             const fileInput = document.getElementById('avatarFileInput');
             const file = fileInput.files[0];
-            
+
             if (!file) {
                 console.log('Nenhum arquivo selecionado');
                 showToast('Por favor, selecione uma imagem.', 'error');
                 return;
             }
-            
+
             console.log('Arquivo selecionado para upload:', file.name, file.type, file.size);
 
             const formData = new FormData();
@@ -1013,9 +1011,9 @@
                     },
                     body: formData
                 });
-                
+
                 console.log('Resposta recebida:', response.status, response.statusText);
-                
+
                 if (!response.ok) {
                     let errorMessage = 'Falha ao enviar avatar';
                     try {
@@ -1026,23 +1024,23 @@
                     }
                     throw new Error(errorMessage);
                 }
-                
+
                 const result = await response.json();
-                
+
                 // Atualizar avatar exibido
                 if (result.avatarUrl) {
                     document.getElementById('userAvatar').src = result.avatarUrl;
-                    
+
                     // Atualizar avatar no navbar se disponível
                     if (window.avatarManager) {
                         window.avatarManager.updateCurrentUserAvatar();
                     }
                 }
-                
+
                 // Fechar modal
                 closeAvatarModal();
                 showToast('Avatar atualizado com sucesso!', 'success');
-                
+
             } catch (err) {
                 console.error('Erro ao atualizar avatar:', err);
                 showToast('Erro ao atualizar avatar: ' + err.message, 'error');
@@ -1054,7 +1052,7 @@
         };
 
         // Função para remover avatar
-        window.removeAvatar = async function() {
+        window.removeAvatar = async function () {
             if (!confirm('Tem certeza que deseja remover sua foto de perfil?')) {
                 return;
             }
@@ -1076,12 +1074,12 @@
                 if (response.ok) {
                     // Restaurar avatar padrão
                     document.getElementById('userAvatar').src = '/assets/avatar-default.png';
-                    
+
                     // Atualizar avatar no navbar se disponível
                     if (window.avatarManager) {
                         window.avatarManager.updateCurrentUserAvatar();
                     }
-                    
+
                     // Fechar modal se estiver aberto
                     closeAvatarModal();
                     showToast('Avatar removido com sucesso!', 'success');
@@ -1105,4 +1103,5 @@
     <script type="module" src="/components/navbar/navbar.js"></script>
     <script type="module" src="/components/footer/footer.js"></script>
 </body>
+
 </html>

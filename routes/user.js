@@ -95,7 +95,7 @@ router.get('/settings', async (req, res) => {
 
         res.json({
             name: user.name || user.username,
-            theme: user.theme || 'light',
+            theme: user.theme,
             email: user.email
         });
     } catch (error) {

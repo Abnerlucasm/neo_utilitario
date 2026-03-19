@@ -139,7 +139,7 @@ module.exports = (sequelize) => {
         },
         theme: {
             type: DataTypes.STRING,
-            defaultValue: 'light'
+            defaultValue: 'corporate'
         },
         reset_token: {
             type: DataTypes.STRING,

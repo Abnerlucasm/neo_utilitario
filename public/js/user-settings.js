@@ -7,18 +7,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('logoutButton').addEventListener('click', clearTokenAndRedirect);
 
-    // Aplicar tema salvo usando ThemeManager
-    if (window.ThemeManager) {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        window.ThemeManager.setTheme(savedTheme);
-        console.log('Tema aplicado via ThemeManager:', savedTheme);
-    } else {
-        // Fallback: aplicar tema diretamente
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        console.log('Tema aplicado diretamente:', savedTheme);
-    }
-
     // Carregar configurações do usuário
     await loadUserSettings();
     
@@ -155,25 +143,6 @@ async function loadUserSettings() {
         document.getElementById('userName').value = settings.name || '';
         document.getElementById('userEmail').value = settings.email || '';
         
-        // Configurar tema usando ThemeManager
-        const themeSelect = document.getElementById('themeSelect');
-        if (themeSelect) {
-            const theme = settings.theme || 'light';
-            themeSelect.value = theme;
-            
-            // Aplicar tema via ThemeManager
-            if (window.ThemeManager) {
-                window.ThemeManager.setTheme(theme);
-            } else {
-                document.documentElement.setAttribute('data-theme', theme);
-            }
-        }
-        
-        // Salvar configurações no localStorage
-        localStorage.setItem('userSettings', JSON.stringify({
-            theme: settings.theme || 'light'
-        }));
-        
     } catch (error) {
         console.error('Erro ao carregar configurações:', error);
         // Em caso de erro, usar configurações padrão
@@ -183,19 +152,6 @@ async function loadUserSettings() {
 
 function applyDefaultSettings() {
     console.log('Aplicando configurações padrão');
-    
-    // Aplicar configurações padrão
-    const savedSettings = JSON.parse(localStorage.getItem('userSettings')) || { theme: 'light' };
-    
-    // Configurar tema usando módulo de personalização
-    const themeSelect = document.getElementById('themeSelect');
-    if (themeSelect && window.personalization) {
-        const theme = savedSettings.theme || 'light';
-        themeSelect.value = theme;
-        
-        // Aplicar tema via módulo de personalização
-        window.personalization.setTheme(theme);
-    }
     
     // Preencher campos do formulário com valores padrão ou vazios
     const userName = document.getElementById('userName');

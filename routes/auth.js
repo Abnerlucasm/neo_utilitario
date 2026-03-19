@@ -562,7 +562,7 @@ router.get('/user/settings', auth, async (req, res) => {
             id: user.id,
             name: user.name,
             email: user.email,
-            theme: user.theme || 'light',
+            theme: user.theme,
             createdAt: user.createdAt
         });
     } catch (error) {

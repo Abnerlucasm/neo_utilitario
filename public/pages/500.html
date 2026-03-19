@@ -29,8 +29,8 @@
         const toggleThemeButton = document.getElementById('toggleTheme');
         toggleThemeButton.addEventListener('click', () => {
             // Toggle theme using DaisyUI
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'corporate';
+    const newTheme = currentTheme === 'corporate' ? 'forest' : 'corporate';
     document.documentElement.setAttribute('data-theme', newTheme);
         });
     </script>

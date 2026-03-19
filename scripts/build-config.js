@@ -24,9 +24,6 @@ const buildConfig = {
     files: {
         js: [
             'public/js/index.js',
-            'public/js/theme-manager.js',
-            'public/js/apply-theme-immediate.js',
-            'public/js/utilitarios.js',
             'public/js/user-settings.js',
             'public/js/auth.js',
             'public/js/avatar-manager.js',
