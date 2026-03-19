@@ -2113,12 +2113,12 @@ function displayObjectSearchResults(results) {
     const tableDiv = document.getElementById('objectSearchTable');
 
     if (!results.length) {
-        resultsDiv.style.display = 'none';
+        resultsDiv.classList.add('hidden');
         return;
     }
 
     // Mostrar seção de resultados
-    resultsDiv.style.display = 'block';
+    resultsDiv.classList.remove('hidden');
 
     // Estatísticas
     const totalObjects = results.length;
@@ -2290,83 +2290,71 @@ function getObjectTypeLabel(objectType) {
 
 // Função para mostrar SQL do objeto
 function showObjectSQL(objectName, sqlDefinition, serverName, objectSize, objectOwner) {
-    // Remover modal existente se houver
-    const existingModal = document.getElementById('objectSQLModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
+    const existing = document.getElementById('objectSQLModal');
+    if (existing) existing.remove();
 
-    // Criar modal
-    const modal = document.createElement('div');
+    const modal = document.createElement('dialog');
     modal.id = 'objectSQLModal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999999] p-4';
+    modal.className = 'modal';
+
     modal.innerHTML = `
-        <div class="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] flex flex-col">
-            <div class="flex justify-between items-center p-6 border-b">
-                <h3 class="text-lg font-semibold">SQL do Objeto</h3>
-                <button onclick="closeObjectSQLModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+        <div class="modal-box max-w-5xl">
             
-            <div class="flex-1 overflow-y-auto p-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="label">
-                            <span class="label-text font-medium">Servidor:</span>
-                        </label>
-                        <p class="text-base-content/70">${serverName}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="label">
-                            <span class="label-text font-medium">Objeto:</span>
-                        </label>
-                        <p class="text-base-content/70 font-mono">${objectName}</p>
-                    </div>
-                    
-                    ${objectSize ? `
-                    <div>
-                        <label class="label">
-                            <span class="label-text font-medium">Tamanho:</span>
-                        </label>
-                        <p class="text-base-content/70">${objectSize}</p>
-                    </div>
-                    ` : ''}
-                    
-                    ${objectOwner ? `
-                    <div>
-                        <label class="label">
-                            <span class="label-text font-medium">Dono:</span>
-                        </label>
-                        <p class="text-base-content/70">${objectOwner}</p>
-                    </div>
-                    ` : ''}
-                    
-                    <div>
-                        <label class="label">
-                            <span class="label-text font-medium">Definição SQL:</span>
-                        </label>
-                        <div class="bg-gray-900 text-green-400 p-4 rounded-lg max-h-96 overflow-y-auto">
-                            <pre class="text-sm font-mono whitespace-pre-wrap">${sqlDefinition}</pre>
-                        </div>
-                    </div>
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <i class="fas fa-code"></i>
+                SQL do Objeto
+            </h3>
+
+            <div class="py-4 space-y-4">
+
+                <div>
+                    <p class="text-sm text-base-content/70">Servidor</p>
+                    <p class="font-medium">${serverName}</p>
                 </div>
+
+                <div>
+                    <p class="text-sm text-base-content/70">Objeto</p>
+                    <p class="font-mono">${objectName}</p>
+                </div>
+
+                ${objectSize ? `
+                <div>
+                    <p class="text-sm text-base-content/70">Tamanho</p>
+                    <p>${objectSize}</p>
+                </div>` : ''}
+
+                ${objectOwner ? `
+                <div>
+                    <p class="text-sm text-base-content/70">Dono</p>
+                    <p>${objectOwner}</p>
+                </div>` : ''}
+
+                <div>
+                    <p class="text-sm text-base-content/70 mb-2">Definição SQL</p>
+                    <pre class="bg-base-300 p-4 rounded-lg overflow-x-auto text-sm font-mono whitespace-pre-wrap">${sqlDefinition}</pre>
+                </div>
+
             </div>
-            
-            <div class="flex justify-end p-6 border-t bg-gray-50">
-                <button onclick="copySQLDefinition(\`${sqlDefinition.replace(/`/g, '\\`')}\`)" class="btn btn-primary mr-2">
+
+            <div class="modal-action">
+                <button class="btn btn-primary"
+                    onclick="copySQLDefinition(\`${sqlDefinition.replace(/`/g, '\\`')}\`)">
                     <i class="fas fa-copy mr-2"></i>
                     Copiar SQL
                 </button>
-                <button onclick="closeObjectSQLModal()" class="btn btn-ghost">Fechar</button>
+
+                <button class="btn" onclick="closeObjectSQLModal()">Fechar</button>
             </div>
         </div>
+
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
     `;
 
     document.body.appendChild(modal);
+    modal.showModal();
 }
-
 // Função para fechar modal de SQL
 function closeObjectSQLModal() {
     const modal = document.getElementById('objectSQLModal');

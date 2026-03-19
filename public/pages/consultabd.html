@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,7 @@
     <!-- Tailwind + DaisyUI via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
-    
+
     <!-- CSS Core NeoHub -->
     <link rel="stylesheet" href="/css/neohub-core.css">
 
@@ -23,6 +24,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 </head>
+
 <body class="bg-base-200 min-h-screen">
     <neo-navbar></neo-navbar>
 
@@ -36,7 +38,8 @@
                             <i class="fas fa-database mr-3 text-primary"></i>
                             Consulta de Bancos de Dados
                         </h1>
-                        <p class="text-base-content/70 mt-2">Gerencie servidores e execute consultas em múltiplas bases de dados</p>
+                        <p class="text-base-content/70 mt-2">Gerencie servidores e execute consultas em múltiplas bases
+                            de dados</p>
                     </div>
                     <div>
                         <button class="btn btn-primary" onclick="openServerModal()">
@@ -76,7 +79,7 @@
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
-                        
+
                         <div id="serversList">
                             <!-- Lista de servidores será carregada aqui -->
                         </div>
@@ -97,7 +100,7 @@
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
-                        
+
                         <div class="form-control">
                             <label class="label">
                                 <span class="label-text">Selecionar Servidores</span>
@@ -113,7 +116,8 @@
                                     <i class="fas fa-search mr-2"></i>
                                     Listar Databases
                                 </button>
-                                <button class="btn btn-secondary" onclick="openObjectSearchModal()" id="btnSearchObjects">
+                                <button class="btn btn-secondary" onclick="openObjectSearchModal()"
+                                    id="btnSearchObjects">
                                     <i class="fas fa-search-plus mr-2"></i>
                                     Buscar Objetos
                                 </button>
@@ -129,13 +133,13 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Seção de Databases -->
         <div id="databasesSection" class="mb-8" style="display: none;">
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
                     <h3 class="card-title mb-4">Databases Encontradas</h3>
-                    
+
                     <div class="flex flex-col gap-4 mb-4">
                         <!-- Filtros de busca -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -143,19 +147,22 @@
                                 <label class="label">
                                     <span class="label-text">Buscar por Servidor</span>
                                 </label>
-                                <input id="serverSearch" class="input input-bordered" type="search" placeholder="Nome do servidor..." oninput="filterAndPaginateDatabases()">
+                                <input id="serverSearch" class="input input-bordered" type="search"
+                                    placeholder="Nome do servidor..." oninput="filterAndPaginateDatabases()">
                             </div>
                             <div class="form-control">
                                 <label class="label">
                                     <span class="label-text">Buscar por Database</span>
                                 </label>
-                                <input id="databaseSearch" class="input input-bordered" type="search" placeholder="Nome da database..." oninput="filterAndPaginateDatabases()">
+                                <input id="databaseSearch" class="input input-bordered" type="search"
+                                    placeholder="Nome da database..." oninput="filterAndPaginateDatabases()">
                             </div>
                             <div class="form-control">
                                 <label class="label">
                                     <span class="label-text">Filtrar por Status</span>
                                 </label>
-                                <select id="statusFilter" class="select select-bordered" onchange="filterAndPaginateDatabases()">
+                                <select id="statusFilter" class="select select-bordered"
+                                    onchange="filterAndPaginateDatabases()">
                                     <option value="">Todos</option>
                                     <option value="success">Com sucesso</option>
                                     <option value="error">Com erro</option>
@@ -165,16 +172,18 @@
                                 <label class="label">
                                     <span class="label-text">Versão Neocorp</span>
                                 </label>
-                                <input id="versaoNeocorpFilter" class="input input-bordered" type="text" placeholder="Digite a versão..." oninput="filterAndPaginateDatabases()">
+                                <input id="versaoNeocorpFilter" class="input input-bordered" type="text"
+                                    placeholder="Digite a versão..." oninput="filterAndPaginateDatabases()">
                             </div>
                             <div class="form-control">
                                 <label class="label">
                                     <span class="label-text">Versão NeoContabil</span>
                                 </label>
-                                <input id="versaoNeocontabilFilter" class="input input-bordered" type="text" placeholder="Digite a versão..." oninput="filterAndPaginateDatabases()">
+                                <input id="versaoNeocontabilFilter" class="input input-bordered" type="text"
+                                    placeholder="Digite a versão..." oninput="filterAndPaginateDatabases()">
                             </div>
                         </div>
-                        
+
                         <!-- Controles de paginação -->
                         <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
                             <div class="flex items-center gap-4">
@@ -182,7 +191,8 @@
                                     <label class="label">
                                         <span class="label-text">Itens por página</span>
                                     </label>
-                                    <select id="databasesPerPage" class="select select-bordered select-sm" onchange="filterAndPaginateDatabases()">
+                                    <select id="databasesPerPage" class="select select-bordered select-sm"
+                                        onchange="filterAndPaginateDatabases()">
                                         <option value="5">5</option>
                                         <option value="10">10</option>
                                         <option value="25">25</option>
@@ -200,9 +210,9 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div id="databasesGrid"></div>
-                    
+
                     <div class="flex justify-center mt-6">
                         <div class="join" id="databasesPagination" style="display:none;"></div>
                     </div>
@@ -223,21 +233,21 @@
                         </label>
                         <input type="text" id="serverName" class="input input-bordered" required>
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Host/IP *</span>
                         </label>
                         <input type="text" id="serverHost" class="input input-bordered" required>
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Porta</span>
                         </label>
                         <input type="number" id="serverPort" class="input input-bordered" value="5432">
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Tipo de Banco</span>
@@ -248,14 +258,14 @@
                             <option value="sqlserver">SQL Server</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Usuário *</span>
                         </label>
                         <input type="text" id="serverUsername" class="input input-bordered" required>
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Senha *</span>
@@ -263,14 +273,14 @@
                         <input type="password" id="serverPassword" class="input input-bordered" required>
                     </div>
                 </div>
-                
+
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Descrição</span>
                     </label>
                     <textarea id="serverDescription" class="textarea textarea-bordered" rows="3"></textarea>
                 </div>
-                
+
                 <div class="modal-action">
                     <button type="button" class="btn" onclick="closeServerModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar</button>
@@ -284,88 +294,114 @@
 
     <!-- Modal para Busca de Objetos -->
     <dialog id="objectSearchModal" class="modal">
-  <div class="modal-box max-w-5xl">
+        <div class="modal-box max-w-5xl">
 
-    <!-- HEADER -->
-    <h3 class="font-bold text-lg flex items-center gap-2">
-      <i class="fas fa-search-plus"></i>
-      Buscar Objetos do Banco de Dados
-    </h3>
+            <!-- HEADER -->
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <i class="fas fa-search-plus"></i>
+                Buscar Objetos do Banco de Dados
+            </h3>
 
-    <!-- BODY -->
-    <div class="py-4 space-y-6">
+            <!-- BODY -->
+            <div class="py-4 space-y-6">
 
-      <!-- Filtros -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Tipo de Busca</span>
-          </label>
-          <select id="objectSearchType" class="select select-bordered">
-            <option value="contains">Contém</option>
-            <option value="starts_with">Inicia em</option>
-            <option value="ends_with">Termina em</option>
-            <option value="exact">Exato</option>
-          </select>
+                <!-- Filtros -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tipo de Busca</span>
+                        </label>
+                        <select id="objectSearchType" class="select select-bordered">
+                            <option value="contains">Contém</option>
+                            <option value="starts_with">Inicia em</option>
+                            <option value="ends_with">Termina em</option>
+                            <option value="exact">Exato</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Termo de Busca *</span>
+                        </label>
+                        <input type="text" id="objectSearchTerm" class="input input-bordered"
+                            placeholder="Digite o nome do objeto...">
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tipo de Objeto</span>
+                        </label>
+                        <select id="objectTypeFilter" class="select select-bordered">
+                            <option value="table">Tabelas</option>
+                            <option value="column">Colunas</option>
+                            <option value="index">Índices</option>
+                            <option value="view">Views</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Limite</span>
+                        </label>
+                        <select id="objectSearchLimit" class="select select-bordered">
+                            <option value="10">10</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <!-- Servidores -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Servidores</span>
+                    </label>
+
+                    <div id="objectSearchServerCheckboxes"
+                        class="border border-base-300 rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="modal-action justify-between">
+
+                <div class="flex gap-2">
+                    <!-- ✔️ ADICIONADO ID esperado pelo JS -->
+                    <button id="btnSearchObjectsExecute" class="btn btn-primary" onclick="searchObjects()">
+                        Buscar
+                    </button>
+
+                    <button class="btn btn-outline" onclick="clearObjectSearch()">
+                        Limpar
+                    </button>
+                </div>
+
+                <form method="dialog">
+                    <button class="btn">Fechar</button>
+                </form>
+
+            </div>
+            <!-- RESULTADOS DA BUSCA -->
+            <div id="objectSearchResults" class="mt-6 hidden">
+
+                <!-- ESTATÍSTICAS -->
+                <div id="objectSearchStats" class="mb-4 p-3 bg-base-200 rounded-lg">
+                    <!-- preenchido via JS -->
+                </div>
+
+                <!-- TABELA -->
+                <div id="objectSearchTable" class="overflow-x-auto">
+                    <!-- tabela será injetada aqui -->
+                </div>
+
+            </div>
         </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Termo de Busca *</span>
-          </label>
-          <input type="text" id="objectSearchTerm"
-                 class="input input-bordered"
-                 placeholder="Digite o nome do objeto...">
-        </div>
-
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Tipo de Objeto</span>
-          </label>
-          <select id="objectTypeFilter" class="select select-bordered">
-            <option value="table">Tabelas</option>
-            <option value="column">Colunas</option>
-            <option value="index">Índices</option>
-            <option value="view">Views</option>
-          </select>
-        </div>
-
-      </div>
-
-      <!-- Servidores -->
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">Servidores</span>
-        </label>
-
-        <div id="objectSearchServerCheckboxes"
-             class="border border-base-300 rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
-        </div>
-      </div>
-
-    </div>
-
-    <!-- FOOTER (IMPORTANTE) -->
-    <div class="modal-action justify-between">
-
-      <div class="flex gap-2">
-        <button class="btn btn-primary" onclick="searchObjects()">
-          Buscar
-        </button>
-        <button class="btn btn-outline" onclick="clearObjectSearch()">
-          Limpar
-        </button>
-      </div>
-
-      <form method="dialog">
-        <button class="btn">Fechar</button>
-      </form>
-
-    </div>
-
-  </div>
-</dialog>
+    </dialog>
 
     <!-- Créditos -->
     <div class="container mx-auto px-4 py-8">
@@ -389,7 +425,9 @@
     <neo-footer></neo-footer>
 
     <!-- Botão de Voltar ao Topo -->
-    <button id="backToTop" class="btn btn-circle btn-primary fixed bottom-4 right-4 z-50 opacity-0 transition-opacity duration-300" style="display: none;" data-unique="back-to-top-consultabd">
+    <button id="backToTop"
+        class="btn btn-circle btn-primary fixed bottom-4 right-4 z-50 opacity-0 transition-opacity duration-300"
+        style="display: none;" data-unique="back-to-top-consultabd">
         <i class="fas fa-arrow-up"></i>
     </button>
 
@@ -399,10 +437,10 @@
     <script type="module" src="/components/navbar/navbar.js"></script>
     <script type="module" src="/components/footer/footer.js"></script>
     <script src="/js/consultabd.js"></script>
-    
+
     <script>
         // Adicionar fundo à navbar quando fazer scroll
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Remover qualquer elemento duplicado de botão de voltar ao topo
             const existingBackToTopBtns = document.querySelectorAll('[data-unique="back-to-top-consultabd"]');
             if (existingBackToTopBtns.length > 1) {
@@ -410,12 +448,12 @@
                     existingBackToTopBtns[i].remove();
                 }
             }
-            
+
             const navbar = document.querySelector('.navbar');
             const backToTopBtn = document.getElementById('backToTop');
-            
+
             if (navbar) {
-                window.addEventListener('scroll', function() {
+                window.addEventListener('scroll', function () {
                     if (window.scrollY > 10) {
                         navbar.classList.add('scrolled');
                     } else {
@@ -423,10 +461,10 @@
                     }
                 });
             }
-            
+
             // Botão de voltar ao topo
             if (backToTopBtn) {
-                window.addEventListener('scroll', function() {
+                window.addEventListener('scroll', function () {
                     if (window.scrollY > 300) {
                         backToTopBtn.style.display = 'block';
                         setTimeout(() => {
@@ -439,8 +477,8 @@
                         }, 300);
                     }
                 });
-                
-                backToTopBtn.addEventListener('click', function() {
+
+                backToTopBtn.addEventListener('click', function () {
                     window.scrollTo({
                         top: 0,
                         behavior: 'smooth'
@@ -449,97 +487,61 @@
             }
         });
     </script>
-    
+
     <style>
+        /* mantém apenas utilitários gerais */
+        .hidden {
+            display: none !important;
+        }
+
+        /* NÃO sobrescrever z-index manual de modal */
+        /* DaisyUI já gerencia stack corretamente */
+
         /* Skeleton Loading Styles */
         .skeleton-container {
             padding: 1rem;
         }
-        
+
         .skeleton-card {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
             border-radius: 8px;
             overflow: hidden;
         }
-        
+
+        .skeleton-title,
+        .skeleton-text {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+        }
+
         .skeleton-title {
             height: 24px;
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-            border-radius: 4px;
             margin-bottom: 12px;
         }
-        
+
         .skeleton-text {
             height: 16px;
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-            border-radius: 4px;
             margin-bottom: 8px;
         }
-        
+
         .skeleton-text.short {
             width: 60%;
         }
-        
+
         @keyframes loading {
             0% {
                 background-position: 200% 0;
             }
+
             100% {
                 background-position: -200% 0;
             }
         }
-        
-        /* Toast Container */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-        }
-        
-        /* Loading Overlay */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        
-        .loading-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        /* Garantir que o modal SQL apareça na frente do modal de busca */
-        #objectSQLModal {
-            z-index: 999999 !important;
-        }
-        
-        #objectSQLModal .modal-box {
-            z-index: 1000000 !important;
-        }
-        
-        /* Garantir que o modal de busca tenha z-index menor */
-        #objectSearchModal {
-            z-index: 9999 !important;
-        }
     </style>
+
 </body>
+
 </html>
