@@ -478,7 +478,7 @@ function openServerModal() {
     modal.id = 'createServerModal';
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
-        <div class="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
+        <div class="bg-base-100 rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center p-6 border-b">
                 <h3 class="text-lg font-semibold">Novo Servidor</h3>
                 <button onclick="closeCreateModal()" class="text-gray-500 hover:text-gray-700">
@@ -534,7 +534,7 @@ function openServerModal() {
                 </div>
             </form>
             
-            <div class="flex justify-end space-x-2 p-6 border-t bg-gray-50">
+            <div class="flex justify-end space-x-2 p-6 border-t bg-base-50">
                 <button type="button" onclick="closeCreateModal()" class="btn btn-ghost">Cancelar</button>
                 <button type="submit" form="createServerForm" class="btn btn-primary">Criar Servidor</button>
             </div>
@@ -629,7 +629,7 @@ function editServer(serverId) {
     modal.id = 'editServerModal';
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
-        <div class="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
+        <div class="bg-base-100 rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center p-6 border-b">
                 <h3 class="text-lg font-semibold">Editar Servidor</h3>
                 <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700">
@@ -687,7 +687,7 @@ function editServer(serverId) {
                 </div>
             </form>
             
-            <div class="flex justify-end space-x-2 p-6 border-t bg-gray-50">
+            <div class="flex justify-end space-x-2 p-6 border-t bg-base-50">
                 <button type="button" onclick="closeEditModal()" class="btn btn-ghost">Cancelar</button>
                 <button type="submit" form="editServerForm" class="btn btn-primary">Salvar</button>
             </div>
@@ -912,7 +912,7 @@ function showCopyManualModal(text) {
     modal.id = 'copyManualModal';
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
-        <div class="bg-white rounded-lg w-full max-w-md flex flex-col">
+        <div class="bg-base-100 rounded-lg w-full max-w-md flex flex-col">
             <div class="flex justify-between items-center p-6 border-b">
                 <h3 class="text-lg font-semibold">Copiar Informações</h3>
                 <button onclick="closeCopyManualModal()" class="text-gray-500 hover:text-gray-700">
@@ -924,12 +924,12 @@ function showCopyManualModal(text) {
                 <p class="text-sm text-gray-600 mb-4">
                     Não foi possível copiar automaticamente. Selecione o texto abaixo e copie manualmente:
                 </p>
-                <div class="bg-gray-100 p-3 rounded border">
+                <div class="bg-base-100 p-3 rounded border">
                     <input type="text" value="${text}" class="w-full bg-transparent border-none outline-none text-sm font-mono" readonly onclick="this.select()">
                 </div>
             </div>
             
-            <div class="flex justify-end p-6 border-t bg-gray-50">
+            <div class="flex justify-end p-6 border-t bg-base-50">
                 <button onclick="closeCopyManualModal()" class="btn btn-primary">Fechar</button>
             </div>
         </div>
