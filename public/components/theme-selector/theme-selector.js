@@ -41,19 +41,19 @@ class ModernThemeSelector extends HTMLElement {
                     </div>
 
                     <!-- CLAROS -->
-                    ${this.section("☀️ Claros", [
+                    ${this.section("Claros", [
                         "corporate","light","cupcake","bumblebee","emerald",
                         "lemonade","winter","nord","retro"
                     ])}
 
                     <!-- ESCUROS -->
-                    ${this.section("🌙 Escuros", [
+                    ${this.section("Escuros", [
                         "forest","dark","dracula","night","halloween",
                         "sunset","dim","black"
                     ])}
 
                     <!-- ESPECIAIS -->
-                    ${this.section("✨ Especiais", [
+                    ${this.section("Especiais", [
                         "cyberpunk","synthwave","lofi","fantasy","wireframe",
                         "luxury","aqua","pastel","acid","coffee","business",
                         "autumn","valentine","garden","cmyk"

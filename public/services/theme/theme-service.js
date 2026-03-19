@@ -3,6 +3,12 @@ const Theme = {
 
     init() {
         const theme = localStorage.getItem(this.KEY);
+
+        if (!theme) {
+            theme = 'corporate';
+            localStorage.setItem(this.KEY, theme);
+        }
+
         this.apply(theme);
     },
 
