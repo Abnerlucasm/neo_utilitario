@@ -21,11 +21,6 @@ function getNavbarTemplate() {
                 </label>
             </div>
         </nav>
-        <div class="bg-base-200 border-b border-base-300 pt-16 pb-2 px-4">
-            <ul class="breadcrumbs text-sm flex flex-wrap items-center gap-2">
-                <!-- Breadcrumb será gerado dinamicamente -->
-            </ul>
-        </div>
         <div class="drawer drawer-end">
             <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
             <div class="drawer-side z-50">
@@ -122,7 +117,6 @@ class NeoNavbar extends HTMLElement {
             this.setupEventListeners();
 
             // Atualizar componentes
-            this.updateBreadcrumb();
             this.highlightCurrentPage();
         } catch (error) {
             console.error('Erro na inicialização do navbar:', error);
@@ -336,70 +330,6 @@ class NeoNavbar extends HTMLElement {
                 }
             }
         });
-    }
-
-    updateBreadcrumb() {
-        const breadcrumb = this.querySelector('.breadcrumbs');
-        if (!breadcrumb) return;
-
-        // DaisyUI breadcrumbs com ícones e separador >
-        const pathSegments = window.location.pathname.split('/').filter(segment => segment && segment !== 'pages');
-        let breadcrumbHTML = `
-            <li>
-                <a href="/" class="flex items-center gap-2">
-                    <i class="fas fa-home"></i>
-                    <span>Início</span>
-                </a>
-            </li>
-        `;
-
-        const icons = {
-            'admin': 'fa-user-shield',
-            'user-settings': 'fa-cog',
-            'user-management': 'fa-users-cog',
-            'roles': 'fa-user-shield',
-            'resources': 'fa-sitemap',
-            'glassfish': 'fa-server',
-            'consultabd': 'fa-database',
-            'sugestoes-dev': 'fa-lightbulb',
-            'utilitarios': 'fa-tools',
-            'index': 'fa-home'
-        };
-
-        const labels = {
-            'admin': 'Administração',
-            'user-settings': 'Configurações',
-            'user-management': 'Gerenciar Usuários',
-            'roles': 'Papéis',
-            'resources': 'Recursos',
-            'glassfish': 'Glassfish',
-            'consultabd': 'Consulta de Bancos',
-            'sugestoes-dev': 'Sugestões',
-            'utilitarios': 'Utilitários',
-            'index': 'Início'
-        };
-
-        let path = '';
-        pathSegments.forEach((segment, index) => {
-            path += `/${segment}`;
-            const isLast = index === pathSegments.length - 1;
-            const cleanSegment = segment.replace('.html', '');
-            const label = labels[cleanSegment] || segment.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            const iconClass = icons[cleanSegment] || 'fa-link';
-
-            breadcrumbHTML += `
-                <li class="flex items-center">
-                    ${isLast
-                    ? `<span class="flex items-center gap-2 font-semibold"><i class="fas ${iconClass}"></i><span>${label}</span></span>`
-                    : `<a href="${path}" class="flex items-center gap-2"><i class="fas ${iconClass}"></i><span>${label}</span></a>
-                           <span class="mx-2 text-base-content/60">›</span>`
-                }
-                </li>
-            `;
-        });
-
-        breadcrumb.innerHTML = breadcrumbHTML;
-        breadcrumb.className = "breadcrumbs"; // DaisyUI class
     }
 
     formatSegmentTitle(segment) {

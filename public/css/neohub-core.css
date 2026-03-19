@@ -567,15 +567,6 @@ body {
 
 /* ===== MELHORIAS ESPECÍFICAS ===== */
 
-/* Breadcrumbs Elegantes */
-.breadcrumbs {
-    background-color: hsl(var(--b1) / 0.5);
-    backdrop-filter: blur(10px);
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
-    margin: 0.5rem 0;
-}
-
 /* Stats Cards */
 .stat {
     background: linear-gradient(135deg, hsl(var(--b1)) 0%, hsl(var(--b2)) 100%);
