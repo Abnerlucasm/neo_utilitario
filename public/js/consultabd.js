@@ -410,7 +410,7 @@ function renderServerCheckboxes() {
 // Função para alternar todos os servidores
 function toggleAllServers() {
     const selectAllCheckbox = document.getElementById('selectAllServers');
-    const serverCheckboxes = document.querySelectorAll('input[type="checkbox"][value]');
+    const serverCheckboxes = document.querySelectorAll('#serverCheckboxes input[type="checkbox"][value]');
 
     serverCheckboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
@@ -1959,30 +1959,37 @@ function renderObjectSearchServerCheckboxes() {
 
     container.innerHTML = `
         <div class="form-control mb-2">
-            <label class="label cursor-pointer bg-base-200 p-2 rounded hover:bg-base-300 transition-colors">
-                <span class="label-text text-sm font-medium">Selecionar Todos</span>
-                <input type="checkbox" class="checkbox checkbox-primary checkbox-sm" id="selectAllObjectServers">
+            <label class="label cursor-pointer justify-between items-center bg-base-200 p-2 rounded hover:bg-base-300 transition-colors">
+                <span class="label-text text-sm font-medium">
+                    Selecionar Todos
+                </span>
+                <input type="checkbox"class="checkbox checkbox-primary" id="selectAllObjectServers""/>
+                <input 
+                    type="checkbox" 
+                    class="checkbox checkbox-primary checkbox-sm" 
+                    id="selectAllObjectServers"
+                >
             </label>
         </div>
+
         <div class="space-y-1">
             ${servers.map(server => `
-                <label class="label cursor-pointer p-2 hover:bg-base-200 rounded">
-                    <span class="label-text text-sm flex items-center">
-                        <div class="status-circle status-${server.connectionStatus || 'unknown'} mr-2"></div>
+                <label class="label cursor-pointer justify-between items-center p-2 hover:bg-base-200 rounded transition-colors">
+                    
+                    <span class="label-text text-sm flex items-center gap-2">
+                        <div class="status-circle status-${server.connectionStatus || 'unknown'}"></div>
                         ${server.name}
                     </span>
-                    <input type="checkbox" class="checkbox checkbox-sm" value="${server.id}" data-server-name="${server.name}">
+                <input type="checkbox"class="checkbox checkbox-primary" value="${server.id}" data-server-name="${server.name}"/>
                 </label>
             `).join('')}
         </div>
     `;
 
-    // Adicionar event listener programaticamente para evitar duplicação
     const selectAllCheckbox = document.getElementById('selectAllObjectServers');
+
     if (selectAllCheckbox) {
-        // Remover event listeners existentes
         selectAllCheckbox.removeEventListener('change', toggleAllObjectServers);
-        // Adicionar novo event listener
         selectAllCheckbox.addEventListener('change', toggleAllObjectServers);
     }
 }
