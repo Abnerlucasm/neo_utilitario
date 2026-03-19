@@ -1,3 +1,5 @@
+import { getFooterTemplate } from './footer.template.js';
+
 class NeoFooter extends HTMLElement {
     constructor() {
         super();
@@ -27,24 +29,10 @@ class NeoFooter extends HTMLElement {
     }
 
     render() {
-        this.innerHTML = `
-            <footer class="footer footer-center p-10 bg-base-200 text-base-content">
-                <div>
-                    <p class="text-center">
-                        <strong>NeoHub</strong> - Plataforma integrada de colaboração e gerenciamento
-                    </p>
-                </div>
-                <div class="flex flex-col items-center gap-4">
-                    <a href="https://github.com/Abnerlucasm/neo_utilitario" 
-                       class="btn btn-ghost btn-sm gap-2" 
-                       target="_blank" 
-                       rel="noopener noreferrer">
-                        Contribua no GitHub
-                    </a>
-                    <p class="text-sm opacity-70">© ${new Date().getFullYear()} Neo Sistemas. Todos os direitos reservados.</p>
-                </div>
-            </footer>
-        `;
+        const userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+        const isDark = userSettings.theme === 'dark';
+
+        this.innerHTML = getFooterTemplate(isDark);
     }
 }
 
