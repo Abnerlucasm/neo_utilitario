@@ -3,52 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Página Não Encontrada</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="styles/404.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-    
-    </style>
+    <title>NeoHub - 404</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="/services/theme/theme-service.js"></script>
 </head>
-<body>
-    <nav-component></nav-component>
-    <section class="hero is-large">
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <h1 class="title is-1">404</h1>
-                <h2 class="subtitle is-3">Página Não Encontrada</h2>
-                <p>Desculpe, mas a página que você está procurando não existe.</p>
-                <p>Você pode voltar à página principal ou tentar procurar algo semelhante:</p>
-                
-                <!-- Adicionando o SVG -->
-                <div class="svg-container">
-                    <img src="/assets/404.svg" alt="Ilustração 404" style="max-width: 100%; height: auto;">
-                </div>
+<body class="bg-base-200 min-h-screen flex flex-col items-center justify-center p-6 text-center">
 
-                <!-- Adicionando o logo da Neo -->
-                <div class="logo-container">
-                    <img src="/assets/neo-logo-small.png" alt="Logo da Neo" style="max-width: 150px; height: auto;">
-                </div>
+    <div class="max-w-md w-full space-y-8">
+        <div class="flex items-center justify-center gap-2 mb-4">
+            <img src="/assets/neo-logo-small.png" alt="Neo" class="h-16 w-auto">
+            <h1 class="text-5xl font-black tracking-tighter text-white">Hub</h1>
+        </div>
 
-                <!-- Botões abaixo do logo, centralizados na parte verde -->
-                <div class="buttons" style="margin-top: 20px; justify-content: center;">
-                    <a href="/" class="button">Voltar para a Página Inicial</a>
-                    <a href="https://github.com/Abnerlucasm/neo_utilitario/issues" class="button">Sugestões de Melhorias</a>
-                    <a href="/utilitarios.html" class="button">Utilitários</a>
-                </div>
+        <div class="py-4">
+            <img src="/assets/404.svg" alt="404" class="max-w-[250px] mx-auto opacity-80">
+        </div>
+
+        <div class="space-y-2">
+            <h3 class="text-xl font-semibold">Página Não Encontrada</h3>
+            <p class="text-base-content/60">Parece que você se perdeu no ecossistema. A página que você busca não existe.</p>
+        </div>
+
+        <div class="flex flex-col gap-3 pt-6">
+            <a href="/" class="btn btn-success text-success-content font-bold">
+                <i class="fas fa-home"></i> Voltar ao Início
+            </a>
+            <div class="grid grid-cols-2 gap-2">
+                <a href="/pages/utilitarios.html" class="btn btn-outline btn-sm">Utilitários</a>
+                <a href="https://github.com/Abnerlucasm/neo_utilitario/issues" class="btn btn-outline btn-sm">Sugestões</a>
             </div>
         </div>
-    </section>
-    <script>
-        const toggleThemeButton = document.getElementById('toggleTheme');
-        toggleThemeButton.addEventListener('click', () => {
-            // Toggle theme using DaisyUI
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'corporate';
-    const newTheme = currentTheme === 'corporate' ? 'forest' : 'corporate';
-    document.documentElement.setAttribute('data-theme', newTheme);
-        });
-    </script>
+    </div>
+
     <script src="../components/navbar/navbar.js"></script>
 </body>
 </html>
