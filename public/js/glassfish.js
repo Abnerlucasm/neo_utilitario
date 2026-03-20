@@ -283,7 +283,7 @@ function openAddModal(editIndex = null) {
         setVal('service-ssh-username', s.sshUsername || s.username || fieldOf(s, 'sshUsername', ''));
         setVal('service-ssh-password', fieldOf(s, 'sshPassword'));
         setVal('service-install-path', fieldOf(s, 'installPath', '/srv/glassfish6.2.5'));
-        setVal('production-port',      fieldOf(s, 'productionPort', 8091));
+        setVal('production-port',      fieldOf(s, 'productionPort', 8080));
         setVal('service-category',     fieldOf(s, 'setor', 'Setor Sup. Externo'));
         setVal('service-access-type',  fieldOf(s, 'accessType', 'local'));
         setVal('service-admin-password', fieldOf(s, 'adminPassword', ''));
@@ -295,7 +295,7 @@ function openAddModal(editIndex = null) {
         currentServiceIndex = null;
         // Valores padrão para novo serviço
         setVal('service-port',         '4848');
-        setVal('production-port',      '8091');
+        setVal('production-port',      '8080');
         setVal('service-install-path', '/srv/glassfish6.2.5');
         setVal('service-access-type',  'local');
         setVal('service-category',     'Setor Sup. Externo');
@@ -329,7 +329,7 @@ async function saveGlassfish() {
             installPath:    getVal('service-install-path')      || '/srv/glassfish6.2.5',
             setor:          getVal('service-category'),
             accessType:     getVal('service-access-type'),
-            productionPort: parseInt(getVal('production-port')) || 8091
+            productionPort: parseInt(getVal('production-port')) || 8080
         };
 
         // Validação clara campo a campo
@@ -532,7 +532,7 @@ function openAdminPanel() {
 function accessNeoWeb() {
     if (currentServiceIndex === null) return;
     const s = services[currentServiceIndex];
-    window.open(`http://${s.ip || s.host}:${s.productionPort}/neoweb`, '_blank');
+    window.open(`https://${s.ip || s.host}:${s.productionPort}/neocorp`, '_blank');
 }
 
 function handleAccessTypeChange() {
@@ -586,14 +586,71 @@ async function testSSHConnection() {
     }
 }
 
+// ─── Preview do arquivo de upload ────────────────────────────────────────────
+function updateFilePreview(file) {
+    const btn      = document.getElementById('upload-button');
+    const preview  = document.getElementById('file-preview');
+    const dropZone = document.getElementById('upload-drop-zone');
+    const nameEl   = document.getElementById('file-name-display');
+    const sizeEl   = document.getElementById('file-size-display');
+    const iconBox  = document.getElementById('file-icon-box');
+    const typeIcon = document.getElementById('file-type-icon');
+    const label    = document.getElementById('upload-label');
+
+    if (!file) {
+        // Sem arquivo — estado inicial
+        if (preview)   { preview.classList.add('hidden'); preview.classList.remove('flex'); }
+        if (dropZone)  dropZone.classList.remove('hidden');
+        if (btn)       btn.disabled = true;
+        if (label)     label.textContent = 'Clique para selecionar um arquivo .ear, .war ou .jar';
+        return;
+    }
+
+    // Com arquivo — mostrar preview
+    const ext  = file.name.split('.').pop().toLowerCase();
+    const size = formatFileSize(file.size);
+
+    // Ícone e cor por extensão
+    const extMap = {
+        ear: { icon: 'fa-box-archive',   color: 'bg-primary/10 text-primary'   },
+        war: { icon: 'fa-globe',          color: 'bg-info/10 text-info'         },
+        jar: { icon: 'fa-cube',           color: 'bg-success/10 text-success'   },
+    };
+    const { icon, color } = extMap[ext] || { icon: 'fa-file', color: 'bg-base-300 text-gray-500' };
+
+    if (nameEl)   nameEl.textContent = file.name;
+    if (sizeEl)   sizeEl.textContent = size + ' · ' + ext.toUpperCase();
+    if (iconBox)  iconBox.className = 'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ' + color;
+    if (typeIcon) typeIcon.className = 'fas ' + icon + ' text-xl';
+
+    if (preview)   { preview.classList.remove('hidden'); preview.classList.add('flex'); }
+    if (dropZone)  dropZone.classList.add('hidden');
+    if (btn)       btn.disabled = false;
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k     = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i     = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('search-input')?.addEventListener('input',  filterCards);
     document.getElementById('filter-status')?.addEventListener('change', filterCards);
     document.getElementById('filter-setor')?.addEventListener('change',  filterCards);
+    // ── File input: preview do arquivo selecionado ───────────────────────────
     document.getElementById('application-file')?.addEventListener('change', e => {
-        const btn = document.getElementById('upload-button');
-        if (btn) btn.disabled = !e.target.files?.[0];
+        updateFilePreview(e.target.files?.[0] || null);
+    });
+
+    // Botão de limpar seleção
+    document.getElementById('file-clear-btn')?.addEventListener('click', () => {
+        const input = document.getElementById('application-file');
+        if (input) input.value = '';
+        updateFilePreview(null);
     });
 
     document.addEventListener('click', async (e) => {

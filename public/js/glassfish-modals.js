@@ -355,9 +355,21 @@ export async function openDomainConfigModal(index, services) {
             return;
         }
 
+        // Verificar se o GlassFish está ativo antes de tentar conectar
+        const gfStatus = service.glassfishStatus || (service.status === 'active' ? 'active' : 'inactive');
+        if (gfStatus !== 'active') {
+            showToast(
+                'GlassFish não está ativo em ' + (service.ip || service.host) + '. ' +
+                'Inicie o serviço antes de acessar as configurações.',
+                'warning'
+            );
+            return;
+        }
+
         currentDomainConfigIndex = index;
 
-        // Reset do modal
+        // Reset do modal — inclusive campos que possam ter ficado desabilitados
+        resetDomainConfigFields();
         ['db-server', 'db-user', 'db-password', 'db-name'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
@@ -370,15 +382,24 @@ export async function openDomainConfigModal(index, services) {
 
         openDialog('domain-config-modal');
 
-        // Carregar configurações do domain.xml
+        // Atualizar título do modal com o nome do servidor
+        const modalTitle = document.querySelector('#domain-config-modal h3');
+        if (modalTitle) {
+            modalTitle.innerHTML = '<i class="fas fa-database text-primary mr-2"></i>Configuração — ' + service.name;
+        }
+
+        // Carregar configurações do pool de BD via API REST
         const res  = await fetch(`/api/glassfish/servicos/${service.id}/domain-config`, {
             headers: authHeaders()
         });
 
         const body = await res.json().catch(() => null);
         if (!res.ok) {
-            const msg = body?.details || body?.error || `HTTP ${res.status}`;
-            throw new Error(msg);
+            const msg = body?.details || body?.error || ('HTTP ' + res.status);
+            // Mostrar erro dentro do modal em vez de fechar
+            setDomainConfigError(msg);
+            await loadApplications(service.id);
+            return;
         }
 
         const config = body;
@@ -392,11 +413,56 @@ export async function openDomainConfigModal(index, services) {
         if (dbPassword) dbPassword.value = config.password     || '';
         if (dbName)     dbName.value     = config.databaseName || '';
 
+        // Guardar valores originais para detectar mudanças ao salvar
+        const modal = document.getElementById('domain-config-modal');
+        if (modal) {
+            modal.dataset.origServer   = config.serverName   || '';
+            modal.dataset.origUser     = config.user         || '';
+            modal.dataset.origPassword = config.password     || '';
+            modal.dataset.origDb       = config.databaseName || '';
+        }
+
         await loadApplications(service.id);
     } catch (error) {
         console.error(error);
         showToast('Erro ao abrir configurações: ' + error.message, 'error');
     }
+}
+
+// Mostra erro de carregamento dentro do modal sem fechar
+function setDomainConfigError(msg) {
+    ['db-server', 'db-user', 'db-password', 'db-name'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = '';
+            el.placeholder = 'Indisponível';
+            el.disabled = true;
+        }
+    });
+    const saveBtn = document.querySelector('[data-action="saveDomainConfig"]');
+    if (saveBtn) saveBtn.disabled = true;
+
+    // Mostrar mensagem de erro no modal
+    const appsContent = document.getElementById('applications-content');
+    const appsLoading = document.getElementById('applications-loading');
+    if (appsLoading) appsLoading.classList.add('hidden');
+    if (appsContent) {
+        appsContent.innerHTML = '<div class="alert alert-error text-xs py-2"><i class="fas fa-circle-xmark mr-1"></i>' + msg + '</div>';
+        appsContent.classList.remove('hidden');
+    }
+}
+
+// Reabilita os campos ao reabrir um modal que teve erro
+function resetDomainConfigFields() {
+    ['db-server', 'db-user', 'db-password', 'db-name'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.disabled = false;
+            el.placeholder = '';
+        }
+    });
+    const saveBtn = document.querySelector('[data-action="saveDomainConfig"]');
+    if (saveBtn) saveBtn.disabled = false;
 }
 
 // ─── loadApplications ─────────────────────────────────────────────────────────
@@ -409,7 +475,10 @@ async function loadApplications(serviceId) {
             headers: authHeaders()
         });
 
-        if (!res.ok) throw new Error('Erro ao obter lista de aplicações');
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.details || body.error || 'Erro ao obter lista de aplicações');
+        }
 
         const data = await res.json();
         const apps = data.applications || data || [];
@@ -418,16 +487,33 @@ async function loadApplications(serviceId) {
             if (apps.length === 0) {
                 appsContent.innerHTML = '<p class="text-center text-gray-400 text-sm py-3">Nenhuma aplicação instalada</p>';
             } else {
-                appsContent.innerHTML = apps.map(app => `
-                    <div class="application-item">
-                        <i class="fas fa-cube text-primary"></i>
-                        <span class="name">${app.name}</span>
-                        <span class="badge badge-sm ${app.enabled ? 'badge-success' : 'badge-ghost'}">
+                appsContent.innerHTML = apps.map(app => {
+                    // Ícone por tipo de arquivo
+                    const ext = (app.fileName || app.name || '').split('.').pop().toLowerCase();
+                    const iconMap = {
+                        ear: 'fa-box-archive',
+                        war: 'fa-globe',
+                        jar: 'fa-cube',
+                    };
+                    const icon = iconMap[ext] || 'fa-file';
+
+                    // Nome do arquivo ou fallback para nome da aplicação
+                    const displayFile = app.fileName || (app.name + (ext ? '.' + ext : ''));
+
+                    return `
+                    <div class="flex items-center gap-3 bg-base-200 rounded-xl p-3">
+                        <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <i class="fas ${icon} text-primary text-sm"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-sm truncate" title="${app.name}">${app.name}</p>
+                            <p class="font-mono text-xs text-gray-400 truncate" title="${app.fileName || ''}">${displayFile}</p>
+                        </div>
+                        <span class="badge badge-sm ${app.enabled ? 'badge-success' : 'badge-ghost'} flex-shrink-0">
                             ${app.enabled ? 'Ativo' : 'Desativado'}
                         </span>
-                        <span class="badge badge-sm badge-outline">deployed</span>
-                    </div>
-                `).join('');
+                    </div>`;
+                }).join('');
             }
             appsContent.classList.remove('hidden');
         }
@@ -444,33 +530,130 @@ async function loadApplications(serviceId) {
 
 // ─── saveDomainConfig ─────────────────────────────────────────────────────────
 export async function saveDomainConfig(services) {
+    const service = services[currentDomainConfigIndex];
+    if (!service?.id) {
+        showToast('Serviço não encontrado', 'error');
+        return;
+    }
+
+    const config = {
+        serverName:   document.getElementById('db-server')?.value   || '',
+        user:         document.getElementById('db-user')?.value     || '',
+        password:     document.getElementById('db-password')?.value || '',
+        databaseName: document.getElementById('db-name')?.value     || '',
+    };
+
+    // Verificar se algum campo foi alterado em relação ao original
+    const modal = document.getElementById('domain-config-modal');
+    const changed = modal && (
+        config.serverName   !== (modal.dataset.origServer   || '') ||
+        config.user         !== (modal.dataset.origUser     || '') ||
+        config.password     !== (modal.dataset.origPassword || '') ||
+        config.databaseName !== (modal.dataset.origDb       || '')
+    );
+
+    // Se nada mudou, fechar sem fazer nada
+    if (!changed) {
+        showToast('Nenhuma alteração detectada', 'info');
+        closeDialog('domain-config-modal');
+        return;
+    }
+
+    // Alterar propriedades do pool JDBC requer restart
+    // Usa modal DaisyUI em vez de confirm() nativo
+    showRestartConfirmModal(config, service);
+}
+
+// Abre o modal de confirmação de restart e executa o save
+function showRestartConfirmModal(config, service) {
+    // Criar modal dinamicamente se não existir
+    let modal = document.getElementById('restart-confirm-modal');
+    if (!modal) {
+        modal = document.createElement('dialog');
+        modal.id = 'restart-confirm-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-box max-w-sm">
+                <h3 class="font-bold text-base mb-2 flex items-center gap-2">
+                    <i class="fas fa-rotate-right text-warning"></i>
+                    Configurações alteradas
+                </h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    O GlassFish precisa ser reiniciado para aplicar as mudanças no pool de banco de dados.
+                    Deseja reiniciar agora?
+                </p>
+                <div class="modal-action flex gap-2 justify-end">
+                    <button id="restart-no-btn" class="btn btn-ghost btn-sm">Salvar sem reiniciar</button>
+                    <button id="restart-yes-btn" class="btn btn-warning btn-sm gap-2">
+                        <i class="fas fa-rotate-right"></i>Salvar e reiniciar
+                    </button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    modal.showModal();
+
+    // Handlers dos botões — uso único, remove após clicar
+    const yesBtn = document.getElementById('restart-yes-btn');
+    const noBtn  = document.getElementById('restart-no-btn');
+
+    const cleanup = () => {
+        yesBtn.replaceWith(yesBtn.cloneNode(true));
+        noBtn.replaceWith(noBtn.cloneNode(true));
+        modal.close();
+    };
+
+    document.getElementById('restart-yes-btn').addEventListener('click', async () => {
+        cleanup();
+        await executeDomainConfigSave(config, service, true);
+    }, { once: true });
+
+    document.getElementById('restart-no-btn').addEventListener('click', async () => {
+        cleanup();
+        await executeDomainConfigSave(config, service, false);
+    }, { once: true });
+}
+
+async function executeDomainConfigSave(config, service, restartAfterSave) {
+    const saveBtn = document.querySelector('[data-action="saveDomainConfig"]');
+    const origLabel = saveBtn?.innerHTML;
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = restartAfterSave
+            ? '<span class="loading loading-spinner loading-xs"></span> Salvando e reiniciando…'
+            : '<span class="loading loading-spinner loading-xs"></span> Salvando…';
+    }
+
     try {
-        const service = services[currentDomainConfigIndex];
-        if (!service?.id) {
-            showToast('Serviço não encontrado', 'error');
-            return;
-        }
-
-        const config = {
-            serverName:   document.getElementById('db-server')?.value   || '',
-            user:         document.getElementById('db-user')?.value     || '',
-            password:     document.getElementById('db-password')?.value || '',
-            databaseName: document.getElementById('db-name')?.value     || ''
-        };
-
         const res = await fetch(`/api/glassfish/servicos/${service.id}/domain-config`, {
             method:  'PUT',
             headers: authHeaders({ 'Content-Type': 'application/json' }),
-            body:    JSON.stringify(config)
+            body:    JSON.stringify({ ...config, restartAfterSave })
         });
 
         if (!res.ok) throw new Error(await parseErrorResponse(res));
 
-        showToast('Configurações salvas com sucesso!', 'success');
+        const data = await res.json();
+
+        if (data.restarted) {
+            showToast('Configurações salvas e GlassFish reiniciado!', 'success');
+        } else if (restartAfterSave && data.restartError) {
+            showToast('Salvo, mas restart falhou: ' + data.restartError, 'warning');
+        } else {
+            showToast('Configurações salvas. Reinicie o GlassFish para aplicar.', 'warning');
+        }
+
         closeDialog('domain-config-modal');
     } catch (error) {
         console.error(error);
         showToast(error.message, 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = origLabel || '<i class="fas fa-save"></i> Salvar Configurações';
+        }
     }
 }
 
@@ -505,11 +688,14 @@ export async function uploadApplication(services) {
 
         if (!res.ok) throw new Error(await parseErrorResponse(res));
 
-        showToast('Aplicação enviada com sucesso!', 'success');
+        showToast('Deploy realizado com sucesso!', 'success');
+
+        // Resetar o input e o preview do arquivo
         if (fileInput) fileInput.value = '';
+        if (typeof updateFilePreview === 'function') updateFilePreview(null);
 
         const uploadBtn = document.getElementById('upload-button');
-        if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.innerHTML = '<i class="fas fa-upload mr-1"></i>Fazer Upload'; }
+        if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.innerHTML = '<i class="fas fa-upload"></i>Fazer Deploy'; }
 
         await loadApplications(service.id);
     } catch (error) {

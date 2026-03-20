@@ -17,7 +17,7 @@
     <!-- Scripts de tema -->
     <script src="/services/theme/theme-service.js"></script>
     <script type="module" src="/components/theme-selector/theme-selector.js"></script>
-
+    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -31,32 +31,22 @@
         .server-card {
             transition: transform .2s, box-shadow .2s;
         }
-
         .server-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, .12);
+            box-shadow: 0 12px 28px rgba(0,0,0,.12);
         }
 
         /* ── Badge de status piscando quando ativo ────────────── */
         @keyframes pulse-green {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: .5;
-            }
+            0%, 100% { opacity: 1; }
+            50%       { opacity: .5; }
         }
-
         .badge-active-pulse {
             animation: pulse-green 2s infinite;
         }
 
         /* ── Log viewer monospace ─────────────────────────────── */
-        #log-viewer,
-        #logs-content {
+        #log-viewer, #logs-content {
             font-family: 'Courier New', monospace;
             font-size: .8rem;
             line-height: 1.5;
@@ -211,8 +201,7 @@
                     <h2 class="card-title text-sm gap-2">
                         <i class="fas fa-terminal text-teal-400"></i>
                         Visualizador de Log
-                        <span class="badge badge-sm badge-success badge-active-pulse hidden"
-                            id="log-live-badge">LIVE</span>
+                        <span class="badge badge-sm badge-success badge-active-pulse hidden" id="log-live-badge">LIVE</span>
                     </h2>
                     <div class="flex gap-2">
                         <button class="btn btn-xs btn-outline btn-success" data-action="toggleLogViewer">
@@ -223,7 +212,8 @@
                         </button>
                     </div>
                 </div>
-                <div id="log-viewer" class="bg-black/40 rounded-lg p-3 h-48 overflow-y-auto text-green-400 text-xs">
+                <div id="log-viewer"
+                     class="bg-black/40 rounded-lg p-3 h-48 overflow-y-auto text-green-400 text-xs">
                     <span class="text-gray-500">— Nenhum log ativo. Selecione um servidor e ative o log. —</span>
                 </div>
             </div>
@@ -237,7 +227,7 @@
         <div class="modal-box max-w-2xl">
             <form method="dialog">
                 <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
-                    data-action="closeAddModal">✕</button>
+                        data-action="closeAddModal">✕</button>
             </form>
             <h3 class="font-bold text-lg mb-5" id="modal-title">Adicionar Glassfish</h3>
             <form id="service-form" class="space-y-4">
@@ -247,21 +237,21 @@
                     <div class="form-control sm:col-span-2">
                         <label class="label"><span class="label-text font-semibold">Nome do Serviço *</span></label>
                         <input class="input input-bordered w-full" type="text" id="service-name"
-                            placeholder="Ex: GF-PROD-01" required>
+                               placeholder="Ex: GF-PROD-01" required>
                     </div>
 
                     <!-- IP -->
                     <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">IP / Host *</span></label>
                         <input class="input input-bordered w-full" type="text" id="service-ip"
-                            placeholder="192.168.1.100" required>
+                               placeholder="192.168.1.100" required>
                     </div>
 
                     <!-- Domínio -->
                     <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">Domínio *</span></label>
-                        <input class="input input-bordered w-full" type="text" id="service-domain" placeholder="domain1"
-                            required>
+                        <input class="input input-bordered w-full" type="text" id="service-domain"
+                               placeholder="domain1" required>
                     </div>
 
                     <!-- Porta Admin -->
@@ -273,14 +263,14 @@
                     <!-- Porta Produção -->
                     <div class="form-control" id="production-port-field">
                         <label class="label"><span class="label-text font-semibold">Porta Produção</span></label>
-                        <input class="input input-bordered w-full" type="number" id="production-port" value="8091">
+                        <input class="input input-bordered w-full" type="number" id="production-port" value="8080">
                     </div>
 
                     <!-- Usuário SSH -->
                     <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">Usuário SSH *</span></label>
                         <input class="input input-bordered w-full" type="text" id="service-ssh-username"
-                            placeholder="root" required>
+                               placeholder="root" required>
                     </div>
 
                     <!-- Senha SSH -->
@@ -291,10 +281,9 @@
 
                     <!-- Caminho instalação -->
                     <div class="form-control sm:col-span-2">
-                        <label class="label"><span class="label-text font-semibold">Caminho de Instalação
-                                *</span></label>
+                        <label class="label"><span class="label-text font-semibold">Caminho de Instalação *</span></label>
                         <input class="input input-bordered w-full" type="text" id="service-install-path"
-                            placeholder="/srv/glassfish6.2.5" value="/srv/glassfish6.2.5" required>
+                               placeholder="/srv/glassfish6.2.5" value="/srv/glassfish6.2.5" required>
                     </div>
 
                     <!-- Setor -->
@@ -310,7 +299,7 @@
                     <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">Tipo de Acesso</span></label>
                         <select class="select select-bordered w-full" id="service-access-type"
-                            onchange="window.handleAccessTypeChange && window.handleAccessTypeChange()">
+                                onchange="window.handleAccessTypeChange && window.handleAccessTypeChange()">
                             <option value="local">Rede Local</option>
                             <option value="external">Acesso Externo</option>
                         </select>
@@ -321,23 +310,22 @@
                 <div class="form-control">
                     <label class="label"><span class="label-text font-semibold">Senha Admin GlassFish *</span></label>
                     <input class="input input-bordered w-full" type="password" id="service-admin-password"
-                        placeholder="Senha do painel :4848">
-                    <label class="label"><span class="label-text-alt text-gray-400 text-xs">Usada para API REST —
-                            substitui SSH na maioria das operações</span></label>
+                           placeholder="Senha do painel :4848">
+                    <label class="label"><span class="label-text-alt text-gray-400 text-xs">Usada para API REST — substitui SSH na maioria das operações</span></label>
                 </div>
 
                 <!-- Testar conexões -->
                 <div class="flex gap-3 flex-wrap">
                     <div class="flex flex-col gap-1">
                         <button type="button" class="btn btn-outline btn-info btn-sm gap-2"
-                            data-action="testSSHConnection">
+                                data-action="testSSHConnection">
                             <i class="fas fa-terminal"></i>Testar SSH
                         </button>
                         <p id="ssh-test-result" class="text-xs"></p>
                     </div>
                     <div class="flex flex-col gap-1">
                         <button type="button" class="btn btn-outline btn-success btn-sm gap-2"
-                            data-action="testAPIConnection">
+                                data-action="testAPIConnection">
                             <i class="fas fa-plug"></i>Testar API GlassFish
                         </button>
                         <p id="api-test-result" class="text-xs"></p>
@@ -371,8 +359,8 @@
     <dialog class="modal" id="logs-modal">
         <div class="modal-box max-w-4xl">
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3" data-action="closeModal"
-                    data-modal="logs-modal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
+                        data-action="closeModal" data-modal="logs-modal">✕</button>
             </form>
             <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
                 <i class="fas fa-file-lines text-info"></i>
@@ -395,8 +383,8 @@
     <dialog class="modal" id="domain-config-modal">
         <div class="modal-box max-w-2xl">
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3" data-action="closeModal"
-                    data-modal="domain-config-modal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
+                        data-action="closeModal" data-modal="domain-config-modal">✕</button>
             </form>
             <h3 class="font-bold text-lg mb-5 flex items-center gap-2">
                 <i class="fas fa-database text-primary"></i>
@@ -429,13 +417,36 @@
             </div>
             <div id="applications-content" class="space-y-2 hidden"></div>
 
-            <div class="divider my-4">Upload de Aplicação</div>
+            <div class="divider my-4">Deploy de Aplicação</div>
 
             <div class="flex flex-col gap-2">
-                <input type="file" id="application-file" class="file-input file-input-bordered w-full">
-                <button class="btn btn-info btn-sm gap-2 w-fit" id="upload-button" data-action="uploadApplication"
-                    disabled>
-                    <i class="fas fa-upload"></i>Fazer Upload
+                <!-- Área de seleção do arquivo -->
+                <label for="application-file"
+                       class="border-2 border-dashed border-base-300 rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-info hover:bg-base-200 transition-all"
+                       id="upload-drop-zone">
+                    <i class="fas fa-cloud-arrow-up text-2xl text-gray-400" id="upload-icon"></i>
+                    <span class="text-sm text-gray-500" id="upload-label">Clique para selecionar um arquivo .ear, .war ou .jar</span>
+                    <input type="file" id="application-file" class="hidden" accept=".ear,.war,.jar">
+                </label>
+
+                <!-- Preview do arquivo selecionado -->
+                <div id="file-preview" class="hidden items-center gap-3 bg-base-200 rounded-xl p-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" id="file-icon-box">
+                        <i class="fas fa-box-archive text-xl" id="file-type-icon"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-mono text-sm font-semibold truncate" id="file-name-display"></p>
+                        <p class="text-xs text-gray-400" id="file-size-display"></p>
+                    </div>
+                    <button class="btn btn-ghost btn-xs text-error" id="file-clear-btn" title="Remover">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Botão de upload -->
+                <button class="btn btn-info btn-sm gap-2" id="upload-button"
+                        data-action="uploadApplication" disabled>
+                    <i class="fas fa-upload"></i>Fazer Deploy
                 </button>
             </div>
 
@@ -453,8 +464,8 @@
     <dialog class="modal" id="maintenance-modal">
         <div class="modal-box">
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3" data-action="closeModal"
-                    data-modal="maintenance-modal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
+                        data-action="closeModal" data-modal="maintenance-modal">✕</button>
             </form>
             <h3 class="font-bold text-lg mb-5 flex items-center gap-2">
                 <i class="fas fa-screwdriver-wrench text-warning"></i>
@@ -534,5 +545,4 @@
         });
     </script>
 </body>
-
 </html>

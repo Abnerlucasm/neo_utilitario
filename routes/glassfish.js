@@ -46,7 +46,7 @@ function expandService(s) {
         installPath:     cfg.installPath     || '/srv/glassfish6.2.5',
         setor:           cfg.setor           || '',
         accessType:      cfg.accessType      || 'local',
-        productionPort:  cfg.productionPort  || 8091,
+        productionPort:  cfg.productionPort  || 8080,
         inUse:           cfg.inUse           || false,
         inUseBy:         cfg.inUseBy         || '',
         machineStatus:   cfg.machineStatus   || 'unknown',
@@ -190,7 +190,7 @@ router.post('/servicos', authMiddleware, async (req, res) => {
                 sshPassword:    b.sshPassword,
                 adminPassword:  b.adminPassword  || 'admin',
                 installPath:    b.installPath    || '/srv/glassfish6.2.5',
-                productionPort: parseInt(b.productionPort) || 8091,
+                productionPort: parseInt(b.productionPort) || 8080,
                 setor:          b.setor          || '',
                 accessType:     b.accessType     || 'local',
                 inUse:          false,
@@ -217,7 +217,7 @@ router.put('/servicos/:id', authMiddleware, async (req, res) => {
             sshPassword:    b.sshPassword    || getSshPassword(server),
             adminPassword:  b.adminPassword  || getAdminPass(server),
             installPath:    b.installPath    || getInstallPath(server),
-            productionPort: parseInt(b.productionPort) || server.config?.productionPort || 8091,
+            productionPort: parseInt(b.productionPort) || server.config?.productionPort || 8080,
             setor:          b.setor          !== undefined ? b.setor   : (server.config?.setor || ''),
             accessType:     b.accessType     || server.config?.accessType || 'local',
         };
@@ -442,26 +442,68 @@ router.get('/servicos/:id/domain-config', authMiddleware, async (req, res) => {
         const service = await Glassfish.findByPk(req.params.id);
         if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        const data = await gfAPI(
-            service,
-            'GET',
-            '/resources/jdbc-connection-pool/Pg_Neocorp_Pool'
-        );
-
-        // Extrair as propriedades do pool
-        const props   = data?.extraProperties?.entity || {};
-        const propList = data?.extraProperties?.properties || {};
-
-        const config = {
-            serverName:   propList.serverName   || props.serverName   || '',
-            user:         propList.user         || props.user         || '',
-            password:     propList.password     || props.password     || '',
-            databaseName: propList.databaseName || props.databaseName || '',
+        const base = `https://${service.ip}:${service.port}/management/domain`;
+        const auth  = Buffer.from(`admin:${getAdminPass(service)}`).toString('base64');
+        const headers = {
+            'Authorization':  `Basic ${auth}`,
+            'Accept':         'application/json',
+            'X-Requested-By': 'GlassFish REST HTML interface',
         };
 
+        // GET /property retorna as propriedades reais do pool (serverName, user, etc.)
+        // formato: { extraProperties: { properties: { serverName: "...", user: "..." } } }
+        // ou lista: { extraProperties: { properties: [ {name:"serverName", value:"..."}, ... ] } }
+        const propUrl  = `${base}/resources/jdbc-connection-pool/Pg_Neocorp_Pool/property`;
+        logger.info('[domain-config] Chamando:', propUrl);
+
+        const propRes  = await fetch(propUrl, { headers, agent: gfAgent });
+        const propText = await propRes.text();
+
+        logger.info('[domain-config] HTTP status (property):', propRes.status);
+        logger.info('[domain-config] Resposta bruta (2000 chars):', propText.slice(0, 2000));
+
+        if (!propRes.ok) {
+            return res.status(500).json({
+                error: 'Erro ao ler propriedades do pool',
+                details: `HTTP ${propRes.status}: ${propText.slice(0, 300)}`
+            });
+        }
+
+        let propData;
+        try { propData = JSON.parse(propText); } catch {
+            return res.status(500).json({ error: 'Resposta inválida do GlassFish', details: propText.slice(0, 300) });
+        }
+
+        logger.info('[domain-config] extraProperties keys:', Object.keys(propData?.extraProperties || {}));
+
+        const rawProps = propData?.extraProperties?.properties || {};
+        logger.info('[domain-config] rawProps type:', typeof rawProps, Array.isArray(rawProps) ? 'array' : 'object');
+        logger.info('[domain-config] rawProps:', JSON.stringify(rawProps, null, 2).slice(0, 1000));
+
+        // O GlassFish pode retornar properties como:
+        //   Objeto: { serverName: "...", user: "..." }
+        //   Array:  [ { name: "serverName", value: "..." }, ... ]
+        const getProp = (name) => {
+            if (Array.isArray(rawProps)) {
+                const item = rawProps.find(p => p.name === name);
+                return item?.value || '';
+            }
+            const val = rawProps[name];
+            if (val === undefined || val === null) return '';
+            return typeof val === 'object' ? (val.value || '') : String(val);
+        };
+
+        const config = {
+            serverName:   getProp('serverName'),
+            user:         getProp('user'),
+            password:     getProp('password'),
+            databaseName: getProp('databaseName'),
+        };
+
+        logger.info('[domain-config] Config extraído:', config);
         res.json(config);
     } catch (err) {
-        logger.error('Erro ao ler configurações:', err);
+        logger.error('[domain-config] Erro:', err.message);
         res.status(500).json({ error: 'Erro ao ler configurações', details: err.message });
     }
 });
@@ -472,39 +514,92 @@ router.put('/servicos/:id/domain-config', authMiddleware, async (req, res) => {
         const service = await Glassfish.findByPk(req.params.id);
         if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        const { serverName, user, password, databaseName } = req.body;
+        const { serverName, user, password, databaseName, restartAfterSave } = req.body;
 
-        // POST com application/x-www-form-urlencoded para atualizar propriedades do pool
         const base = `https://${service.ip}:${service.port}/management/domain`;
         const auth = Buffer.from(`admin:${getAdminPass(service)}`).toString('base64');
 
-        const params = new URLSearchParams();
-        params.append('serverName',   serverName   || '');
-        params.append('user',         user         || '');
-        params.append('password',     password     || '');
-        params.append('databaseName', databaseName || '');
+        // O GlassFish aceita as propriedades como JSON no corpo
+        // Cada propriedade é um objeto { name, value }
+        const properties = [
+            { name: 'serverName',   value: serverName   || '' },
+            { name: 'user',         value: user         || '' },
+            { name: 'password',     value: password     || '' },
+            { name: 'databaseName', value: databaseName || '' },
+        ];
 
-        const poolRes = await fetch(
-            `${base}/resources/jdbc-connection-pool/Pg_Neocorp_Pool/property`,
-            {
-                method:  'POST',
-                headers: {
-                    'Authorization':   `Basic ${auth}`,
-                    'X-Requested-By':  'GlassFish REST HTML interface',
-                    'Content-Type':    'application/x-www-form-urlencoded',
-                    'Accept':          'application/json',
-                },
-                body:  params.toString(),
-                agent: gfAgent,
+        // Tentar primeiro com JSON (GlassFish 6)
+        let saveOk = false;
+        try {
+            const jsonRes = await fetch(
+                `${base}/resources/jdbc-connection-pool/Pg_Neocorp_Pool/property`,
+                {
+                    method:  'POST',
+                    headers: {
+                        'Authorization':  `Basic ${auth}`,
+                        'X-Requested-By': 'GlassFish REST HTML interface',
+                        'Content-Type':   'application/json',
+                        'Accept':         'application/json',
+                    },
+                    body:  JSON.stringify({ property: properties }),
+                    agent: gfAgent,
+                }
+            );
+            if (jsonRes.ok) saveOk = true;
+        } catch { /* ignorado, tentará form-urlencoded */ }
+
+        // Fallback: form-urlencoded
+        if (!saveOk) {
+            const params = new URLSearchParams();
+            params.append('serverName',   serverName   || '');
+            params.append('user',         user         || '');
+            params.append('password',     password     || '');
+            params.append('databaseName', databaseName || '');
+
+            const poolRes = await fetch(
+                `${base}/resources/jdbc-connection-pool/Pg_Neocorp_Pool/property`,
+                {
+                    method:  'POST',
+                    headers: {
+                        'Authorization':   `Basic ${auth}`,
+                        'X-Requested-By':  'GlassFish REST HTML interface',
+                        'Content-Type':    'application/x-www-form-urlencoded',
+                        'Accept':          'application/json',
+                    },
+                    body:  params.toString(),
+                    agent: gfAgent,
+                }
+            );
+
+            if (!poolRes.ok) {
+                const err = await poolRes.json().catch(() => ({}));
+                throw new Error(err.message || `HTTP ${poolRes.status} ao salvar pool`);
             }
-        );
-
-        if (!poolRes.ok) {
-            const err = await poolRes.json().catch(() => ({}));
-            throw new Error(err.message || `HTTP ${poolRes.status}`);
+            saveOk = true;
         }
 
-        res.json({ message: 'Configurações atualizadas com sucesso' });
+        // ── Restart automático se solicitado ──────────────────────────────────
+        // Alterar propriedades do pool JDBC requer restart do GlassFish
+        if (restartAfterSave) {
+            try {
+                await gfAPI(service, 'POST', '/restart', {}, 60000);
+                await service.update({ status: 'active' });
+                logger.info(`GlassFish reiniciado após salvar domain-config para ${service.name}`);
+                return res.json({
+                    message: 'Configurações salvas e servidor reiniciado com sucesso',
+                    restarted: true
+                });
+            } catch (restartErr) {
+                logger.warn('Configurações salvas mas restart falhou:', restartErr.message);
+                return res.json({
+                    message: 'Configurações salvas. Reiniciar o servidor manualmente para aplicar.',
+                    restarted: false,
+                    restartError: restartErr.message
+                });
+            }
+        }
+
+        res.json({ message: 'Configurações salvas. Reinicie o servidor para aplicar.', restarted: false });
     } catch (err) {
         logger.error('Erro ao salvar configurações:', err);
         res.status(500).json({ error: 'Erro ao salvar configurações', details: err.message });
@@ -517,15 +612,90 @@ router.get('/servicos/:id/applications', authMiddleware, async (req, res) => {
         const service = await Glassfish.findByPk(req.params.id);
         if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        const data = await gfAPI(service, 'GET', '/applications');
-        const childResources = data?.extraProperties?.childResources || {};
+        // Log bruto completo para diagnóstico definitivo
+        const rawA = await gfAPI(service, 'GET', '/applications').catch(e => ({ _error: e.message }));
+        const rawB = await gfAPI(service, 'GET', '/applications/application').catch(e => ({ _error: e.message }));
 
-        const applications = Object.entries(childResources).map(([name, url]) => ({
-            name,
-            status:  'deployed',
-            enabled: true,
-            url,
-        }));
+        logger.info('[applications] FULL /applications:', JSON.stringify(rawA, null, 2).slice(0, 3000));
+        logger.info('[applications] FULL /applications/application:', JSON.stringify(rawB, null, 2).slice(0, 3000));
+
+        const applications = [];
+
+        // Tentar extrair de /applications/application primeiro, depois /applications
+        const extractApps = (data, sourceLabel) => {
+            if (!data || data._error) return;
+
+            const childResources = data?.extraProperties?.childResources || {};
+            const entity         = data?.extraProperties?.entity;
+
+            // childResources como objeto { nome: url }
+            if (Object.keys(childResources).length > 0) {
+                for (const [name, url] of Object.entries(childResources)) {
+                    // Pular entradas que claramente são sub-rotas e não aplicações
+                    if (!name || name === 'application' || name === 'lifecycle' || name === '__asadmin') continue;
+                    if (applications.find(a => a.name === name)) continue; // evitar duplicatas
+
+                    logger.info(`[applications][${sourceLabel}] found:`, name);
+                    applications.push({ name, enabled: true, status: 'deployed', fileName: '', location: '', url });
+                }
+            }
+
+            // entity como array de aplicações
+            if (Array.isArray(entity)) {
+                entity.forEach(app => {
+                    const name = app.name || String(app);
+                    if (!name || applications.find(a => a.name === name)) return;
+                    logger.info(`[applications][${sourceLabel}] entity found:`, name);
+                    const location = app.location || '';
+                    applications.push({
+                        name,
+                        enabled:  app.enabled !== 'false' && app.enabled !== false,
+                        status:   'deployed',
+                        fileName: location ? location.replace(/^file:/, '').split('/').pop() : '',
+                        location,
+                        appType:  app['object-type'] || '',
+                    });
+                });
+            }
+
+            // entity como objeto único (uma só app)
+            if (entity && typeof entity === 'object' && !Array.isArray(entity) && entity.name) {
+                if (!applications.find(a => a.name === entity.name)) {
+                    const location = entity.location || '';
+                    logger.info(`[applications][${sourceLabel}] single entity:`, entity.name);
+                    applications.push({
+                        name:     entity.name,
+                        enabled:  entity.enabled !== 'false' && entity.enabled !== false,
+                        status:   'deployed',
+                        fileName: location ? location.replace(/^file:/, '').split('/').pop() : '',
+                        location,
+                        appType:  entity['object-type'] || '',
+                    });
+                }
+            }
+        };
+
+        extractApps(rawB, '/application');
+        extractApps(rawA, '/applications');
+
+        // Buscar detalhes (fileName, location) para apps que ainda não têm
+        for (const app of applications) {
+            if (app.fileName || app.location) continue;
+            try {
+                const detail  = await gfAPI(service, 'GET', `/applications/application/${app.name}`);
+                const entity  = detail?.extraProperties?.entity || {};
+                const location = entity.location || entity['archive-name'] || '';
+                app.enabled   = entity.enabled !== 'false' && entity.enabled !== false;
+                app.location  = location;
+                app.appType   = entity['object-type'] || '';
+                app.fileName  = location ? location.replace(/^file:/, '').split('/').pop() : '';
+                logger.info(`[applications] detail ${app.name}:`, { location, fileName: app.fileName });
+            } catch (e) {
+                logger.warn(`[applications] sem detalhe para ${app.name}:`, e.message);
+            }
+        }
+
+        logger.info('[applications] total encontradas:', applications.length, applications.map(a => a.name));
 
         res.json({ status: 'success', applications });
     } catch (err) {
