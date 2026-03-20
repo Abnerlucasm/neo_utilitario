@@ -25,7 +25,7 @@
   },
   {
     "title": "Sugestões",
-    "path": "https://github.com/Abnerlucasm/neo_utilitario/issues",
+    "path": "https://github.com/Abnerlucasm/neo_utilitario/discussions",
     "icon": "fas fa-lightbulb",
     "order": 4,
     "is_admin_only": false,
