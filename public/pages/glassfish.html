@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 
 <head>
     <meta charset="UTF-8">
@@ -7,474 +7,515 @@
     <meta name="theme-color" content="#00d1b2">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="../icons/icon-192x192.png">
-    <title>Gerenciamento Glassfish</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="../styles/glassfish.css">
-    <script src="../components/navbar/navbar.js"></script>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <title>Gerenciamento Glassfish</title>
 
-    <!-- Script para aplicar tema imediatamente -->
+    <!-- DaisyUI + Tailwind -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Scripts de tema -->
+    <script src="/services/theme/theme-service.js"></script>
+    <script type="module" src="/components/theme-selector/theme-selector.js"></script>
 
     <style>
-        .modal {
-            z-index: 1000;
+        /* ── Gradiente hero ───────────────────────────────────── */
+        .hero-glassfish {
+            background: linear-gradient(135deg, #00d1b2 0%, #0a0a1a 100%);
         }
 
-        .modal-backdrop {
-            z-index: 1001;
+        /* ── Card de servidor ─────────────────────────────────── */
+        .server-card {
+            transition: transform .2s, box-shadow .2s;
         }
 
-        .modal-box {
-            z-index: 1002;
+        .server-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, .12);
         }
 
+        /* ── Badge de status piscando quando ativo ────────────── */
+        @keyframes pulse-green {
 
+            0%,
+            100% {
+                opacity: 1;
+            }
 
-        /* Melhorar layout geral */
-        .hero {
-            background: linear-gradient(135deg, #00d1b2 0%, #1a1a1a 100%) !important;
-            margin-bottom: 0 !important;
+            50% {
+                opacity: .5;
+            }
         }
 
-        .stat {
-            background: white !important;
-            border-radius: 1rem !important;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-            transition: transform 0.3s ease !important;
+        .badge-active-pulse {
+            animation: pulse-green 2s infinite;
         }
 
-        .stat:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15) !important;
+        /* ── Log viewer monospace ─────────────────────────────── */
+        #log-viewer,
+        #logs-content {
+            font-family: 'Courier New', monospace;
+            font-size: .8rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* ── Scroll suave no log viewer ───────────────────────── */
+        #log-viewer {
+            scroll-behavior: smooth;
+        }
+
+        /* ── Toast container ──────────────────────────────────── */
+        #toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
         }
     </style>
 </head>
 
-<body class="bg-base-100">
+<body class="bg-base-200 min-h-screen flex flex-col">
+
     <!-- Navbar -->
     <neo-navbar></neo-navbar>
 
-    <!-- Hero Section -->
-    <div class="hero bg-primary text-primary-content">
-        <div class="hero-content text-center py-12">
-            <div class="max-w-4xl">
-                <h1 class="text-5xl font-bold mb-4">
-                    Gerenciamento de Servidores Glassfish
-                </h1>
-                <p class="text-xl">
-                    Monitoramento e Controle de Instâncias
-                </p>
+    <!-- ═══ HERO ════════════════════════════════════════════════════════════ -->
+    <section class="hero-glassfish text-white py-14">
+        <div class="max-w-5xl mx-auto px-6 text-center">
+            <div class="flex justify-center mb-4">
+                <span class="bg-white/10 backdrop-blur rounded-2xl p-4">
+                    <i class="fas fa-server text-4xl text-teal-300"></i>
+                </span>
+            </div>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Gerenciamento Glassfish</h1>
+            <p class="text-teal-200 text-lg">Monitoramento e controle de instâncias</p>
+        </div>
+    </section>
+
+    <!-- ═══ STATS ════════════════════════════════════════════════════════════ -->
+    <div class="max-w-6xl mx-auto px-4 -mt-8 w-full">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Total -->
+            <div class="stat bg-base-100 shadow rounded-2xl text-center">
+                <div class="stat-figure text-primary"><i class="fas fa-server text-2xl"></i></div>
+                <div class="stat-title text-xs">Total</div>
+                <div class="stat-value text-primary text-3xl" id="stat-total">0</div>
+            </div>
+            <!-- Ativos -->
+            <div class="stat bg-base-100 shadow rounded-2xl text-center">
+                <div class="stat-figure text-success"><i class="fas fa-circle-check text-2xl"></i></div>
+                <div class="stat-title text-xs">Ativos</div>
+                <div class="stat-value text-success text-3xl" id="stat-active">0</div>
+            </div>
+            <!-- Inativos -->
+            <div class="stat bg-base-100 shadow rounded-2xl text-center">
+                <div class="stat-figure text-error"><i class="fas fa-circle-xmark text-2xl"></i></div>
+                <div class="stat-title text-xs">Inativos</div>
+                <div class="stat-value text-error text-3xl" id="stat-inactive">0</div>
+            </div>
+            <!-- Em uso -->
+            <div class="stat bg-base-100 shadow rounded-2xl text-center">
+                <div class="stat-figure text-warning"><i class="fas fa-user-clock text-2xl"></i></div>
+                <div class="stat-title text-xs">Em Uso</div>
+                <div class="stat-value text-warning text-3xl" id="stat-inuse">0</div>
             </div>
         </div>
     </div>
 
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <!-- Dashboard Stats -->
-        <div class="flex flex-wrap justify-center gap-8 mb-10">
-            <div
-                class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
-                <div class="stat-figure text-primary mb-2">
-                    <i class="fas fa-server text-3xl"></i>
+    <!-- ═══ MAIN CONTENT ═════════════════════════════════════════════════════ -->
+    <main class="max-w-6xl mx-auto px-4 py-8 w-full flex-1">
+
+        <!-- Barra de filtros + botão adicionar -->
+        <div class="card bg-base-100 shadow mb-6">
+            <div class="card-body p-4">
+                <div class="flex flex-wrap gap-3 items-end">
+                    <!-- Busca -->
+                    <div class="form-control flex-1 min-w-44">
+                        <label class="label py-1"><span class="label-text text-xs font-semibold">Buscar</span></label>
+                        <label class="input input-bordered input-sm flex items-center gap-2">
+                            <i class="fas fa-search text-gray-400 text-xs"></i>
+                            <input type="text" id="search-input" placeholder="Nome, IP, domínio…" class="grow">
+                        </label>
+                    </div>
+                    <!-- Status -->
+                    <div class="form-control min-w-36">
+                        <label class="label py-1"><span class="label-text text-xs font-semibold">Status</span></label>
+                        <select class="select select-bordered select-sm" id="filter-status">
+                            <option value="all">Todos</option>
+                            <option value="active">Ativos</option>
+                            <option value="inactive">Inativos</option>
+                        </select>
+                    </div>
+                    <!-- Setor -->
+                    <div class="form-control min-w-44">
+                        <label class="label py-1"><span class="label-text text-xs font-semibold">Setor</span></label>
+                        <select class="select select-bordered select-sm" id="filter-setor">
+                            <option value="all">Todos os setores</option>
+                            <option value="Setor Sup. Externo">Sup. Externo</option>
+                            <option value="Setor Sup. Interno">Sup. Interno</option>
+                        </select>
+                    </div>
+                    <!-- Ações -->
+                    <div class="flex gap-2">
+                        <button class="btn btn-sm btn-ghost" data-action="refresh" title="Atualizar">
+                            <i class="fas fa-rotate-right"></i>
+                        </button>
+                        <button class="btn btn-sm btn-primary gap-2" data-action="openAddModal">
+                            <i class="fas fa-plus"></i>
+                            <span class="hidden sm:inline">Adicionar</span>
+                        </button>
+                    </div>
+                    <!-- Contador -->
+                    <p id="results-count" class="text-xs text-gray-400 self-end pb-1"></p>
                 </div>
-                <div class="stat-title text-gray-600 text-xs tracking-widest uppercase">Total de Servidores</div>
-                <div class="stat-value text-primary text-3xl font-bold" id="total-servers">0</div>
-            </div>
-            <div
-                class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
-                <div class="stat-figure text-success mb-2">
-                    <i class="fas fa-server text-3xl"></i>
-                </div>
-                <div class="stat-title text-gray-600 text-xs tracking-widest uppercase">Servidores Ativos</div>
-                <div class="stat-value text-success text-3xl font-bold" id="active-servers">0</div>
-            </div>
-            <div
-                class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
-                <div class="stat-figure text-info mb-2">
-                    <i class="fas fa-memory text-3xl"></i>
-                </div>
-                <div class="stat-title text-gray-600 text-xs tracking-widest uppercase">RAM Média</div>
-                <div class="stat-value text-info text-3xl font-bold" id="avg-ram-usage">0%</div>
-                <progress class="progress progress-info w-full mt-2" id="ram-progress" value="0" max="100"></progress>
-            </div>
-            <div
-                class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
-                <div class="stat-figure text-warning mb-2">
-                    <i class="fas fa-microchip text-3xl"></i>
-                </div>
-                <div class="stat-title text-gray-600 text-xs tracking-widest uppercase">CPU Média</div>
-                <div class="stat-value text-warning text-3xl font-bold" id="avg-cpu-usage">0%</div>
-                <progress class="progress progress-warning w-full mt-2" id="cpu-progress" value="0"
-                    max="100"></progress>
             </div>
         </div>
 
-        <!-- Filtros e Controles -->
-        <div class="flex justify-center mb-8">
-            <div class="card bg-base-100 shadow-md border border-gray-100 w-full max-w-4xl">
-                <div class="card-body p-6">
-                    <div class="flex flex-wrap gap-4 items-end justify-center">
-                        <div class="form-control flex-1 min-w-48">
-                            <label class="label">
-                                <span class="label-text text-gray-600 text-sm">Status</span>
-                            </label>
-                            <select class="select select-bordered w-full" id="filter-status" data-action="filter">
-                                <option value="all">Todos os Status</option>
-                                <option value="active">Ativos</option>
-                                <option value="inactive">Inativos</option>
-                            </select>
-                        </div>
-                        <div class="form-control flex-1 min-w-48">
-                            <label class="label">
-                                <span class="label-text text-gray-600 text-sm">Setor</span>
-                            </label>
-                            <select class="select select-bordered w-full" id="filter-setor" data-action="filter">
-                                <option value="all">Todos os Setores</option>
-                                <option value="Setor Sup. Externo">Setor Sup. Externo</option>
-                                <option value="Setor Sup. Interno">Setor Sup. Interno</option>
-                            </select>
-                        </div>
-                        <div class="form-control flex-1 min-w-48">
-                            <label class="label">
-                                <span class="label-text text-gray-600 text-sm">Buscar</span>
-                            </label>
-                            <input type="text" class="input input-bordered w-full" id="search-input"
-                                placeholder="Buscar por título" data-action="filter">
-                        </div>
-                        <div class="flex items-end gap-4">
-                            <button class="btn btn-primary" data-action="refresh">
-                                <i class="fas fa-sync mr-2"></i>
-                                Atualizar
-                            </button>
-                            <p id="results-count" class="font-semibold text-gray-600"></p>
-                        </div>
+        <!-- Mensagem vazio -->
+        <div id="empty-message" class="alert alert-info mb-6 hidden">
+            <i class="fas fa-info-circle"></i>
+            <span>Nenhum serviço Glassfish cadastrado. Clique em <strong>Adicionar</strong> para começar.</span>
+        </div>
+
+        <!-- Grid de cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="cards-container">
+            <!-- Skeleton de loading -->
+            <div class="card bg-base-100 shadow animate-pulse">
+                <div class="card-body gap-3">
+                    <div class="h-4 bg-base-300 rounded w-3/4"></div>
+                    <div class="h-3 bg-base-300 rounded w-1/2"></div>
+                    <div class="h-3 bg-base-300 rounded w-2/3"></div>
+                </div>
+            </div>
+            <div class="card bg-base-100 shadow animate-pulse">
+                <div class="card-body gap-3">
+                    <div class="h-4 bg-base-300 rounded w-3/4"></div>
+                    <div class="h-3 bg-base-300 rounded w-1/2"></div>
+                    <div class="h-3 bg-base-300 rounded w-2/3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Viewer inline -->
+        <div class="card bg-neutral text-neutral-content shadow-lg mt-8" id="log-viewer-card">
+            <div class="card-body p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="card-title text-sm gap-2">
+                        <i class="fas fa-terminal text-teal-400"></i>
+                        Visualizador de Log
+                        <span class="badge badge-sm badge-success badge-active-pulse hidden"
+                            id="log-live-badge">LIVE</span>
+                    </h2>
+                    <div class="flex gap-2">
+                        <button class="btn btn-xs btn-outline btn-success" data-action="toggleLogViewer">
+                            <i class="fas fa-play mr-1"></i>Ativar
+                        </button>
+                        <button class="btn btn-xs btn-outline btn-ghost" data-action="clearLogViewer">
+                            <i class="fas fa-trash mr-1"></i>Limpar
+                        </button>
                     </div>
                 </div>
+                <div id="log-viewer" class="bg-black/40 rounded-lg p-3 h-48 overflow-y-auto text-green-400 text-xs">
+                    <span class="text-gray-500">— Nenhum log ativo. Selecione um servidor e ative o log. —</span>
+                </div>
             </div>
         </div>
+    </main>
 
-        <!-- Mensagem inicial -->
-        <div id="empty-message" class="alert alert-info mb-6 max-w-3xl mx-auto">
-            <i class="fas fa-info-circle"></i>
-            <span>Nenhum serviço Glassfish cadastrado. Clique no botão "Adicionar Serviço" para adicionar.</span>
-        </div>
+    <!-- ═══ MODAIS ════════════════════════════════════════════════════════════ -->
 
-        <!-- Botão para adicionar -->
-        <div class="flex justify-center mb-10">
-            <button class="btn btn-primary btn-lg shadow-md hover:shadow-lg transition-all duration-300"
-                data-action="openAddModal" title="Adicionar Serviço">
-                <i class="fas fa-plus mr-2"></i>
-                Adicionar Serviço
-            </button>
-        </div>
-
-        <!-- Grid de Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="cards-container"></div>
-    </div>
-
-    <!-- Modal para Adicionar/Editar Glassfish -->
-    <div class="modal" id="add-modal">
+    <!-- Modal: Adicionar / Editar Glassfish -->
+    <dialog class="modal" id="add-modal">
         <div class="modal-box max-w-2xl">
-            <h3 class="font-bold text-lg mb-4" id="modal-title">Adicionar Glassfish</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
                     data-action="closeAddModal">✕</button>
             </form>
-            <div class="space-y-4">
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Nome do Serviço</span>
-                    </label>
-                    <input class="input input-bordered w-full" type="text" id="service-name"
-                        placeholder="Nome do serviço">
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">IP</span>
-                    </label>
-                    <input class="input input-bordered w-full" type="text" id="service-ip" required>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
+            <h3 class="font-bold text-lg mb-5" id="modal-title">Adicionar Glassfish</h3>
+            <form id="service-form" class="space-y-4">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Nome -->
+                    <div class="form-control sm:col-span-2">
+                        <label class="label"><span class="label-text font-semibold">Nome do Serviço *</span></label>
+                        <input class="input input-bordered w-full" type="text" id="service-name"
+                            placeholder="Ex: GF-PROD-01" required>
+                    </div>
+
+                    <!-- IP -->
                     <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Porta Admin</span>
-                        </label>
+                        <label class="label"><span class="label-text font-semibold">IP / Host *</span></label>
+                        <input class="input input-bordered w-full" type="text" id="service-ip"
+                            placeholder="192.168.1.100" required>
+                    </div>
+
+                    <!-- Domínio -->
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Domínio *</span></label>
+                        <input class="input input-bordered w-full" type="text" id="service-domain" placeholder="domain1"
+                            required>
+                    </div>
+
+                    <!-- Porta Admin -->
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Porta Admin</span></label>
                         <input class="input input-bordered w-full" type="number" id="service-port" value="4848">
                     </div>
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Porta Produção</span>
-                        </label>
-                        <input class="input input-bordered w-full" type="number" id="production-port"
-                            placeholder="Porta de Produção" value="8091">
+
+                    <!-- Porta Produção -->
+                    <div class="form-control" id="production-port-field">
+                        <label class="label"><span class="label-text font-semibold">Porta Produção</span></label>
+                        <input class="input input-bordered w-full" type="number" id="production-port" value="8080">
                     </div>
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Domínio</span>
-                    </label>
-                    <input class="input input-bordered w-full" type="text" id="service-domain"
-                        placeholder="Domínio do serviço">
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Setor</span>
-                    </label>
-                    <select class="select select-bordered w-full" id="service-category">
-                        <option value="Setor Sup. Externo">Setor Sup. Externo</option>
-                        <option value="Setor Sup. Interno">Setor Sup. Interno</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
+
+                    <!-- Usuário SSH -->
                     <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Usuário SSH</span>
-                        </label>
-                        <input class="input input-bordered w-full" type="text" id="service-ssh-username" required>
+                        <label class="label"><span class="label-text font-semibold">Usuário SSH *</span></label>
+                        <input class="input input-bordered w-full" type="text" id="service-ssh-username"
+                            placeholder="root" required>
                     </div>
+
+                    <!-- Senha SSH -->
                     <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Senha SSH</span>
-                        </label>
+                        <label class="label"><span class="label-text font-semibold">Senha SSH *</span></label>
                         <input class="input input-bordered w-full" type="password" id="service-ssh-password" required>
                     </div>
+
+                    <!-- Caminho instalação -->
+                    <div class="form-control sm:col-span-2">
+                        <label class="label"><span class="label-text font-semibold">Caminho de Instalação
+                                *</span></label>
+                        <input class="input input-bordered w-full" type="text" id="service-install-path"
+                            placeholder="/srv/glassfish6.2.5" value="/srv/glassfish6.2.5" required>
+                    </div>
+
+                    <!-- Setor -->
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Setor</span></label>
+                        <select class="select select-bordered w-full" id="service-category">
+                            <option value="Setor Sup. Externo">Sup. Externo</option>
+                            <option value="Setor Sup. Interno">Sup. Interno</option>
+                        </select>
+                    </div>
+
+                    <!-- Tipo de acesso -->
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Tipo de Acesso</span></label>
+                        <select class="select select-bordered w-full" id="service-access-type"
+                            onchange="window.handleAccessTypeChange && window.handleAccessTypeChange()">
+                            <option value="local">Rede Local</option>
+                            <option value="external">Acesso Externo</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-control">
-                    <button class="btn btn-info" data-action="testSSHConnection">
-                        <i class="fas fa-network-wired mr-2"></i>
+
+                <!-- Testar SSH -->
+                <div class="flex flex-col gap-1">
+                    <button type="button" class="btn btn-outline btn-info btn-sm w-fit gap-2"
+                        data-action="testSSHConnection">
+                        <i class="fas fa-network-wired"></i>
                         Testar Conexão SSH
                     </button>
-                    <p id="ssh-test-result" class="text-sm mt-2"></p>
+                    <p id="ssh-test-result" class="text-sm"></p>
                 </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Caminho de Instalação</span>
-                    </label>
-                    <input class="input input-bordered w-full" type="text" id="service-install-path"
-                        placeholder="/srv/glassfish6.2.5/" value="/srv/glassfish6.2.5/">
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Tipo de Acesso</span>
-                    </label>
-                    <select class="select select-bordered w-full" id="service-access-type"
-                        onchange="handleAccessTypeChange()">
-                        <option value="local">Rede Local</option>
-                        <option value="external">Acesso Externo</option>
-                    </select>
-                </div>
-                <div class="flex gap-2">
-                    <button class="btn btn-link flex-1" data-action="openAdminPanel">
-                        <i class="fas fa-external-link-alt mr-2"></i>
-                        Acessar Painel Admin
+
+                <!-- Atalhos -->
+                <div class="flex gap-2 pt-1">
+                    <button type="button" class="btn btn-ghost btn-sm gap-2" data-action="openAdminPanel">
+                        <i class="fas fa-external-link-alt"></i>Painel Admin
                     </button>
-                    <button class="btn btn-link flex-1" data-action="accessNeoWeb">
-                        <i class="fas fa-external-link-alt mr-2"></i>
-                        Acessar NeoWeb
+                    <button type="button" class="btn btn-ghost btn-sm gap-2" data-action="accessNeoWeb">
+                        <i class="fas fa-external-link-alt"></i>NeoWeb
                     </button>
                 </div>
-            </div>
-            <div class="modal-action">
-                <button class="btn btn-success" data-action="saveGlassfish">
-                    <i class="fas fa-save mr-2"></i>
-                    Salvar
-                </button>
-                <button class="btn" data-action="closeAddModal">
-                    <i class="fas fa-times mr-2"></i>
-                    Cancelar
+            </form>
+
+            <div class="modal-action pt-4 border-t border-base-200 mt-4">
+                <button class="btn btn-ghost" data-action="closeAddModal">Cancelar</button>
+                <button class="btn btn-primary gap-2" data-action="saveGlassfish">
+                    <i class="fas fa-save"></i>Salvar
                 </button>
             </div>
         </div>
-    </div>
-
-    <!-- Modal para Detalhes do Serviço -->
-    <dialog class="modal" id="serviceDetailsModal">
-        <div class="modal-box">
-            <h3 class="font-bold text-lg mb-4">Detalhes do Serviço</h3>
-            <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
-                    data-modal="serviceDetailsModal">✕</button>
-            </form>
-            <div class="space-y-2">
-                <p><strong>Nome:</strong> <span id="serviceName"></span></p>
-                <p><strong>IP:</strong> <span id="serviceIP"></span></p>
-                <p><strong>Porta:</strong> <span id="servicePort"></span></p>
-                <p><strong>Domínio:</strong> <span id="serviceDomain"></span></p>
-                <p><strong>Status:</strong> <span id="serviceStatus"></span></p>
-            </div>
-        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button data-action="closeAddModal">close</button>
+        </form>
     </dialog>
 
-    <!-- Modal para Nome do Usuário -->
-    <dialog class="modal" id="userNameModal">
-        <div class="modal-box">
-            <h3 class="font-bold text-lg mb-4">Marcar como Em Uso</h3>
-            <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
-                    data-modal="userNameModal">✕</button>
-            </form>
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text">Nome do Usuário</span>
-                </label>
-                <input class="input input-bordered w-full" type="text" id="userNameInput" placeholder="Digite seu nome">
-            </div>
-            <div class="modal-action">
-                <button class="btn btn-success" data-action="saveUserName">Salvar</button>
-            </div>
-        </div>
-    </dialog>
-
-    <!-- Modal para Logs -->
+    <!-- Modal: Logs -->
     <dialog class="modal" id="logs-modal">
         <div class="modal-box max-w-4xl">
-            <h3 class="font-bold text-lg mb-4">Logs do Serviço</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3" data-action="closeModal"
                     data-modal="logs-modal">✕</button>
             </form>
-            <div class="bg-base-300 p-4 rounded-lg">
-                <pre id="logs-content" class="logs-content text-sm"></pre>
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i class="fas fa-file-lines text-info"></i>
+                Logs do Serviço — <span id="logs-modal-title" class="font-mono text-base text-gray-500"></span>
+            </h3>
+            <div class="bg-black rounded-xl p-4 max-h-96 overflow-y-auto">
+                <pre id="logs-content" class="text-green-400 text-xs whitespace-pre-wrap"></pre>
+            </div>
+            <div class="modal-action">
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('logs-content').textContent=''">
+                    <i class="fas fa-trash mr-1"></i>Limpar
+                </button>
+                <form method="dialog"><button class="btn btn-sm">Fechar</button></form>
             </div>
         </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
     </dialog>
 
-    <!-- Modal para Configuração do Domínio -->
+    <!-- Modal: Configuração do Domínio -->
     <dialog class="modal" id="domain-config-modal">
         <div class="modal-box max-w-2xl">
-            <h3 class="font-bold text-lg mb-4">Configuração do Domínio</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3" data-action="closeModal"
                     data-modal="domain-config-modal">✕</button>
             </form>
-            <div class="space-y-4">
+            <h3 class="font-bold text-lg mb-5 flex items-center gap-2">
+                <i class="fas fa-database text-primary"></i>
+                Configuração do Domínio
+            </h3>
+
+            <div class="space-y-3">
                 <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Servidor do Banco</span>
-                    </label>
-                    <input class="input input-bordered w-full" type="text" id="db-server" placeholder="Ex: localhost">
-                    <span class="loading loading-spinner loading-sm" id="db-server-loading"></span>
+                    <label class="label"><span class="label-text font-semibold">Servidor do Banco</span></label>
+                    <input class="input input-bordered w-full" type="text" id="db-server" placeholder="localhost">
                 </div>
                 <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Usuário do Banco</span>
-                    </label>
-                    <input class="input input-bordered w-full" type="text" id="db-user" placeholder="Ex: root">
-                    <span class="loading loading-spinner loading-sm" id="db-user-loading"></span>
+                    <label class="label"><span class="label-text font-semibold">Usuário</span></label>
+                    <input class="input input-bordered w-full" type="text" id="db-user" placeholder="postgres">
                 </div>
                 <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Senha do Banco</span>
-                    </label>
+                    <label class="label"><span class="label-text font-semibold">Senha</span></label>
                     <input class="input input-bordered w-full" type="password" id="db-password">
-                    <span class="loading loading-spinner loading-sm" id="db-password-loading"></span>
                 </div>
                 <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Nome do Banco</span>
-                    </label>
-                    <input class="input input-bordered w-full" type="text" id="db-name" placeholder="Ex: neoweb">
-                    <span class="loading loading-spinner loading-sm" id="db-name-loading"></span>
-                </div>
-                <div class="form-control">
-                    <button class="btn btn-success" data-action="saveDomainConfig">Salvar Configurações</button>
-                </div>
-                <div class="divider"></div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Aplicações Instaladas</span>
-                    </label>
-                    <div id="applications-loading" class="loading loading-spinner loading-md"></div>
-                    <div id="applications-content" class="applications-list"></div>
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Upload de Aplicação</span>
-                    </label>
-                    <div class="file-input file-input-bordered w-full">
-                        <input type="file" id="application-file" class="file-input file-input-bordered w-full" />
-                    </div>
-                    <button class="btn btn-info mt-2" id="upload-button" data-action="uploadApplication" disabled>
-                        <i class="fas fa-upload mr-2"></i>
-                        Fazer Upload
-                    </button>
+                    <label class="label"><span class="label-text font-semibold">Nome do Banco</span></label>
+                    <input class="input input-bordered w-full" type="text" id="db-name" placeholder="neoweb">
                 </div>
             </div>
+
+            <div class="divider my-4">Aplicações Instaladas</div>
+
+            <div id="applications-loading" class="flex justify-center py-4">
+                <span class="loading loading-spinner loading-md text-primary"></span>
+            </div>
+            <div id="applications-content" class="space-y-2 hidden"></div>
+
+            <div class="divider my-4">Upload de Aplicação</div>
+
+            <div class="flex flex-col gap-2">
+                <input type="file" id="application-file" class="file-input file-input-bordered w-full">
+                <button class="btn btn-info btn-sm gap-2 w-fit" id="upload-button" data-action="uploadApplication"
+                    disabled>
+                    <i class="fas fa-upload"></i>Fazer Upload
+                </button>
+            </div>
+
+            <div class="modal-action border-t border-base-200 mt-5 pt-4">
+                <form method="dialog"><button class="btn btn-ghost">Cancelar</button></form>
+                <button class="btn btn-success gap-2" data-action="saveDomainConfig">
+                    <i class="fas fa-save"></i>Salvar Configurações
+                </button>
+            </div>
         </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
     </dialog>
 
-    <!-- Modal para Manutenção -->
+    <!-- Modal: Manutenção -->
     <dialog class="modal" id="maintenance-modal">
         <div class="modal-box">
-            <h3 class="font-bold text-lg mb-4">Manutenção do Serviço</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3" data-action="closeModal"
                     data-modal="maintenance-modal">✕</button>
             </form>
-            <div class="space-y-4">
-                <label class="label cursor-pointer">
-                    <span class="label-text">Limpar diretório de aplicações</span>
-                    <input type="checkbox" class="checkbox" id="clean-applications">
+            <h3 class="font-bold text-lg mb-5 flex items-center gap-2">
+                <i class="fas fa-screwdriver-wrench text-warning"></i>
+                Manutenção do Serviço
+            </h3>
+
+            <div class="space-y-3">
+                <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" class="checkbox checkbox-warning" id="clean-applications">
+                    <div>
+                        <span class="label-text font-semibold">Limpar Applications</span>
+                        <p class="text-xs text-gray-400">/domains/{domain}/applications</p>
+                    </div>
                 </label>
-                <label class="label cursor-pointer">
-                    <span class="label-text">Limpar diretório de logs</span>
-                    <input type="checkbox" class="checkbox" id="clean-logs">
+                <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" class="checkbox checkbox-warning" id="clean-logs">
+                    <div>
+                        <span class="label-text font-semibold">Limpar Logs</span>
+                        <p class="text-xs text-gray-400">/domains/{domain}/logs</p>
+                    </div>
                 </label>
-                <label class="label cursor-pointer">
-                    <span class="label-text">Limpar diretório generated</span>
-                    <input type="checkbox" class="checkbox" id="clean-generated">
+                <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" class="checkbox checkbox-warning" id="clean-generated">
+                    <div>
+                        <span class="label-text font-semibold">Limpar Generated</span>
+                        <p class="text-xs text-gray-400">/domains/{domain}/generated</p>
+                    </div>
                 </label>
-                <label class="label cursor-pointer">
-                    <span class="label-text">Limpar diretório autodeploy</span>
-                    <input type="checkbox" class="checkbox" id="clean-autodeploy">
+                <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" class="checkbox checkbox-warning" id="clean-autodeploy">
+                    <div>
+                        <span class="label-text font-semibold">Limpar Autodeploy</span>
+                        <p class="text-xs text-gray-400">/domains/{domain}/autodeploy</p>
+                    </div>
                 </label>
-                <div class="modal-action">
-                    <button class="btn btn-error" data-action="executeMaintenance">Executar Manutenção</button>
-                </div>
+            </div>
+
+            <div class="alert alert-warning mt-4 text-sm">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>Esta operação é irreversível. Certifique-se de que o serviço está parado.</span>
+            </div>
+
+            <div class="modal-action">
+                <form method="dialog"><button class="btn btn-ghost">Cancelar</button></form>
+                <button class="btn btn-error gap-2" data-action="executeMaintenance">
+                    <i class="fas fa-trash"></i>Executar Manutenção
+                </button>
             </div>
         </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
     </dialog>
 
-    <div class="card bg-base-200 shadow-lg mx-4 mb-8">
-        <div class="card-body">
-            <h2 class="card-title text-lg">Visualizador de Log</h2>
-            <div id="log-viewer" class="bg-base-300 p-4 rounded-lg max-h-64 overflow-y-auto">
-                <!-- As mensagens de log serão inseridas aqui -->
-            </div>
-            <div class="card-actions justify-end mt-4">
-                <button class="btn btn-sm" data-action="toggleLogViewer">Ativar/Desativar Log</button>
-                <button class="btn btn-sm" data-action="clearLogViewer">Limpar Log</button>
-            </div>
-        </div>
-    </div>
+    <!-- Modal userNameModal removido — usuário identificado automaticamente via JWT -->
 
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <!-- Footer -->
     <neo-footer></neo-footer>
 
     <!-- Scripts -->
     <script src="/js/auth.js"></script>
-    <script src="/js/glassfish.js" type="module"></script>
     <script type="module" src="/components/navbar/navbar.js"></script>
     <script type="module" src="/components/footer/footer.js"></script>
-    <script type="module">
-        if (true) {
-            window.location.href = '/pages/manutencao.html';
-        }
+    <script type="module" src="/js/glassfish.js"></script>
 
-        // Aguardar o carregamento do DOM e do AuthManager
+    <script>
+        // Redirecionar se em manutenção (mantenha sua lógica original aqui)
+        // if (emManutencao) window.location.href = '/pages/manutencao.html';
+
         window.addEventListener('load', async () => {
             try {
-                // Verificar autenticação
-                if (typeof AuthManager !== 'undefined') {
-                    await AuthManager.checkAuth();
-                } else {
-                    console.error('AuthManager não está definido');
-                }
-            } catch (error) {
-                console.error('Erro ao inicializar a página:', error);
+                if (typeof AuthManager !== 'undefined') await AuthManager.checkAuth();
+            } catch (e) {
+                console.error('Erro ao verificar autenticação:', e);
             }
         });
     </script>
-
 </body>
 
 </html>

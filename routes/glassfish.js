@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { Client } = require('ssh2');
 const { NodeSSH } = require('node-ssh');
 const fs = require('fs');
 const path = require('path');
@@ -10,124 +9,82 @@ const { Glassfish } = require('../models/postgresql/associations');
 const authMiddleware = require('../middlewares/auth');
 const logger = require('../utils/logger');
 
-// Configuração do diretório de uploads
-const uploadsDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+// ─── Helper: expande config JSONB nos campos virtuais para o frontend ─────────
+function expandService(s) {
+    const base = s.toJSON ? s.toJSON() : s;
+    const cfg  = base.config || {};
+    return {
+        ...base,
+        ip:             base.host,
+        sshUsername:    base.username,
+        sshPassword:    cfg.sshPassword    || base.password || '',
+        installPath:    cfg.installPath    || '/srv/glassfish6.2.5',
+        setor:          cfg.setor          || '',
+        accessType:     cfg.accessType     || 'local',
+        productionPort: cfg.productionPort || 8080,
+        inUse:          cfg.inUse          || false,
+        inUseBy:        cfg.inUseBy        || '',
+        pid:            cfg.pid            || null,
+    };
 }
 
-// Configuração do multer
+
+// ─── Upload config ────────────────────────────────────────────────────────────
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadsDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.originalname);
-    }
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename:    (req, file, cb) => cb(null, file.originalname)
 });
+const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
 
-const upload = multer({ 
-    storage: storage,
-    limits: {
-        fileSize: 500 * 1024 * 1024 // 500MB
-    }
-});
-
-// Middleware de log
+// ─── Middleware de log ────────────────────────────────────────────────────────
 router.use((req, res, next) => {
     logger.info(`[Glassfish Router] ${req.method} ${req.url}`);
     next();
 });
 
-// Função para verificar e obter o caminho correto do Glassfish
-async function getGlassfishPath(service) {
-    const possiblePaths = [
-        '/srv/glassfish6.2.5',
-        '/opt/glassfish6.2.5',
-        '/glassfish6.2.5',
-        '/srv/glassfish',
-        '/opt/glassfish'
-    ];
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-    for (const basePath of possiblePaths) {
-        const checkCommand = `test -d "${basePath}/glassfish/bin" && echo "${basePath}"`;
-        try {
-            const result = await executeSSHCommand(service, checkCommand);
-            if (result.stdout.trim()) {
-                // Se encontrou um caminho válido diferente do atual, atualizar no banco
-                if (service.installPath !== result.stdout.trim()) {
-                    service.installPath = result.stdout.trim();
-                    await service.save();
-                    logger.info('Caminho do Glassfish atualizado:', {
-                        oldPath: service.installPath,
-                        newPath: result.stdout.trim()
-                    });
-                }
-                return result.stdout.trim();
-            }
-        } catch (error) {
-            logger.debug(`Caminho ${basePath} não encontrado:`, error);
-        }
-    }
-
-    throw new Error(`Instalação do Glassfish não encontrada no servidor ${service.ip}`);
-}
-
-// Função utilitária para executar comandos SSH com melhor tratamento de erros
+/**
+ * Executa um comando SSH no servidor remoto.
+ * Usa os getters virtuais do modelo (service.ip, service.sshUsername, etc.)
+ */
 async function executeSSHCommand(service, command, timeout = 30000) {
     const ssh = new NodeSSH();
-    
     try {
-        logger.info(`Tentando conectar via SSH a ${service.ip}`, {
-            host: service.ip,
-            username: service.sshUsername,
-            command: command
-        });
-        
+        logger.info(`SSH → ${service.ip}`, { command });
         await ssh.connect({
-            host: service.ip,
-            username: service.sshUsername,
-            password: service.sshPassword,
-            readyTimeout: timeout,
-            keepaliveInterval: 10000,
-            keepaliveCountMax: 3,
-            // Aumentar timeout para conexões lentas
-            timeout: 30000
+            host:               service.ip,         // getter virtual → host
+            username:           service.sshUsername, // getter virtual → username
+            password:           service.sshPassword, // getter virtual → config.sshPassword || password
+            readyTimeout:       timeout,
+            keepaliveInterval:  10000,
+            keepaliveCountMax:  3,
+            timeout:            30000
         });
 
         const result = await ssh.execCommand(command, {
             cwd: '/',
-            onStderr: (chunk) => {
-                logger.warn('SSH stderr:', chunk.toString('utf8'));
-            },
-            // Timeout específico para o comando
+            onStderr: (chunk) => logger.warn('SSH stderr:', chunk.toString('utf8')),
             timeout: 20000
         });
 
-        // Verificar erros comuns nos comandos
-        if (result.stderr && result.stderr.includes('No such file or directory')) {
-            throw new Error(`Diretório ou arquivo não encontrado: ${result.stderr}`);
+        if (result.stderr?.includes('No such file or directory')) {
+            throw new Error(`Arquivo/diretório não encontrado: ${result.stderr}`);
         }
-        
-        return {
-            code: result.code || 0,
-            stdout: result.stdout || '',
-            stderr: result.stderr || ''
-        };
-    } catch (error) {
-        logger.error(`Erro SSH para ${service.ip}:`, {
-            error: error.message,
-            command: command
-        });
 
-        // Mensagens de erro mais amigáveis
-        if (error.message.includes('ECONNREFUSED')) {
+        return { code: result.code || 0, stdout: result.stdout || '', stderr: result.stderr || '' };
+    } catch (error) {
+        logger.error(`Erro SSH para ${service.ip}:`, { error: error.message, command });
+
+        if (error.message.includes('ECONNREFUSED'))
             throw new Error(`Servidor ${service.ip} não está aceitando conexões SSH (porta 22)`);
-        } else if (error.message.includes('ETIMEDOUT') || error.message.includes('Timed out')) {
-            throw new Error(`Timeout ao conectar com ${service.ip} - servidor pode estar sobrecarregado ou inacessível`);
-        } else if (error.message.includes('Authentication failed')) {
+        if (error.message.includes('ETIMEDOUT') || error.message.includes('Timed out'))
+            throw new Error(`Timeout ao conectar com ${service.ip}`);
+        if (error.message.includes('Authentication failed'))
             throw new Error(`Falha na autenticação SSH para ${service.ip}`);
-        }
 
         throw error;
     } finally {
@@ -135,252 +92,254 @@ async function executeSSHCommand(service, command, timeout = 30000) {
     }
 }
 
-// Função auxiliar para verificar status
-async function checkGlassfishStatus(service) {
-    try {
-        const installPath = service.installPath.replace(/\/$/, '');
-        
-        // 1. Verificar processo Java com o domínio específico
-        const pidCommand = `ps aux | grep "[j]ava.*domains/${service.domain}" | grep -v grep | awk '{print $2}'`;
-        const pidResult = await executeSSHCommand(service, pidCommand);
-        const pid = pidResult.stdout.trim();
-
-        if (pid) {
-            // 2. Verificar se o processo está realmente respondendo
-            const portCommand = `netstat -tlpn 2>/dev/null | grep "${pid}/java" | grep -q "LISTEN"`;
-            try {
-                await executeSSHCommand(service, portCommand);
-                
-                // 3. Verificar com asadmin list-domains para confirmação extra
-                const statusCommand = `
-                    cd ${installPath}/glassfish/bin &&
-                    ./asadmin list-domains | grep "${service.domain}"
-                `;
-                const domainStatus = await executeSSHCommand(service, statusCommand);
-                
-                // Se o processo existe e a porta está escutando, consideramos ativo
-                return {
-                    status: 'active',
-                    pid: parseInt(pid),
-                    details: {
-                        asadminStatus: domainStatus.stdout.trim()
-                    }
-                };
-            } catch (portError) {
-                logger.warn(`Processo existe mas porta não está escutando para ${service.name}:`, portError);
-                return {
-                    status: 'inactive',
-                    pid: parseInt(pid),
-                    details: {
-                        error: 'port_not_listening'
-                    }
-                };
-            }
-        }
-
-        // Se não encontrou processo, tentar uma última verificação com asadmin
-        const finalCheck = `
-            cd ${installPath}/glassfish/bin &&
-            ./asadmin list-domains | grep "${service.domain}"
-        `;
-        
-        try {
-            const finalResult = await executeSSHCommand(service, finalCheck);
-            const isRunning = finalResult.stdout.includes(`${service.domain} running`);
-            
-            if (isRunning) {
-                // Se asadmin diz que está rodando mas não achamos o processo, algo está errado
-                logger.warn(`Status inconsistente para ${service.name}: asadmin diz running mas processo não encontrado`);
-                return {
-                    status: 'error',
-                    pid: null,
-                    details: {
-                        error: 'inconsistent_state',
-                        asadminStatus: finalResult.stdout.trim()
-                    }
-                };
-            }
-        } catch (finalError) {
-            logger.debug(`Verificação final falhou para ${service.name}:`, finalError);
-        }
-
-        return {
-            status: 'inactive',
-            pid: null
-        };
-    } catch (error) {
-        logger.error('Erro ao verificar status:', {
-            service: service.name,
-            error: error.message
-        });
-        return {
-            status: 'error',
-            pid: null,
-            details: {
-                error: 'check_failed',
-                message: error.message
-            }
-        };
-    }
-}
-
-// Função para ler o domain.xml
-async function tryReadDomainXml(service) {
-    const domainPath = `${service.installPath}/glassfish/domains/${service.domain}/config/domain.xml`;
-    const command = `cat "${domainPath}"`;
-    
-    try {
-        const result = await executeSSHCommand(service, command);
-        
-        if (result.code !== 0 || !result.stdout) {
-            throw new Error('Erro ao ler domain.xml: ' + (result.stderr || 'Arquivo não encontrado'));
-        }
-
-        return {
-            stdout: result.stdout,
-            filePath: domainPath
-        };
-    } catch (error) {
-        logger.error('Erro ao ler domain.xml:', {
-            error: error.message,
-            path: domainPath,
-            service: service.name
-        });
-        throw error;
-    }
-}
-
-// Função utilitária para executar comandos SSH
+/** Executa comando SSH com assinatura alternativa (host, user, pass, cmd) */
 async function executeRemoteCommand(host, username, password, command, timeout = 30000) {
     const ssh = new NodeSSH();
-    
     try {
-        await ssh.connect({
-            host,
-            username,
-            password,
-            readyTimeout: timeout
-        });
-
-        // Não modificar o comando aqui, pois já estamos tratando o sudo no comando específico
-        const result = await ssh.execCommand(command, {
-            cwd: '/',
-            onStderr: (chunk) => {
-                logger.error('SSH stderr:', chunk.toString('utf8'));
-            }
-        });
-
-        return result;
+        await ssh.connect({ host, username, password, readyTimeout: timeout });
+        return await ssh.execCommand(command, { cwd: '/', onStderr: (c) => logger.error('SSH stderr:', c.toString()) });
     } finally {
         ssh.dispose();
     }
 }
 
-// Função para construir caminhos do Glassfish
+/** Constrói caminhos padrão do Glassfish com base no modelo */
 function buildGlassfishPaths(service) {
-    // Remove trailing slash se existir
-    const basePath = service.installPath.replace(/\/$/, '');
-    logger.info('Construindo caminhos Glassfish:', {
-        basePath,
-        domain: service.domain
-    });
-
-    const paths = {
-        binPath: `${basePath}/glassfish/bin`,
-        logsPath: `${basePath}/glassfish/domains/${service.domain}/logs`,
-        domainPath: `${basePath}/glassfish/domains/${service.domain}`,
-        asadmin: `${basePath}/glassfish/bin/asadmin`
+    // Fallback para config JSONB e default para registros antigos
+    const installPath = service.installPath
+        || service.config?.installPath
+        || '/srv/glassfish6.2.5';
+    const domain = service.domain || 'domain1';
+    const base = installPath.replace(/\/$/, '');
+    return {
+        binPath:    `${base}/glassfish/bin`,
+        logsPath:   `${base}/glassfish/domains/${domain}/logs`,
+        domainPath: `${base}/glassfish/domains/${domain}`,
+        asadmin:    `${base}/glassfish/bin/asadmin`
     };
-
-    logger.info('Caminhos construídos:', paths);
-    return paths;
 }
 
-// Listar todos os servidores
+
+/** Retorna o installPath do serviço com fallback para config e default */
+function getInstallPath(service) {
+    return (service.installPath || service.config?.installPath || '/srv/glassfish6.2.5').replace(/\/$/, '');
+}
+
+/** Retorna o domain do serviço com fallback */
+function getDomain(service) {
+    return service.domain || 'domain1';
+}
+
+/** Retorna a senha SSH do serviço com fallback para config */
+function getSshPassword(service) {
+    return service.sshPassword || service.config?.sshPassword || service.password || '';
+}
+
+/** Verifica status real do serviço via SSH */
+async function checkGlassfishStatus(service) {
+    try {
+        const installPath = (service.installPath || '/srv/glassfish6.2.5').replace(/\/$/, '');
+        const adminPort   = service.port        || 4848;
+        const domain      = service.domain      || 'domain1';
+
+        // ── Estratégia 1: verificar se a porta admin está respondendo ────────
+        // É o método mais confiável — independe de como o processo foi iniciado
+        const portCheck = await executeSSHCommand(
+            service,
+            `(nc -z -w3 localhost ${adminPort} 2>/dev/null || curl -s --max-time 3 http://localhost:${adminPort}/ > /dev/null 2>&1) && echo "open" || echo "closed"`
+        );
+        const portOpen = portCheck.stdout.trim() === 'open';
+
+        if (portOpen) {
+            // Tentar pegar o PID para informação extra (não é obrigatório)
+            let pid = null;
+            try {
+                // Procura por qualquer java com o domain name, ou qualquer java na porta admin
+                const pidResult = await executeSSHCommand(
+                    service,
+                    `ps aux | grep -E "[j]ava.*(${domain}|glassfish)" | grep -v grep | awk '{print $2}' | head -1`
+                );
+                pid = parseInt(pidResult.stdout.trim()) || null;
+            } catch { /* PID opcional */ }
+
+            return { status: 'active', pid, details: { method: 'port_check', port: adminPort } };
+        }
+
+        // ── Estratégia 2: asadmin list-domains ──────────────────────────────
+        // Fallback para quando nc/curl não estão disponíveis
+        try {
+            const asadminResult = await executeSSHCommand(
+                service,
+                `${installPath}/glassfish/bin/asadmin list-domains 2>/dev/null | grep -i "${domain}"`
+            );
+            if (asadminResult.stdout.toLowerCase().includes('running')) {
+                return { status: 'active', pid: null, details: { method: 'asadmin' } };
+            }
+        } catch { /* asadmin falhou — continua */ }
+
+        // ── Estratégia 3: verificar processo Java direto ─────────────────────
+        try {
+            const psResult = await executeSSHCommand(
+                service,
+                `ps aux | grep -E "[j]ava.*(${domain}|glassfish)" | grep -v grep | awk '{print $2}' | head -1`
+            );
+            const pid = parseInt(psResult.stdout.trim()) || null;
+            if (pid) {
+                // Processo existe mas porta não responde — pode estar iniciando
+                return { status: 'inactive', pid, details: { method: 'ps', note: 'process_exists_port_closed' } };
+            }
+        } catch { /* ignorado */ }
+
+        return { status: 'inactive', pid: null, details: { method: 'all_failed' } };
+
+    } catch (error) {
+        logger.error('Erro ao verificar status:', { service: service.name, error: error.message });
+        return { status: 'error', pid: null, details: { error: 'check_failed', message: error.message } };
+    }
+}
+
+/** Lê o domain.xml do servidor remoto */
+async function tryReadDomainXml(service) {
+    const domainPath = `${getInstallPath(service)}/glassfish/domains/${getDomain(service)}/config/domain.xml`;
+    const result = await executeSSHCommand(service, `cat "${domainPath}"`);
+    if (result.code !== 0 || !result.stdout)
+        throw new Error('Erro ao ler domain.xml: ' + (result.stderr || 'Arquivo não encontrado'));
+    return { stdout: result.stdout, filePath: domainPath };
+}
+
+/** Salva campos do config JSONB sem sobrescrever os demais */
+async function patchConfig(service, patch) {
+    service.config = { ...(service.config || {}), ...patch };
+    service.changed('config', true); // força o Sequelize a detectar mudança no JSONB
+    await service.save();
+}
+
+// ─── ROTAS ────────────────────────────────────────────────────────────────────
+
+// GET /servicos — lista todos os servidores
 router.get('/servicos', authMiddleware, async (req, res) => {
     try {
-        const servers = await Glassfish.findAll({
-            order: [['name', 'ASC']]
-        });
-        res.json(servers);
+        const servers = await Glassfish.findAll({ order: [['name', 'ASC']] });
+        // Expande explicitamente todos os campos virtuais + config na resposta
+        // para garantir que o frontend receba tudo mesmo com model antigo
+        res.json(servers.map(s => {
+            const base = s.toJSON();
+            const cfg  = base.config || {};
+            return {
+                ...base,
+                // campos virtuais mapeados explicitamente
+                ip:             base.host,
+                sshUsername:    base.username,
+                sshPassword:    cfg.sshPassword    || base.password || '',
+                installPath:    cfg.installPath    || '/srv/glassfish6.2.5',
+                setor:          cfg.setor          || '',
+                accessType:     cfg.accessType     || 'local',
+                productionPort: cfg.productionPort || 8080,
+                inUse:          cfg.inUse          || false,
+                inUseBy:        cfg.inUseBy        || '',
+                pid:            cfg.pid            || null,
+            };
+        }));
     } catch (error) {
         logger.error('Erro ao listar servidores:', error);
         res.status(500).json({ error: 'Erro ao listar servidores' });
     }
 });
 
-// Obter estatísticas gerais
+// GET /servicos/stats/overview
 router.get('/servicos/stats/overview', authMiddleware, async (req, res) => {
     try {
         const servers = await Glassfish.findAll();
-        
-        const stats = {
-            total: servers.length,
-            active: servers.filter(s => s.status === 'active').length,
-            inactive: servers.filter(s => s.status === 'inactive').length,
-            avgMemory: servers.reduce((acc, s) => acc + (s.memoryUsage || 0), 0) / servers.length || 0,
-            avgCpu: servers.reduce((acc, s) => acc + (s.cpuUsage || 0), 0) / servers.length || 0
-        };
-
-        res.json(stats);
+        res.json({
+            total:     servers.length,
+            active:    servers.filter(s => s.status === 'active').length,
+            inactive:  servers.filter(s => s.status === 'inactive').length,
+            avgMemory: 0,
+            avgCpu:    0
+        });
     } catch (error) {
         logger.error('Erro ao obter estatísticas:', error);
         res.status(500).json({ error: 'Erro ao obter estatísticas' });
     }
 });
 
-// Criar novo servidor
+// POST /servicos — cria novo servidor
 router.post('/servicos', authMiddleware, async (req, res) => {
     try {
-        const serverData = {
-            name: req.body.name,
-            host: req.body.ip,
-            port: req.body.port || 4848,
-            username: req.body.sshUsername || 'admin',
-            password: req.body.password || 'admin',
-            domain: req.body.domain,
-            status: 'inactive',
-            config: {
-                sshPassword: req.body.sshPassword,
-                installPath: req.body.installPath || '/srv/glassfish6.2.5',
-                productionPort: req.body.productionPort || 8080,
-                setor: req.body.setor,
-                accessType: req.body.accessType || 'local'
-            }
-        };
+        const body = req.body;
 
-        const server = await Glassfish.create(serverData);
-        res.status(201).json(server);
+        if (!body.name || !body.ip || !body.domain || !body.sshUsername || !body.sshPassword || !body.installPath) {
+            return res.status(400).json({ error: 'Campos obrigatórios: name, ip, domain, sshUsername, sshPassword, installPath' });
+        }
+
+        const server = await Glassfish.create({
+            name:     body.name,
+            host:     body.ip,                          // ip → host
+            port:     parseInt(body.port) || 4848,
+            username: body.sshUsername,                 // sshUsername → username
+            password: body.sshPassword,                 // senha SSH base
+            domain:   body.domain,
+            status:   'inactive',
+            config: {
+                sshPassword:    body.sshPassword,
+                installPath:    body.installPath || '/srv/glassfish6.2.5',
+                productionPort: parseInt(body.productionPort) || 8080,
+                setor:          body.setor || '',
+                accessType:     body.accessType || 'local',
+                inUse:          false,
+                inUseBy:        ''
+            }
+        });
+
+        res.status(201).json(expandService(server));
     } catch (error) {
         logger.error('Erro ao criar servidor:', error);
         res.status(500).json({ error: 'Erro ao criar servidor', details: error.message });
     }
 });
 
-// Atualizar servidor
+// PUT /servicos/:id — atualiza servidor
 router.put('/servicos/:id', authMiddleware, async (req, res) => {
     try {
         const server = await Glassfish.findByPk(req.params.id);
-        if (!server) {
-            return res.status(404).json({ error: 'Servidor não encontrado' });
-        }
+        if (!server) return res.status(404).json({ error: 'Servidor não encontrado' });
 
-        await server.update(req.body);
-        res.json(server);
+        const body = req.body;
+
+        // Mescla config existente com novos valores — campos omitidos mantêm o valor atual
+        const updatedConfig = {
+            ...(server.config || {}),
+            sshPassword:    body.sshPassword    || server.sshPassword,
+            installPath:    body.installPath    || server.installPath,
+            productionPort: parseInt(body.productionPort) || server.productionPort,
+            setor:          body.setor          !== undefined ? body.setor    : server.setor,
+            accessType:     body.accessType     || server.accessType,
+        };
+
+        await server.update({
+            name:     body.name       || server.name,
+            host:     body.ip         || server.host,
+            port:     parseInt(body.port) || server.port,
+            username: body.sshUsername || server.username,
+            password: body.sshPassword || server.password,
+            domain:   body.domain     || server.domain,
+            config:   updatedConfig
+        });
+
+        // reload() garante que o toJSON() reflita os valores persistidos
+        await server.reload();
+        res.json(expandService(server));
     } catch (error) {
         logger.error('Erro ao atualizar servidor:', error);
-        res.status(500).json({ error: 'Erro ao atualizar servidor' });
+        res.status(500).json({ error: 'Erro ao atualizar servidor', details: error.message });
     }
 });
 
-// Excluir servidor
+// DELETE /servicos/:id
 router.delete('/servicos/:id', authMiddleware, async (req, res) => {
     try {
         const server = await Glassfish.findByPk(req.params.id);
-        if (!server) {
-            return res.status(404).json({ error: 'Servidor não encontrado' });
-        }
-
+        if (!server) return res.status(404).json({ error: 'Servidor não encontrado' });
         await server.destroy();
         res.status(204).send();
     } catch (error) {
@@ -389,835 +348,376 @@ router.delete('/servicos/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Rota para verificar status
-router.get('/servicos/:id/status', async (req, res) => {
-    let service;
+// GET /servicos/:id/status
+router.get('/servicos/:id/status', authMiddleware, async (req, res) => {
     try {
-        service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
-
-        // Verificar e atualizar o caminho do Glassfish se necessário
-        try {
-            await getGlassfishPath(service);
-        } catch (pathError) {
-            return res.json({
-                status: 'error',
-                pid: null,
-                details: {
-                    error: 'installation_not_found',
-                    message: pathError.message
-                }
-            });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
         const status = await checkGlassfishStatus(service);
-        
-        // Atualizar status no banco apenas se não for um erro
+
         if (status.status !== 'error') {
-            service.status = status.status;
-            service.pid = status.pid;
-            await service.save();
+            // update() persiste no banco; atribuição direta não é suficiente
+            await service.update({ status: status.status });
+            await patchConfig(service, { pid: status.pid });
         }
 
         res.json(status);
     } catch (error) {
         logger.error('Erro ao verificar status:', error);
-        res.status(500).json({ 
-            error: 'Erro ao verificar status',
-            details: error.message
-        });
+        res.status(500).json({ error: 'Erro ao verificar status', details: error.message });
     }
 });
 
-// Função auxiliar para coletar estatísticas de um servidor
-async function collectServerStats(service) {
+// GET /servicos/:id/logs
+router.get('/servicos/:id/logs', authMiddleware, async (req, res) => {
     try {
-        // Verificar se o serviço está ativo
-        const status = await checkGlassfishStatus(service);
-        if (status.status !== 'active') {
-            return {
-                memory: 0,
-                cpu: 0
-            };
-        }
-
-        // Coletar estatísticas de RAM
-        const memoryCommand = `
-            ps -o rss= -p $(ps aux | grep "[j]ava.*${service.domain}" | awk '{print $2}') | \
-            awk '{print int($1/1024/$(free -m | grep Mem | awk "{print $2}")*100)}'
-        `;
-        const memoryResult = await executeSSHCommand(service, memoryCommand);
-        const memoryUsage = parseInt(memoryResult.stdout) || 0;
-
-        // Coletar estatísticas de CPU
-        const cpuCommand = `
-            ps -p $(ps aux | grep "[j]ava.*${service.domain}" | awk '{print $2}') -o %cpu= | \
-            awk '{print int($1)}'
-        `;
-        const cpuResult = await executeSSHCommand(service, cpuCommand);
-        const cpuUsage = parseInt(cpuResult.stdout) || 0;
-
-        return {
-            memory: memoryUsage,
-            cpu: cpuUsage
-        };
-    } catch (error) {
-        logger.error(`Erro ao coletar estatísticas para ${service.name}:`, error);
-        return {
-            memory: 0,
-            cpu: 0
-        };
-    }
-}
-
-// Rotas de logs
-router.get('/servicos/:id/logs', async (req, res) => {
-    try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
         const paths = buildGlassfishPaths(service);
-        const logCommand = `tail -n 100 ${paths.logsPath}/server.log`;
-        const result = await executeRemoteCommand(service.ip, service.sshUsername, service.sshPassword, logCommand);
 
-        if (result.code === 0) {
-            res.json({ logs: result.stdout });
+        // Tenta server.log primeiro, depois system.log como fallback
+        const logFiles = [
+            `${paths.logsPath}/server.log`,
+            `${paths.logsPath}/server.log.0`,
+            `${paths.domainPath}/logs/server.log`,
+        ];
+
+        let logs = null;
+        let lastError = '';
+
+        for (const logFile of logFiles) {
+            try {
+                const result = await executeSSHCommand(service, `tail -n 200 "${logFile}" 2>/dev/null`);
+                if (result.code === 0 && result.stdout.trim()) {
+                    logs = result.stdout;
+                    break;
+                }
+                lastError = result.stderr || `arquivo não encontrado: ${logFile}`;
+            } catch (e) {
+                lastError = e.message;
+            }
+        }
+
+        if (logs !== null) {
+            res.json({ logs });
         } else {
-            res.status(500).json({ error: 'Erro ao obter logs', details: result.stderr });
+            res.status(500).json({
+                error: 'Arquivo de log não encontrado',
+                details: lastError,
+                tried: logFiles
+            });
         }
     } catch (error) {
-        console.error('Erro ao obter logs:', error);
-        res.status(500).json({ error: 'Erro ao obter logs' });
+        logger.error('Erro ao obter logs:', error);
+        res.status(500).json({ error: 'Erro ao obter logs', details: error.message });
     }
 });
 
-// WebSocket para logs em tempo real
-router.get('/servicos/:id/logs/live', (req, res) => {
-    wss.handleUpgrade(req, req.socket, Buffer.alloc(0), async (ws) => {
-        try {
-            const service = await Glassfish.findById(req.params.id);
-            if (!service) {
-                ws.close();
-                return;
-            }
-
-            const paths = buildGlassfishPaths(service);
-            const sshConnection = new NodeSSH();
-            await sshConnection.connect({
-                host: service.ip,
-                username: service.sshUsername,
-                password: service.sshPassword
-            });
-
-            const command = `tail -f ${paths.logsPath}/server.log`;
-            const stream = await sshConnection.execCommand(command, { stream: 'both' });
-
-            stream.stdout.on('data', (data) => {
-                ws.send(data.toString());
-            });
-
-            stream.stderr.on('data', (data) => {
-                ws.send(`ERROR: ${data.toString()}`);
-            });
-
-            ws.on('close', () => {
-                stream.kill();
-                sshConnection.dispose();
-            });
-        } catch (error) {
-            console.error('Erro na conexão WebSocket:', error);
-            ws.close();
-        }
-    });
-});
-
-// Rotas de configuração
-router.get('/servicos/:id/domain-config', async (req, res) => {
+// GET /servicos/:id/domain-config
+router.get('/servicos/:id/domain-config', authMiddleware, async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        try {
-            const result = await tryReadDomainXml(service);
-            const parser = new xml2js.Parser({
-                explicitArray: true,
-                mergeAttrs: false,
-                attrkey: '$'
-            });
+        const result = await tryReadDomainXml(service);
+        const parser = new xml2js.Parser({ explicitArray: true, mergeAttrs: false, attrkey: '$' });
+        const xmlData = await parser.parseStringPromise(result.stdout);
 
-            const xmlData = await parser.parseStringPromise(result.stdout);
-            
-            // Verificar se as estruturas necessárias existem
-            if (!xmlData.domain?.resources?.[0]?.['jdbc-connection-pool']) {
-                throw new Error('Estrutura do XML inválida: jdbc-connection-pool não encontrado');
+        const resources = xmlData.domain?.resources?.[0];
+        if (!resources?.['jdbc-connection-pool'])
+            throw new Error('Estrutura do XML inválida: jdbc-connection-pool não encontrado');
+
+        const pool = resources['jdbc-connection-pool'].find(p => p.$.name === 'Pg_Neocorp_Pool');
+        if (!pool) throw new Error('Pool Pg_Neocorp_Pool não encontrado');
+
+        const config = { serverName: '', user: '', password: '', databaseName: '' };
+        (pool.property || []).forEach(prop => {
+            if (prop?.$) {
+                if (prop.$.name === 'serverName')  config.serverName  = prop.$.value;
+                if (prop.$.name === 'user')         config.user        = prop.$.value;
+                if (prop.$.name === 'password')     config.password    = prop.$.value;
+                if (prop.$.name === 'databaseName') config.databaseName = prop.$.value;
             }
+        });
 
-            const resources = xmlData.domain.resources[0];
-            const jdbcPools = resources['jdbc-connection-pool'];
-            const pool = jdbcPools.find(p => p.$.name === 'Pg_Neocorp_Pool');
-
-            if (!pool) {
-                throw new Error('Pool Pg_Neocorp_Pool não encontrado');
-            }
-
-            const config = {
-                serverName: '',
-                user: '',
-                password: '',
-                databaseName: ''
-            };
-
-            if (pool.property) {
-                pool.property.forEach(prop => {
-                    if (prop && prop.$) {
-                        switch (prop.$.name) {
-                            case 'serverName':
-                                config.serverName = prop.$.value;
-                                break;
-                            case 'user':
-                                config.user = prop.$.value;
-                                break;
-                            case 'password':
-                                config.password = prop.$.value;
-                                break;
-                            case 'databaseName':
-                                config.databaseName = prop.$.value;
-                                break;
-                        }
-                    }
-                });
-            }
-
-            res.json(config);
-        } catch (xmlError) {
-            logger.error('Erro ao processar domain.xml:', {
-                error: xmlError.message,
-                service: service.name
-            });
-            
-            res.status(500).json({
-                error: 'Erro ao processar configurações',
-                details: xmlError.message
-            });
-        }
+        res.json(config);
     } catch (error) {
         logger.error('Erro ao ler configurações:', error);
-        res.status(500).json({ 
-            error: 'Erro ao ler configurações',
-            details: error.message 
-        });
+        res.status(500).json({ error: 'Erro ao ler configurações', details: error.message });
     }
 });
 
-// Rota para salvar configurações no domain.xml
-router.put('/servicos/:id/domain-config', async (req, res) => {
+// PUT /servicos/:id/domain-config
+router.put('/servicos/:id/domain-config', authMiddleware, async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        // Ler o arquivo atual
         const result = await tryReadDomainXml(service);
-        
-        // Parsear o XML existente
         const parser = new xml2js.Parser({ explicitArray: false });
         const xmlData = await parser.parseStringPromise(result.stdout);
 
-        // Encontrar o pool de conexão
-        const resources = xmlData.domain.resources;
-        const pools = Array.isArray(resources['jdbc-connection-pool']) 
-            ? resources['jdbc-connection-pool'] 
-            : [resources['jdbc-connection-pool']];
+        const pools = Array.isArray(xmlData.domain.resources['jdbc-connection-pool'])
+            ? xmlData.domain.resources['jdbc-connection-pool']
+            : [xmlData.domain.resources['jdbc-connection-pool']];
 
-        const jdbcPool = pools.find(pool => 
-            pool.$ && pool.$.name === 'Pg_Neocorp_Pool'
-        );
+        const pool = pools.find(p => p.$?.name === 'Pg_Neocorp_Pool');
+        if (!pool) throw new Error('Pool de conexão não encontrado');
 
-        if (!jdbcPool) {
-            throw new Error('Pool de conexão não encontrado');
-        }
-
-        // Atualizar as propriedades
-        const properties = Array.isArray(jdbcPool.property) ? jdbcPool.property : [jdbcPool.property];
-        properties.forEach(prop => {
-            if (prop && prop.$) {
-                switch (prop.$.name) {
-                    case 'serverName':
-                        prop.$.value = req.body.serverName;
-                        break;
-                    case 'user':
-                        prop.$.value = req.body.user;
-                        break;
-                    case 'password':
-                        prop.$.value = req.body.password;
-                        break;
-                    case 'databaseName':
-                        prop.$.value = req.body.databaseName;
-                        break;
-                }
+        const props = Array.isArray(pool.property) ? pool.property : [pool.property];
+        props.forEach(prop => {
+            if (prop?.$) {
+                if (prop.$.name === 'serverName')   prop.$.value = req.body.serverName;
+                if (prop.$.name === 'user')          prop.$.value = req.body.user;
+                if (prop.$.name === 'password')      prop.$.value = req.body.password;
+                if (prop.$.name === 'databaseName')  prop.$.value = req.body.databaseName;
             }
         });
 
-        // Converter de volta para XML
-        const builder = new xml2js.Builder();
-        const updatedXml = builder.buildObject(xmlData);
-
-        // Criar arquivo temporário e mover para o local correto
-        const tempFile = '/tmp/domain.xml.tmp';
-        const writeCommand = `echo '${updatedXml.replace(/'/g, '\'\\\'\'')}' > ${tempFile} && sudo mv ${tempFile} "${result.filePath}"`;
-        
-        const writeResult = await executeRemoteCommand(
-            service.ip,
-            service.sshUsername,
-            service.sshPassword,
-            writeCommand
+        const updatedXml = new xml2js.Builder().buildObject(xmlData);
+        const tempFile   = '/tmp/domain.xml.tmp';
+        const writeResult = await executeSSHCommand(
+            service,
+            `echo '${updatedXml.replace(/'/g, "'\\''")}' > ${tempFile} && sudo mv ${tempFile} "${result.filePath}"`
         );
 
-        if (writeResult.code !== 0) {
-            throw new Error(`Erro ao salvar arquivo: ${writeResult.stderr}`);
-        }
+        if (writeResult.code !== 0) throw new Error(`Erro ao salvar arquivo: ${writeResult.stderr}`);
 
-        logger.info('Configurações salvas com sucesso');
         res.json({ message: 'Configurações atualizadas com sucesso' });
-
     } catch (error) {
         logger.error('Erro ao salvar configurações:', error);
-        res.status(500).json({ 
-            error: 'Erro ao salvar configurações',
-            details: error.message 
-        });
+        res.status(500).json({ error: 'Erro ao salvar configurações', details: error.message });
     }
 });
 
-// Rotas de aplicações
-router.get('/servicos/:id/applications', async (req, res) => {
+// GET /servicos/:id/applications
+router.get('/servicos/:id/applications', authMiddleware, async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
         const result = await tryReadDomainXml(service);
-        
-        // Parsear o XML com opções específicas
-        const parser = new xml2js.Parser({
-            explicitArray: true,
-            mergeAttrs: false,
-            attrkey: '$'
-        });
+        const parser = new xml2js.Parser({ explicitArray: true, mergeAttrs: false, attrkey: '$' });
+        const xmlData = await parser.parseStringPromise(result.stdout);
 
-        try {
-            const xmlData = await parser.parseStringPromise(result.stdout);
-            
-            // Verificar se há aplicações
-            const applications = [];
-            
-            if (xmlData.domain?.applications?.[0]?.application) {
-                xmlData.domain.applications[0].application.forEach(app => {
-                    if (app.$['object-type'] === 'user') {
-                        applications.push({
-                            name: app.$.name,
-                            engine: app.$['enable'] === 'true' ? 'enabled' : 'disabled',
-                            status: 'deployed',
-                            location: app.$.location || `${service.installPath}/glassfish/domains/${service.domain}/applications/${app.$.name}`
-                        });
-                    }
+        const applications = [];
+        (xmlData.domain?.applications?.[0]?.application || []).forEach(app => {
+            if (app.$['object-type'] === 'user') {
+                applications.push({
+                    name:     app.$.name,
+                    status:   'deployed',
+                    enabled:  app.$.enable === 'true',
+                    location: app.$.location || `${getInstallPath(service)}/glassfish/domains/${getDomain(service)}/applications/${app.$.name}`
                 });
             }
+        });
 
-            res.json({
-                status: 'success',
-                applications: applications
-            });
-
-        } catch (parseError) {
-            logger.error('Erro ao processar XML:', {
-                error: parseError.message,
-                service: service.name
-            });
-            
-            res.status(500).json({
-                error: 'Erro ao processar configurações',
-                details: parseError.message
-            });
-        }
+        res.json({ status: 'success', applications });
     } catch (error) {
-        logger.error('Erro ao listar aplicações:', {
-            error: error.message,
-            service: service?.name
-        });
-        
-        res.status(500).json({ 
-            error: 'Erro ao listar aplicações',
-            details: error.message
-        });
+        logger.error('Erro ao listar aplicações:', error);
+        res.status(500).json({ error: 'Erro ao listar aplicações', details: error.message });
     }
 });
 
-// Rota para parar o serviço
-router.post('/servicos/:id/stop', async (req, res) => {
+// POST /servicos/:id/start
+router.post('/servicos/:id/start', authMiddleware, async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        // Comando para parar o domínio específico
-        const stopCommand = `
-            echo '${service.sshPassword}' | sudo -S bash -c '
-                cd ${service.installPath}/glassfish/bin &&
-                ./asadmin stop-domain ${service.domain}
-            '
-        `;
-        
-        const result = await executeRemoteCommand(
-            service.ip,
-            service.sshUsername,
-            service.sshPassword,
-            stopCommand,
-            30000
+        const result = await executeSSHCommand(
+            service,
+            `echo '${getSshPassword(service)}' | sudo -S bash -c 'cd ${getInstallPath(service)}/glassfish/bin && ./asadmin start-domain ${getDomain(service)}'`,
+            60000
         );
 
-        if (result.code !== 0) {
-            throw new Error(result.stderr || 'Erro ao parar serviço');
-        }
+        if (result.code !== 0) throw new Error(result.stderr || 'Erro ao iniciar serviço');
 
-        // Atualizar status para inactive ao invés de stopped
-        service.status = 'inactive';
-        service.pid = null;
-        await service.save();
+        await service.update({ status: 'active' });
+        res.json({ message: 'Serviço iniciado com sucesso' });
+    } catch (error) {
+        logger.error('Erro ao iniciar serviço:', error);
+        res.status(500).json({ error: 'Erro ao iniciar serviço', details: error.message });
+    }
+});
 
+// POST /servicos/:id/stop
+router.post('/servicos/:id/stop', authMiddleware, async (req, res) => {
+    try {
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
+
+        const result = await executeSSHCommand(
+            service,
+            `echo '${getSshPassword(service)}' | sudo -S bash -c 'cd ${getInstallPath(service)}/glassfish/bin && ./asadmin stop-domain ${getDomain(service)}'`,
+            60000
+        );
+
+        if (result.code !== 0) throw new Error(result.stderr || 'Erro ao parar serviço');
+
+        await service.update({ status: 'inactive' });
+        await patchConfig(service, { pid: null });
         res.json({ message: 'Serviço parado com sucesso' });
     } catch (error) {
         logger.error('Erro ao parar serviço:', error);
-        res.status(500).json({
-            error: 'Erro ao parar serviço',
-            details: error.message
-        });
+        res.status(500).json({ error: 'Erro ao parar serviço', details: error.message });
     }
 });
 
-// Rota para upload de aplicação
-router.post('/servicos/:id/upload-application', upload.single('file'), async (req, res) => {
-    let localFilePath = null;
-    
+// POST /servicos/:id/restart
+router.post('/servicos/:id/restart', authMiddleware, async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
-
-        const autodeployPath = `${service.installPath}/glassfish/domains/${service.domain}/autodeploy`;
-        localFilePath = path.join(uploadsDir, req.file.originalname);
-
-        // Mover arquivo do buffer temporário para diretório de uploads
-        await fs.promises.rename(req.file.path, localFilePath);
-
-        // Usar scp diretamente ao invés de executeRemoteCommand
-        const scp = new NodeSSH();
-        await scp.connect({
-            host: service.ip,
-            username: service.sshUsername,
-            password: service.sshPassword
-        });
-
-        try {
-            await scp.putFile(localFilePath, `/tmp/${req.file.originalname}`);
-        } finally {
-            scp.dispose();
-        }
-
-        // Mover arquivo para autodeploy (sem tentar mudar owner)
-        const moveCommand = `
-            echo '${service.sshPassword}' | sudo -S bash -c '
-                rm -f "${autodeployPath}/${req.file.originalname}" &&
-                mv "/tmp/${req.file.originalname}" "${autodeployPath}/"
-            '
-        `;
-
-        const moveResult = await executeRemoteCommand(
-            service.ip,
-            service.sshUsername,
-            service.sshPassword,
-            moveCommand
+        const result = await executeSSHCommand(
+            service,
+            `echo '${getSshPassword(service)}' | sudo -S bash -c 'cd ${getInstallPath(service)}/glassfish/bin && ./asadmin restart-domain ${getDomain(service)}'`,
+            60000
         );
 
-        if (moveResult.code !== 0) {
-            throw new Error(moveResult.stderr || 'Erro ao mover arquivo');
-        }
+        if (result.code !== 0) throw new Error(result.stderr || 'Erro ao reiniciar serviço');
 
-        res.json({ message: 'Upload realizado com sucesso' });
+        await service.update({ status: 'active' });
+        res.json({ message: 'Serviço reiniciado com sucesso' });
     } catch (error) {
-        logger.error('Erro no upload:', error);
-        res.status(500).json({ 
-            error: 'Erro no upload',
-            details: error.message
-        });
-    } finally {
-        // Limpar arquivos temporários
-        try {
-            if (localFilePath && fs.existsSync(localFilePath)) {
-                await fs.promises.unlink(localFilePath);
-            }
-        } catch (err) {
-            logger.error('Erro ao remover arquivo temporário:', err);
-        }
+        logger.error('Erro ao reiniciar serviço:', error);
+        res.status(500).json({ error: 'Erro ao reiniciar serviço', details: error.message });
     }
 });
 
-// Rota para testar conexão SSH
-router.post('/test-ssh', async (req, res) => {
+// POST /servicos/:id/in-use — marca como em uso
+router.post('/servicos/:id/in-use', authMiddleware, async (req, res) => {
     try {
-        const { ip, username, password } = req.body;
-        
-        if (!ip || !username || !password) {
-            return res.status(400).json({
-                error: 'Parâmetros incompletos',
-                details: 'IP, usuário e senha são obrigatórios'
-            });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        const ssh = new NodeSSH();
-        
-        await ssh.connect({
-            host: ip,
-            username: username,
-            password: password,
-            readyTimeout: 5000,
-            keepaliveInterval: 10000
-        });
+        const inUseBy = req.body.user || req.body.inUseBy || 'Desconhecido';
+        await patchConfig(service, { inUse: true, inUseBy });
 
-        // Executar um comando simples para testar
-        const result = await ssh.execCommand('echo "SSH test successful"');
-        
-        res.json({
-            success: true,
-            message: 'Conexão SSH estabelecida com sucesso',
-            details: result.stdout
-        });
-    } catch (error) {
-        logger.error('Erro no teste SSH:', {
-            error: error.message,
-            host: ip
-        });
-
-        let errorMessage = 'Erro na conexão SSH';
-        if (error.message.includes('ECONNREFUSED')) {
-            errorMessage = `Servidor ${ip} não está aceitando conexões SSH (porta 22)`;
-        } else if (error.message.includes('ETIMEDOUT')) {
-            errorMessage = `Timeout ao conectar com ${ip}`;
-        } else if (error.message.includes('Authentication failed')) {
-            errorMessage = `Falha na autenticação SSH para ${ip}`;
-        }
-
-        res.status(500).json({
-            success: false,
-            error: errorMessage,
-            details: error.message
-        });
-    }
-});
-
-// Rota para marcar serviço como em uso
-router.post('/servicos/:id/in-use', async (req, res) => {
-    try {
-        const { user } = req.body;
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
-
-        service.inUse = true;
-        service.currentUser = user || 'Desconhecido';
-        await service.save();
-
-        res.json({ message: 'Serviço marcado como em uso', currentUser: service.currentUser });
+        res.json({ message: 'Serviço marcado como em uso', inUseBy });
     } catch (error) {
         logger.error('Erro ao marcar serviço como em uso:', error);
         res.status(500).json({ error: 'Erro ao marcar serviço como em uso' });
     }
 });
 
-// Rota para marcar serviço como disponível
-router.post('/servicos/:id/available', async (req, res) => {
+// POST /servicos/:id/available  (e alias /disponivel para compatibilidade)
+async function markAvailableHandler(req, res) {
     try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        service.inUse = false;
-        service.currentUser = '';
-        await service.save();
-
+        await patchConfig(service, { inUse: false, inUseBy: '' });
         res.json({ message: 'Serviço marcado como disponível' });
     } catch (error) {
         logger.error('Erro ao marcar serviço como disponível:', error);
         res.status(500).json({ error: 'Erro ao marcar serviço como disponível' });
     }
-});
+}
+router.post('/servicos/:id/available',   authMiddleware, markAvailableHandler);
+router.post('/servicos/:id/disponivel',  authMiddleware, markAvailableHandler); // alias legado
 
-// Rota para iniciar o serviço
-router.post('/servicos/:id/start', async (req, res) => {
+// POST /servicos/:id/maintenance
+router.post('/servicos/:id/maintenance', authMiddleware, async (req, res) => {
     try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
-        // Comando para iniciar o domínio específico
-        const startCommand = `
-            echo '${service.sshPassword}' | sudo -S bash -c '
-                cd ${service.installPath}/glassfish/bin &&
-                ./asadmin start-domain ${service.domain}
-            '
-        `;
-        
-        const result = await executeRemoteCommand(
-            service.ip,
-            service.sshUsername,
-            service.sshPassword,
-            startCommand,
-            30000
-        );
+        const basePath = `${getInstallPath(service)}/glassfish/domains/${getDomain(service)}`;
+        const results  = [];
+        const tasks    = req.body.tasks || [];
 
-        if (result.code !== 0) {
-            throw new Error(result.stderr || 'Erro ao iniciar serviço');
-        }
+        const dirMap = {
+            cleanApplications: `${basePath}/applications`,
+            cleanLogs:         `${basePath}/logs`,
+            cleanGenerated:    `${basePath}/generated`,
+            cleanAutodeploy:   `${basePath}/autodeploy`
+        };
 
-        // Atualizar status para active
-        service.status = 'active';
-        await service.save();
-
-        res.json({ message: 'Serviço iniciado com sucesso' });
-    } catch (error) {
-        logger.error('Erro ao iniciar serviço:', error);
-        res.status(500).json({
-            error: 'Erro ao iniciar serviço',
-            details: error.message
-        });
-    }
-});
-
-// Rota para reiniciar o serviço
-router.post('/servicos/:id/restart', async (req, res) => {
-    try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
-
-        // Comando para reiniciar o domínio específico
-        const restartCommand = `
-            echo '${service.sshPassword}' | sudo -S bash -c '
-                cd ${service.installPath}/glassfish/bin &&
-                ./asadmin restart-domain ${service.domain}
-            '
-        `;
-        
-        const result = await executeRemoteCommand(
-            service.ip,
-            service.sshUsername,
-            service.sshPassword,
-            restartCommand,
-            30000
-        );
-
-        if (result.code !== 0) {
-            throw new Error(result.stderr || 'Erro ao reiniciar serviço');
-        }
-
-        // Atualizar status para active
-        service.status = 'active';
-        await service.save();
-
-        res.json({ message: 'Serviço reiniciado com sucesso' });
-    } catch (error) {
-        logger.error('Erro ao reiniciar serviço:', error);
-        res.status(500).json({
-            error: 'Erro ao reiniciar serviço',
-            details: error.message
-        });
-    }
-});
-
-// Rota para executar manutenção no serviço
-router.post('/servicos/:id/maintenance', async (req, res) => {
-    try {
-        const service = await Glassfish.findById(req.params.id);
-        if (!service) {
-            return res.status(404).json({ error: 'Serviço não encontrado' });
-        }
-
-        const basePath = `${service.installPath}/glassfish/domains/${service.domain}`;
-        const results = [];
-
-        // Função auxiliar para limpar diretório
-        async function cleanDirectory(dirPath, taskName) {
-            // Primeiro, verificar se o diretório existe e listar seu conteúdo
-            const checkCommand = `
-                echo '${service.sshPassword}' | sudo -S bash -c '
-                    if [ -d "${dirPath}" ]; then
-                        echo "Conteúdo antes da limpeza:"
-                        ls -la "${dirPath}"
-                        echo "---"
-                    else
-                        echo "Diretório não encontrado: ${dirPath}"
-                        exit 1
-                    fi
-                '
-            `;
-
-            const checkResult = await executeRemoteCommand(
-                service.ip,
-                service.sshUsername,
-                service.sshPassword,
-                checkCommand
-            );
-
-            logger.debug(`Verificação do diretório ${taskName}:`, {
-                output: checkResult.stdout,
-                error: checkResult.stderr
-            });
-
-            const command = `
-                echo '${service.sshPassword}' | sudo -S bash -c '
-                    if [ -d "${dirPath}" ]; then
-                        rm -rf "${dirPath}"/* "${dirPath}"/.[!.]* 2>/dev/null || true &&
-                        echo "Diretório ${taskName} limpo com sucesso"
-                    else
-                        echo "Diretório ${taskName} não encontrado"
-                        exit 1
-                    fi
-                '
-            `;
-
-            logger.debug(`Executando comando de limpeza para ${taskName}:`, {
-                directory: dirPath,
-                command: command
-            });
-
-            const result = await executeRemoteCommand(
-                service.ip,
-                service.sshUsername,
-                service.sshPassword,
-                command
-            );
-
-            // Verificar o conteúdo após a limpeza
-            const verifyCommand = `
-                echo '${service.sshPassword}' | sudo -S bash -c '
-                    echo "Conteúdo após a limpeza:"
-                    ls -la "${dirPath}"
-                    echo "---"
-                '
-            `;
-
-            const verifyResult = await executeRemoteCommand(
-                service.ip,
-                service.sshUsername,
-                service.sshPassword,
-                verifyCommand
-            );
-
-            logger.debug(`Verificação após limpeza do diretório ${taskName}:`, {
-                output: verifyResult.stdout,
-                error: verifyResult.stderr
-            });
-
-            return {
-                task: taskName,
-                success: result.code === 0,
-                message: result.stdout || result.stderr,
-                details: {
-                    before: checkResult.stdout,
-                    after: verifyResult.stdout
-                }
-            };
-        }
-
-        // Executar limpeza para cada diretório selecionado
-        const tasks = req.body.tasks || [];
-        
         for (const task of tasks) {
-            let result;
-            switch (task) {
-                case 'cleanApplications':
-                    result = await cleanDirectory(`${basePath}/applications`, 'Applications');
-                    break;
-                case 'cleanLogs':
-                    result = await cleanDirectory(`${basePath}/logs`, 'Logs');
-                    break;
-                case 'cleanGenerated':
-                    result = await cleanDirectory(`${basePath}/generated`, 'Generated');
-                    break;
-                case 'cleanAutodeploy':
-                    result = await cleanDirectory(`${basePath}/autodeploy`, 'Autodeploy');
-                    break;
-            }
-            if (result) {
-                results.push(result);
-            }
+            const dir = dirMap[task];
+            if (!dir) continue;
+
+            const result = await executeSSHCommand(
+                service,
+                `echo '${getSshPassword(service)}' | sudo -S bash -c 'if [ -d "${dir}" ]; then rm -rf "${dir}"/* "${dir}"/.[!.]* 2>/dev/null || true && echo "OK"; else echo "DIR_NOT_FOUND"; exit 1; fi'`
+            );
+
+            results.push({
+                task,
+                success: result.code === 0,
+                message: result.stdout || result.stderr
+            });
         }
 
-        // Registrar a manutenção no log
-        logger.info('Manutenção executada:', {
-            serviceId: service._id,
-            serviceName: service.name,
-            tasks: tasks,
-            results: results
-        });
-
-        res.json({
-            message: 'Manutenção executada com sucesso',
-            results: results
-        });
-
+        res.json({ message: 'Manutenção executada', results });
     } catch (error) {
-        logger.error('Erro na manutenção:', {
-            error: error.message,
-            stack: error.stack
-        });
-
-        res.status(500).json({
-            error: 'Erro ao executar manutenção',
-            details: error.message
-        });
+        logger.error('Erro na manutenção:', error);
+        res.status(500).json({ error: 'Erro ao executar manutenção', details: error.message });
     }
 });
 
-// Atualizar status do servidor
-router.patch('/servicos/:id/status', async (req, res) => {
+// POST /servicos/:id/upload-application
+router.post('/servicos/:id/upload-application', authMiddleware, upload.single('file'), async (req, res) => {
+    let localFilePath = null;
     try {
-        const server = await Glassfish.findById(req.params.id);
-        if (!server) {
-            return res.status(404).json({ error: 'Servidor não encontrado' });
+        if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+
+        const service = await Glassfish.findByPk(req.params.id);
+        if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
+
+        const autodeployPath = `${getInstallPath(service)}/glassfish/domains/${getDomain(service)}/autodeploy`;
+        localFilePath = path.join(uploadsDir, req.file.originalname);
+        await fs.promises.rename(req.file.path, localFilePath);
+
+        const scp = new NodeSSH();
+        await scp.connect({ host: service.ip || service.host, username: service.sshUsername || service.username, password: getSshPassword(service) });
+        try {
+            await scp.putFile(localFilePath, `/tmp/${req.file.originalname}`);
+        } finally {
+            scp.dispose();
         }
 
-        await server.update({
-            status: req.body.status,
-            memoryUsage: req.body.memoryUsage,
-            cpuUsage: req.body.cpuUsage,
-            lastCheck: new Date()
-        });
+        const moveResult = await executeSSHCommand(
+            service,
+            `echo '${getSshPassword(service)}' | sudo -S bash -c 'rm -f "${autodeployPath}/${req.file.originalname}" && mv "/tmp/${req.file.originalname}" "${autodeployPath}/"'`
+        );
 
-        res.json(server);
+        if (moveResult.code !== 0) throw new Error(moveResult.stderr || 'Erro ao mover arquivo');
+
+        res.json({ message: 'Upload realizado com sucesso' });
     } catch (error) {
-        logger.error('Erro ao atualizar status:', error);
-        res.status(500).json({ error: 'Erro ao atualizar status' });
+        logger.error('Erro no upload:', error);
+        res.status(500).json({ error: 'Erro no upload', details: error.message });
+    } finally {
+        if (localFilePath && fs.existsSync(localFilePath)) {
+            await fs.promises.unlink(localFilePath).catch(() => {});
+        }
     }
 });
 
-// Exportar o router
-module.exports = router; 
+// POST /test-ssh
+router.post('/test-ssh', async (req, res) => {
+    const { ip, username, password } = req.body;
+    if (!ip || !username || !password)
+        return res.status(400).json({ error: 'IP, usuário e senha são obrigatórios' });
+
+    try {
+        const ssh = new NodeSSH();
+        await ssh.connect({ host: ip, username, password, readyTimeout: 5000 });
+        const result = await ssh.execCommand('echo "SSH test successful"');
+        ssh.dispose();
+        res.json({ success: true, message: 'Conexão SSH estabelecida com sucesso', details: result.stdout });
+    } catch (error) {
+        let msg = 'Erro na conexão SSH';
+        if (error.message.includes('ECONNREFUSED'))     msg = `Servidor ${ip} não está aceitando conexões SSH`;
+        else if (error.message.includes('ETIMEDOUT'))   msg = `Timeout ao conectar com ${ip}`;
+        else if (error.message.includes('Authentication failed')) msg = `Falha na autenticação para ${ip}`;
+        res.status(500).json({ success: false, error: msg, details: error.message });
+    }
+});
+
+module.exports = router;

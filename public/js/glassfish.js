@@ -1,9 +1,6 @@
 import {
     closeModal,
-    handleCardClick,
     toggleLogViewer,
-    openUserNameModal,
-    saveUserName,
     markServiceAvailable,
     viewLogs,
     executeMaintenance,
@@ -14,703 +11,555 @@ import {
     showToast
 } from './glassfish-modals.js';
 
-        // Registrar o Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker registrado com sucesso:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Falha ao registrar o ServiceWorker:', error);
-                    });
-            });
-        }
+// ─── Service Worker ───────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(r  => console.log('SW:', r.scope))
+            .catch(e => console.warn('SW falhou:', e));
+    });
+}
 
-        const cardsContainer = document.getElementById('cards-container');
-        const emptyMessage = document.getElementById('empty-message');
-        const resultsCount = document.getElementById('results-count');
-        const modalTitle = document.getElementById('modal-title');
-        let editingIndex = null;
+// ─── Estado ───────────────────────────────────────────────────────────────────
+let services            = [];
 let currentServiceIndex = null;
-        let services = [];
-        let currentWebSocket = null;
-        let currentServiceId = null;
-        let statusCheckInterval = null;
-        let currentMaintenanceIndex = null;
-        let currentDomainConfigIndex = null;
-        let logViewerActive = false;
 
-// Função para atualizar a lista de serviços
-function updateServicesList(servicesData) {
-    services = servicesData;
-    renderCards(services);
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function getToken() {
+    return localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+}
+function authHeaders(extra = {}) {
+    return { 'Authorization': `Bearer ${getToken()}`, ...extra };
+}
+function openDialog(id) {
+    const el = document.getElementById(id);
+    if (el?.showModal) el.showModal();
+}
+function closeDialog(id) {
+    const el = document.getElementById(id);
+    if (el?.close) el.close();
+}
+function getVal(id) {
+    return document.getElementById(id)?.value?.trim() || '';
+}
+function setVal(id, value) {
+    const el = document.getElementById(id);
+    if (el && value !== undefined && value !== null) el.value = value;
 }
 
-        // Função para obter os dados do MongoDB
-        async function fetchServices() {
-            try {
-                const response = await fetch('/api/glassfish/servicos', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Erro ao obter serviços');
-                }
-
-        const servicesData = await response.json();
-        updateServicesList(servicesData);
-        
-        // Atualizar contagem de resultados
-        if (resultsCount) {
-            resultsCount.textContent = `${servicesData.length} serviço(s) encontrado(s)`;
-        }
-        
-        // Mostrar/esconder mensagem de vazio
-        if (emptyMessage) {
-            emptyMessage.style.display = servicesData.length === 0 ? 'block' : 'none';
-        }
-            } catch (error) {
-                console.error('Erro ao carregar serviços:', error);
-                showToast('Erro ao carregar serviços', 'danger');
-            }
-        }
-
-        // Função para verificar o status de todos os serviços
-        async function checkAllServicesStatus() {
-            for (let service of services) {
-                try {
-                    await checkServiceStatus(service);
-                } catch (error) {
-                    console.error(`Erro ao verificar status do serviço ${service.name}:`, error);
-                }
-            }
-        }
-
-        function openAddModal(editIndex = null) {
-    const modal = document.getElementById('add-modal');
-    if (!modal) return;
-
-    // Limpar o formulário
-    const form = document.getElementById('service-form');
-    if (form) {
-        form.reset();
-    }
-
-    // Se estiver editando, preencher com os dados do serviço
-    if (editIndex !== null && services[editIndex]) {
-        const service = services[editIndex];
-        const nameInput = document.getElementById('service-name');
-        const ipInput = document.getElementById('service-ip');
-        const portInput = document.getElementById('service-port');
-        const domainInput = document.getElementById('service-domain');
-        const sshUsernameInput = document.getElementById('service-ssh-username');
-        const sshPasswordInput = document.getElementById('service-ssh-password');
-        const installPathInput = document.getElementById('service-install-path');
-        const productionPortInput = document.getElementById('production-port');
-        const categoryInput = document.getElementById('service-category');
-        const accessTypeInput = document.getElementById('service-access-type');
-
-        if (nameInput) nameInput.value = service.name;
-        if (ipInput) ipInput.value = service.ip;
-        if (portInput) portInput.value = service.port;
-        if (domainInput) domainInput.value = service.domain;
-        if (sshUsernameInput) sshUsernameInput.value = service.sshUsername;
-        if (sshPasswordInput) sshPasswordInput.value = service.sshPassword;
-        if (installPathInput) installPathInput.value = service.installPath;
-        if (productionPortInput) productionPortInput.value = service.productionPort;
-        if (categoryInput) categoryInput.value = service.setor;
-        if (accessTypeInput) accessTypeInput.value = service.accessType;
-
-        currentServiceIndex = editIndex;
-        modalTitle.textContent = 'Editar Glassfish';
-    } else {
-        currentServiceIndex = null;
-        modalTitle.textContent = 'Adicionar Glassfish';
-    }
-
-    // Abrir o modal
-    modal.classList.add('is-active');
+// Lê campo do serviço com fallback para config aninhado (registros antigos têm config={})
+function fieldOf(service, field, defaultValue = '') {
+    const direct = service[field];
+    if (direct !== undefined && direct !== null && direct !== '') return direct;
+    const cfg = service.config || {};
+    const fromConfig = cfg[field];
+    if (fromConfig !== undefined && fromConfig !== null && fromConfig !== '') return fromConfig;
+    return defaultValue;
 }
 
-function closeAddModal() {
-    const modal = document.getElementById('add-modal');
-    if (modal) {
-        modal.classList.remove('is-active');
-        currentServiceIndex = null;
+// ─── Fetch ────────────────────────────────────────────────────────────────────
+async function fetchServices() {
+    try {
+        const res = await fetch('/api/glassfish/servicos', { headers: authHeaders() });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        services = await res.json();
+        renderCards(services);
+        updateStats(services);
+        const rc    = document.getElementById('results-count');
+        const empty = document.getElementById('empty-message');
+        if (rc)    rc.textContent = `${services.length} serviço(s)`;
+        if (empty) empty.classList.toggle('hidden', services.length > 0);
+
+        // Checar status real de cada serviço em background (sem bloquear a UI)
+        checkAllServicesStatus();
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao carregar serviços', 'error');
     }
 }
 
-        // Função para salvar ou editar serviço no MongoDB
-        async function saveGlassfish() {
-            try {
-        const serviceData = {
-                    name: document.getElementById('service-name').value,
-                    ip: document.getElementById('service-ip').value,
-                    port: parseInt(document.getElementById('service-port').value),
-                    domain: document.getElementById('service-domain').value,
-                    sshUsername: document.getElementById('service-ssh-username').value,
-                    sshPassword: document.getElementById('service-ssh-password').value,
-            installPath: document.getElementById('service-install-path').value,
-                    setor: document.getElementById('service-category').value,
-            accessType: document.getElementById('service-access-type').value,
-            productionPort: parseInt(document.getElementById('production-port').value) || 8091
-        };
+// Checa o status real de todos os serviços via SSH em paralelo (background)
+async function checkAllServicesStatus() {
+    if (services.length === 0) return;
 
-        // Validação dos campos obrigatórios
-        if (!serviceData.name || !serviceData.ip || !serviceData.domain || 
-            !serviceData.sshUsername || !serviceData.sshPassword || !serviceData.installPath) {
-            throw new Error('Todos os campos obrigatórios devem ser preenchidos');
-        }
+    // Limita a 4 verificações simultâneas para não sobrecarregar
+    const CONCURRENCY = 4;
+    const chunks = [];
+    for (let i = 0; i < services.length; i += CONCURRENCY) {
+        chunks.push(services.slice(i, i + CONCURRENCY));
+    }
 
-        // Validação do tipo de acesso
-        if (serviceData.accessType === 'external' && !serviceData.productionPort) {
-            throw new Error('A porta de produção é obrigatória para acesso externo');
-        }
+    for (const chunk of chunks) {
+        await Promise.allSettled(
+            chunk.map(service => checkServiceStatus(service))
+        );
+    }
+}
 
-        const url = currentServiceIndex !== null ? 
-            `/api/glassfish/servicos/${services[currentServiceIndex].id}` : 
-            '/api/glassfish/servicos';
+async function checkServiceStatus(service) {
+    try {
+        const res = await fetch(`/api/glassfish/servicos/${service.id}/status`, {
+            headers: authHeaders()
+        });
 
-        const method = currentServiceIndex !== null ? 'PUT' : 'POST';
+        // Esconde o badge "verificando" independente do resultado
+        const checkingBadge = document.getElementById(`checking-badge-${service.id}`);
+        if (checkingBadge) checkingBadge.remove();
 
-        const response = await fetch(url, {
-            method,
-                    headers: { 
-                        'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-            body: JSON.stringify(serviceData)
-                });
+        if (!res.ok) return;
 
-                if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao salvar serviço');
-                }
+        const data = await res.json();
+        const idx  = services.findIndex(s => s.id === service.id);
+        if (idx === -1) return;
 
-                await fetchServices();
-        closeAddModal();
-        showToast('Serviço salvo com sucesso', 'success');
-            } catch (error) {
-                console.error('Erro ao salvar serviço:', error);
-        showToast(error.message || 'Erro ao salvar serviço', 'error');
+        if (data.status !== 'error') {
+            const oldStatus = services[idx].status;
+            services[idx].status = data.status;
+            services[idx].pid    = data.pid || null;
+
+            // Atualiza só o badge de status no DOM — sem re-renderizar o card inteiro
+            const statusBadge = document.getElementById(`status-badge-${service.id}`);
+            if (statusBadge) {
+                const isActive = data.status === 'active';
+                statusBadge.className = `badge badge-sm ${isActive ? 'badge-success' : 'badge-error'}`;
+                statusBadge.textContent = isActive ? 'Ativo' : 'Inativo';
             }
-        }
 
-        async function renderCards(servicesData) {
+            // Atualiza stat counters se o status mudou
+            if (data.status !== (oldStatus || 'inactive')) {
+                updateStats(services);
+            }
+        } else {
+            // Status error → só remove o badge de verificando
+            const checkingBadge2 = document.getElementById(`checking-badge-${service.id}`);
+            if (checkingBadge2) checkingBadge2.remove();
+        }
+    } catch {
+        // SSH falhou silenciosamente — remove spinner
+        const checkingBadge = document.getElementById(`checking-badge-${service.id}`);
+        if (checkingBadge) checkingBadge.remove();
+    }
+}
+
+function updateStats(list) {
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('stat-total',    list.length);
+    set('stat-active',   list.filter(s => s.status === 'active').length);
+    set('stat-inactive', list.filter(s => s.status !== 'active').length);
+    set('stat-inuse',    list.filter(s => s.inUse).length);
+}
+
+// ─── Render cards ─────────────────────────────────────────────────────────────
+function renderCards(list) {
     const container = document.getElementById('cards-container');
     if (!container) return;
+    if (list.length === 0) { container.innerHTML = ''; return; }
 
-    container.innerHTML = servicesData.map((service, index) => `
-        <div class="card ${service.inUse ? 'is-warning' : ''}" data-index="${index}" data-action="editService">
-            <div class="card-content">
-                <div class="media">
-                    <div class="media-left">
-                        <span class="icon is-large has-text-info">
-                            <i class="fas fa-server fa-3x"></i>
-                        </span>
-                            </div>
-                    <div class="media-content">
-                            <p class="title is-4">${service.name}</p>
-                        <p class="subtitle is-6">${service.ip}:${service.port}</p>
+    container.innerHTML = list.map((service, index) => {
+        const ip     = service.ip || service.host || '—';
+        const active = service.status === 'active';
+        const inUse  = !!service.inUse;
+
+        return `
+        <div class="card bg-base-100 shadow server-card border ${inUse ? 'border-warning' : 'border-base-300'} rounded-xl" data-index="${index}">
+            <div class="card-body p-5 gap-2">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-server text-primary"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="font-bold text-base truncate" title="${service.name}">${service.name}</h2>
+                        <p class="text-xs text-gray-400 font-mono">${ip}:${service.port || '—'}</p>
                     </div>
                 </div>
-                <div class="content">
-                    <div class="tags">
-                        <span class="tag ${service.status === 'active' ? 'is-success' : 'is-danger'}">
-                            ${service.status === 'active' ? 'Ativo' : 'Inativo'}
-                        </span>
-                        ${service.inUse ? `<span class="tag is-warning">Em uso por ${service.inUseBy}</span>` : ''}
-                    </div>
+                <div class="flex flex-wrap gap-1 mt-1">
+                    <span class="badge badge-sm ${active ? 'badge-success' : 'badge-error'}" id="status-badge-${service.id}">
+                        ${active ? 'Ativo' : 'Inativo'}
+                    </span>
+                    <span class="badge badge-sm badge-ghost gap-1" id="checking-badge-${service.id}">
+                        <span class="loading loading-spinner loading-xs"></span>verificando
+                    </span>
+                    ${inUse  ? `<span class="badge badge-sm badge-warning max-w-[160px] truncate" title="${service.inUseBy || '?'}">Em uso: ${service.inUseBy || '?'}</span>` : ''}
+                    ${service.setor ? `<span class="badge badge-sm badge-ghost" title="${service.setor}">${service.setor}</span>` : ''}
+                </div>
+                <div class="text-xs text-gray-400 mt-1 space-y-0.5">
+                    <p>Domínio: <span class="font-mono text-gray-600">${service.domain || '—'}</span></p>
                 </div>
             </div>
-            <footer class="card-footer">
-                <button class="card-footer-item button is-info is-light" data-action="viewLogs" data-index="${index}">
-                    <span class="icon"><i class="fas fa-file-alt"></i></span>
-                    <span>Ver logs</span>
-                </button>
-                <button class="card-footer-item button is-success is-light" data-action="startService" data-index="${index}">
-                                    <span class="icon"><i class="fas fa-play"></i></span>
-                    <span>Iniciar</span>
-                                </button>
-                <button class="card-footer-item button is-danger is-light" data-action="stopService" data-index="${index}">
-                                    <span class="icon"><i class="fas fa-stop"></i></span>
-                    <span>Parar</span>
-                                </button>
-                <button class="card-footer-item button is-warning is-light" data-action="restartService" data-index="${index}">
-                                    <span class="icon"><i class="fas fa-sync"></i></span>
-                    <span>Reiniciar</span>
-                                </button>
-                <button class="card-footer-item button is-info is-light" data-action="domainConfig" data-index="${index}">
-                                    <span class="icon"><i class="fas fa-cog"></i></span>
-                    <span>Configurar Domain</span>
-                                </button>
-                ${!service.inUse ? `
-                    <button class="card-footer-item button is-warning is-light" data-action="markInUse" data-index="${index}">
-                        <span class="icon"><i class="fas fa-user"></i></span>
-                        <span>Marcar como em uso</span>
-                                </button>
-                ` : `
-                    <button class="card-footer-item button is-success is-light" data-action="markAvailable" data-index="${index}">
-                        <span class="icon"><i class="fas fa-check"></i></span>
-                        <span>Marcar como disponível</span>
-                                </button>
-                `}
-            </footer>
-                            </div>
-    `).join('');
+            <div class="border-t border-base-200 p-3 space-y-2">
+                <div class="flex gap-1.5 flex-wrap justify-center">
+                    <button class="btn btn-xs btn-success"  data-action="startService"   data-index="${index}" title="Iniciar"><i class="fas fa-play"></i></button>
+                    <button class="btn btn-xs btn-error"    data-action="stopService"    data-index="${index}" title="Parar"><i class="fas fa-stop"></i></button>
+                    <button class="btn btn-xs btn-warning"  data-action="restartService" data-index="${index}" title="Reiniciar"><i class="fas fa-rotate-right"></i></button>
+                    <button class="btn btn-xs btn-info btn-outline" data-action="viewLogs" data-index="${index}" title="Logs"><i class="fas fa-file-lines"></i></button>
+                    <button class="btn btn-xs btn-ghost"    data-action="domainConfig"   data-index="${index}" title="Domain"><i class="fas fa-database"></i></button>
+                    <button class="btn btn-xs btn-ghost"    data-action="editService"    data-index="${index}" title="Editar"><i class="fas fa-pen"></i></button>
+                    <button class="btn btn-xs btn-ghost text-error" data-action="removeService" data-index="${index}" title="Excluir"><i class="fas fa-trash"></i></button>
+                </div>
+                <div class="flex justify-center">
+                    ${!inUse
+                        ? `<button class="btn btn-xs btn-warning btn-outline w-full gap-1" data-action="markInUse" data-index="${index}"><i class="fas fa-user-clock"></i>Marcar em uso</button>`
+                        : `<button class="btn btn-xs btn-success btn-outline w-full gap-1" data-action="markAvailable" data-index="${index}"><i class="fas fa-circle-check"></i>Disponível</button>`
+                    }
+                </div>
+            </div>
+        </div>`;
+    }).join('');
 }
 
-// Função para filtrar cards
+// ─── Filtros ──────────────────────────────────────────────────────────────────
 function filterCards() {
-    const statusFilter = document.getElementById('filter-status').value;
-    const setorFilter = document.getElementById('filter-setor').value;
-    const searchQuery = document.getElementById('search-input').value.toLowerCase();
+    const status = document.getElementById('filter-status')?.value || 'all';
+    const setor  = document.getElementById('filter-setor')?.value  || 'all';
+    const query  = (document.getElementById('search-input')?.value || '').toLowerCase();
 
-    const filteredServices = services.filter(service => {
-        const matchStatus = statusFilter === 'all' || 
-            (statusFilter === 'active' && service.status === 'active') ||
-            (statusFilter === 'inactive' && service.status !== 'active');
-
-        const matchSetor = setorFilter === 'all' || service.setor === setorFilter;
-
-        const matchSearch = service.name.toLowerCase().includes(searchQuery) ||
-            service.domain.toLowerCase().includes(searchQuery) ||
-            service.ip.toLowerCase().includes(searchQuery);
-
+    const filtered = services.filter(s => {
+        const matchStatus = status === 'all' || (status === 'active' && s.status === 'active') || (status === 'inactive' && s.status !== 'active');
+        const matchSetor  = setor === 'all' || s.setor === setor;
+        const matchSearch = (s.name || '').toLowerCase().includes(query) || (s.domain || '').toLowerCase().includes(query) || (s.ip || s.host || '').toLowerCase().includes(query);
         return matchStatus && matchSetor && matchSearch;
     });
 
-    renderCards(filteredServices);
+    renderCards(filtered);
+    const rc = document.getElementById('results-count');
+    if (rc) rc.textContent = `${filtered.length} de ${services.length} serviço(s)`;
 }
 
-// Função para remover serviço
+// ─── Modal Adicionar/Editar ───────────────────────────────────────────────────
+function openAddModal(editIndex = null) {
+    const modal = document.getElementById('add-modal');
+    if (!modal) return;
+
+    // Reset limpa os campos antes de preencher
+    document.getElementById('service-form')?.reset();
+    const resultEl = document.getElementById('ssh-test-result');
+    if (resultEl) resultEl.textContent = '';
+
+    if (editIndex !== null && services[editIndex]) {
+        const s = services[editIndex];
+
+        // Debug: confirmar dados recebidos (com config aninhado expandido)
+        console.log('[openAddModal] serviço raw:', s);
+        console.log('[openAddModal] config:', s.config);
+
+        // Usar fieldOf() para ler campo direto OU config.campo (registros antigos têm config={})
+        setVal('service-name',         fieldOf(s, 'name'));
+        setVal('service-ip',           s.ip || s.host || fieldOf(s, 'ip', ''));
+        setVal('service-port',         s.port || 4848);
+        setVal('service-domain',       fieldOf(s, 'domain'));
+        setVal('service-ssh-username', s.sshUsername || s.username || fieldOf(s, 'sshUsername', ''));
+        setVal('service-ssh-password', fieldOf(s, 'sshPassword'));
+        setVal('service-install-path', fieldOf(s, 'installPath', '/srv/glassfish6.2.5'));
+        setVal('production-port',      fieldOf(s, 'productionPort', 8080));
+        setVal('service-category',     fieldOf(s, 'setor', 'Setor Sup. Externo'));
+        setVal('service-access-type',  fieldOf(s, 'accessType', 'local'));
+
+        currentServiceIndex = editIndex;
+        const t = document.getElementById('modal-title');
+        if (t) t.textContent = `Editar — ${s.name}`;
+    } else {
+        currentServiceIndex = null;
+        // Valores padrão para novo serviço
+        setVal('service-port',         '4848');
+        setVal('production-port',      '8080');
+        setVal('service-install-path', '/srv/glassfish6.2.5');
+        setVal('service-access-type',  'local');
+        setVal('service-category',     'Setor Sup. Externo');
+        const t = document.getElementById('modal-title');
+        if (t) t.textContent = 'Adicionar Glassfish';
+    }
+
+    // Abre o dialog nativo
+    if (modal.showModal) {
+        modal.showModal();
+    }
+}
+
+function closeAddModal() {
+    closeDialog('add-modal');
+    currentServiceIndex = null;
+}
+
+// ─── Salvar ───────────────────────────────────────────────────────────────────
+async function saveGlassfish() {
+    const btn = document.querySelector('[data-action="saveGlassfish"]');
+    try {
+        const serviceData = {
+            name:           getVal('service-name'),
+            ip:             getVal('service-ip'),
+            port:           parseInt(getVal('service-port'))    || 4848,
+            domain:         getVal('service-domain'),
+            sshUsername:    getVal('service-ssh-username'),
+            sshPassword:    getVal('service-ssh-password'),
+            installPath:    getVal('service-install-path')      || '/srv/glassfish6.2.5',
+            setor:          getVal('service-category'),
+            accessType:     getVal('service-access-type'),
+            productionPort: parseInt(getVal('production-port')) || 8080
+        };
+
+        // Validação clara campo a campo
+        const labels = {
+            name: 'Nome', ip: 'IP', domain: 'Domínio',
+            sshUsername: 'Usuário SSH', sshPassword: 'Senha SSH', installPath: 'Caminho de instalação'
+        };
+        const missing = Object.entries(labels)
+            .filter(([k]) => !serviceData[k])
+            .map(([, label]) => label);
+
+        if (missing.length) {
+            showToast(`Preencha: ${missing.join(', ')}`, 'warning');
+            return;
+        }
+
+        // Se editando e a senha está vazia, manter a senha atual
+        const isEdit = currentServiceIndex !== null;
+        if (isEdit && !serviceData.sshPassword) {
+            serviceData.sshPassword = services[currentServiceIndex].sshPassword || '';
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Salvando…';
+        }
+
+        const url = isEdit
+            ? `/api/glassfish/servicos/${services[currentServiceIndex].id}`
+            : '/api/glassfish/servicos';
+
+        const res = await fetch(url, {
+            method:  isEdit ? 'PUT' : 'POST',
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body:    JSON.stringify(serviceData)
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.details || err.error || `Erro HTTP ${res.status}`);
+        }
+
+        const saved = await res.json();
+        console.log('[saveGlassfish] resposta do servidor:', saved);
+
+        // Atualiza o objeto local imediatamente sem esperar o fetchServices
+        if (isEdit) {
+            services[currentServiceIndex] = saved;
+        }
+
+        closeAddModal();
+        showToast(isEdit ? 'Serviço atualizado!' : 'Serviço adicionado!', 'success');
+
+        // Recarrega a lista completa para garantir consistência
+        await fetchServices();
+
+    } catch (err) {
+        console.error('[saveGlassfish]', err);
+        showToast(err.message || 'Erro ao salvar serviço', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save mr-1"></i>Salvar';
+        }
+    }
+}
+
+// ─── Ações dos cards ──────────────────────────────────────────────────────────
 async function removeService(index) {
-            const service = services[index];
-    if (!confirm(`Tem certeza que deseja excluir o serviço "${service.name}"?`)) {
+    const s = services[index];
+    if (!s || !confirm(`Excluir "${s.name}"?`)) return;
+    try {
+        const res = await fetch(`/api/glassfish/servicos/${s.id}`, { method: 'DELETE', headers: authHeaders() });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        showToast('Serviço removido!', 'success');
+        await fetchServices();
+    } catch (err) { showToast('Erro ao remover: ' + err.message, 'error'); }
+}
+
+async function serviceAction(index, action, msg) {
+    const s = services[index];
+    if (!s?.id) return;
+    const btn = document.querySelector(`[data-action="${action}Service"][data-index="${index}"]`);
+    if (btn) btn.classList.add('loading');
+    try {
+        const res = await fetch(`/api/glassfish/servicos/${s.id}/${action}`, { method: 'POST', headers: authHeaders() });
+        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `Erro ao ${action}`); }
+        showToast(msg, 'success');
+        await fetchServices();
+    } catch (err) { showToast(err.message, 'error'); }
+    finally { if (btn) btn.classList.remove('loading'); }
+}
+
+const startService   = (i) => serviceAction(i, 'start',   'Serviço iniciado!');
+const stopService    = (i) => serviceAction(i, 'stop',    'Serviço parado!');
+const restartService = (i) => serviceAction(i, 'restart', 'Serviço reiniciado!');
+
+async function markInUse(index) {
+    const s = services[index];
+    if (!s?.id) return;
+
+    // Busca nome do usuário — API primeiro, JWT como fallback
+    const user = await resolveCurrentUserAsync();
+    if (!user) {
+        showToast('Não foi possível identificar o usuário logado', 'warning');
         return;
     }
 
     try {
-        const response = await fetch(`/api/glassfish/servicos/${service._id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
-                });
-
-                if (!response.ok) {
-            throw new Error('Erro ao excluir serviço');
-                }
-
-        showToast('Serviço removido com sucesso!', 'success');
-        await fetchServices();
-            } catch (error) {
-        console.error('Erro ao excluir serviço:', error);
-                showToast(error.message, 'danger');
-            }
-        }
-
-// Função para iniciar serviço
-async function startService(index) {
-            try {
-        const service = services[index];
-        const response = await fetch(`/api/glassfish/servicos/${service._id}/start`, {
-                    method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
-                });
-
-                if (!response.ok) {
-            throw new Error('Erro ao iniciar serviço');
-                }
-
-        showToast('Serviço iniciado com sucesso!', 'success');
-        await fetchServices();
-            } catch (error) {
-        console.error('Erro ao iniciar serviço:', error);
-                showToast(error.message, 'danger');
-            }
-        }
-
-// Função para parar serviço
-async function stopService(index) {
-    try {
-            const service = services[index];
-        if (!service || !service.id) {
-            throw new Error('Serviço não encontrado');
-        }
-
-        const response = await fetch(`/api/glassfish/servicos/${service.id}/stop`, {
-                    method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-                });
-                
-                if (!response.ok) {
-            throw new Error('Erro ao parar serviço');
-        }
-
-        await fetchServices();
-        showToast('Serviço parado com sucesso', 'success');
-            } catch (error) {
-        console.error('Erro ao parar serviço:', error);
-        showToast('Erro ao parar serviço', 'error');
-    }
-}
-
-// Função para reiniciar serviço
-async function restartService(index) {
-    try {
-            const service = services[index];
-        if (!service || !service.id) {
-            throw new Error('Serviço não encontrado');
-            }
-            
-        const response = await fetch(`/api/glassfish/servicos/${service.id}/restart`, {
+        const res = await fetch(`/api/glassfish/servicos/${s.id}/in-use`, {
             method: 'POST',
-                    headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                    });
-                    
-                    if (!response.ok) {
-            throw new Error('Erro ao reiniciar serviço');
-                    }
-                    
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ user })
+        });
+        if (!res.ok) throw new Error('Erro ao marcar como em uso');
+        showToast(`Marcado em uso por ${user}`, 'success');
         await fetchServices();
-        showToast('Serviço reiniciado com sucesso', 'success');
-                } catch (error) {
-        console.error('Erro ao reiniciar serviço:', error);
-        showToast('Erro ao reiniciar serviço', 'error');
+    } catch (err) {
+        showToast(err.message, 'error');
     }
 }
 
-// Função para verificar status do serviço
-async function checkServiceStatus(service) {
+/**
+ * Resolve o nome do usuário logado a partir do token JWT ou AuthManager.
+ * Retorna o nome/username/email disponível, priorizando legibilidade.
+ */
+function resolveCurrentUser() {
+    // 1. Tentar AuthManager
     try {
-        if (!service || !service._id) {
-            console.error('Serviço inválido:', service);
-            return;
-        }
+        const u = AuthManager?.getCurrentUser?.();
+        if (u?.name)     return u.name;
+        if (u?.username) return u.username;
+        if (u?.email)    return u.email;
+    } catch (_) {}
 
-        const response = await fetch(`/api/glassfish/servicos/${service._id}/status`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
-        });
+    // 2. Decodificar JWT
+    try {
+        const payload = JSON.parse(atob(getToken().split('.')[1]));
+        if (payload.name)     return payload.name;
+        if (payload.username) return payload.username;
+        if (payload.email)    return payload.email;
+    } catch (_) {}
 
-        if (!response.ok) {
-            throw new Error('Erro ao verificar status do serviço');
-        }
-
-        const status = await response.json();
-        const statusIndicator = document.getElementById(`status-${service._id}`);
-        if (statusIndicator) {
-            statusIndicator.className = `status-indicator ${status.status === 'active' ? 'status-active' : 'status-inactive'}`;
-        }
-
-        return status;
-            } catch (error) {
-        console.error('Erro ao verificar status:', error);
-        return null;
-    }
+    // 3. localStorage
+    return localStorage.getItem('username') || localStorage.getItem('user') || null;
 }
 
-// Função para abrir painel admin
+// Busca o nome real do usuário na API e armazena em cache
+let _cachedUserName = null;
+async function resolveCurrentUserAsync() {
+    if (_cachedUserName) return _cachedUserName;
+
+    // Tentar síncronamente primeiro
+    const sync = resolveCurrentUser();
+
+    try {
+        const res = await fetch('/api/auth/me', { headers: authHeaders() });
+        if (res.ok) {
+            const u = await res.json();
+            const name = u.name || u.username || u.email || sync;
+            _cachedUserName = name;
+            return name;
+        }
+    } catch (_) {}
+
+    // Tentar rota alternativa comum
+    try {
+        const res = await fetch('/api/users/me', { headers: authHeaders() });
+        if (res.ok) {
+            const u = await res.json();
+            const name = u.name || u.username || u.email || sync;
+            _cachedUserName = name;
+            return name;
+        }
+    } catch (_) {}
+
+    _cachedUserName = sync;
+    return sync;
+}
+
 function openAdminPanel() {
-    const service = services[editingIndex];
-    if (!service) return;
-
-    const url = `http://${service.ip}:${service.port}`;
-    window.open(url, '_blank');
+    if (currentServiceIndex === null) return;
+    const s = services[currentServiceIndex];
+    window.open(`http://${s.ip || s.host}:${s.port}`, '_blank');
 }
 
-// Função para acessar NeoWeb
 function accessNeoWeb() {
-    const service = services[editingIndex];
-    if (!service) return;
-
-    const url = `http://${service.ip}:${service.productionPort}/neoweb`;
-    window.open(url, '_blank');
+    if (currentServiceIndex === null) return;
+    const s = services[currentServiceIndex];
+    window.open(`http://${s.ip || s.host}:${s.productionPort}/neoweb`, '_blank');
 }
 
-// Função para alternar visibilidade da senha
-        function togglePasswordVisibility() {
-            const passwordInput = document.getElementById('service-password');
-            const eyeIcon = document.getElementById('eye-icon');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                eyeIcon.classList.remove('fa-eye');
-                eyeIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                eyeIcon.classList.remove('fa-eye-slash');
-                eyeIcon.classList.add('fa-eye');
-            }
-        }
+function handleAccessTypeChange() {
+    const type  = document.getElementById('service-access-type')?.value;
+    const field = document.getElementById('production-port-field');
+    if (field) field.style.display = type === 'external' ? '' : 'none';
+}
 
-// Função para testar conexão SSH
-        async function testSSHConnection() {
-    const host = document.getElementById('service-ip').value;
-            const username = document.getElementById('service-ssh-username').value;
-            const password = document.getElementById('service-ssh-password').value;
-    const resultElement = document.getElementById('ssh-test-result');
-
+async function testSSHConnection() {
+    const host = getVal('service-ip'), username = getVal('service-ssh-username'), password = getVal('service-ssh-password');
+    const el   = document.getElementById('ssh-test-result');
     if (!host || !username || !password) {
-        resultElement.textContent = 'Preencha todos os campos de conexão SSH';
-        resultElement.className = 'help is-danger';
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/glassfish/test-ssh', {
-                    method: 'POST',
-                    headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                    },
-                    body: JSON.stringify({
-                ip: host,
-                        username: username,
-                        password: password
-                    })
-                });
-
-                if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.details || error.error || 'Erro ao testar conexão SSH');
-        }
-
-        const data = await response.json();
-        resultElement.textContent = data.message;
-        resultElement.className = 'help is-success';
-            } catch (error) {
-        console.error('Erro ao testar conexão SSH:', error);
-        resultElement.textContent = error.message;
-        resultElement.className = 'help is-danger';
+        if (el) { el.textContent = 'Preencha IP, usuário e senha SSH'; el.className = 'text-error text-sm mt-1'; }
+        return;
     }
-}
-
-// Função para lidar com mudança no tipo de acesso
-        function handleAccessTypeChange() {
-            const accessType = document.getElementById('service-access-type').value;
-    const productionPortField = document.getElementById('production-port').parentElement.parentElement;
-            
-            if (accessType === 'external') {
-        productionPortField.style.display = 'block';
-            } else {
-        productionPortField.style.display = 'none';
-    }
-}
-
-// Função para marcar serviço como em uso
-async function markInUse(index) {
+    if (el) { el.textContent = 'Testando…'; el.className = 'text-info text-sm mt-1'; }
     try {
-        const service = services[index];
-        if (!service || !service.id) {
-                    throw new Error('Serviço não encontrado');
-                }
-
-        const response = await fetch(`/api/glassfish/servicos/${service.id}/in-use`, {
-                    method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-                inUse: true,
-                inUseBy: localStorage.getItem('username') || 'Usuário desconhecido'
-            })
-                });
-
-                if (!response.ok) {
-            throw new Error('Erro ao marcar serviço como em uso');
-        }
-
-                await fetchServices();
-        showToast('Serviço marcado como em uso com sucesso', 'success');
-            } catch (error) {
-        console.error('Erro ao marcar serviço como em uso:', error);
-        showToast(error.message || 'Erro ao marcar serviço como em uso', 'error');
+        const res  = await fetch('/api/glassfish/test-ssh', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ ip: host, username, password }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Falha SSH');
+        if (el) { el.textContent = '✓ ' + data.message; el.className = 'text-success text-sm mt-1'; }
+    } catch (err) {
+        if (el) { el.textContent = '✗ ' + err.message; el.className = 'text-error text-sm mt-1'; }
     }
 }
 
-// Inicialização
+// ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-    // Registrar service worker
-    if ('serviceWorker' in navigator) {
-        try {
-            await navigator.serviceWorker.register('/sw.js');
-            console.log('Service Worker registrado com sucesso');
-            } catch (error) {
-            console.error('Erro ao registrar Service Worker:', error);
-        }
-    }
+    document.getElementById('search-input')?.addEventListener('input',  filterCards);
+    document.getElementById('filter-status')?.addEventListener('change', filterCards);
+    document.getElementById('filter-setor')?.addEventListener('change',  filterCards);
+    document.getElementById('application-file')?.addEventListener('change', e => {
+        const btn = document.getElementById('upload-button');
+        if (btn) btn.disabled = !e.target.files?.[0];
+    });
 
-    // Inicializar variáveis
-    let services = [];
-    let currentServiceIndex = null;
-    let currentMaintenanceIndex = null;
-    let currentDomainConfigIndex = null;
-    let isLogViewerOpen = false;
-    let logWebSocket = null;
-
-    // Adicionar event listeners com verificações
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', filterCards);
-    }
-
-    const applicationFile = document.getElementById('application-file');
-    if (applicationFile) {
-        applicationFile.addEventListener('change', (e) => {
-            const fileName = e.target.files[0]?.name || 'Nenhum arquivo selecionado';
-            const fileNameElement = document.getElementById('file-name');
-            const uploadButton = document.getElementById('upload-button');
-            
-            if (fileNameElement) fileNameElement.textContent = fileName;
-            if (uploadButton) uploadButton.disabled = !e.target.files[0];
-        });
-    }
-
-    // Adicionar event listener para o botão de adicionar serviço
-    const addButton = document.querySelector('[data-action="openAddModal"]');
-    if (addButton) {
-        addButton.addEventListener('click', () => {
-            const modal = document.getElementById('add-modal');
-            if (modal) {
-                modal.classList.add('is-active');
-            }
-        });
-    }
-
-    // Adicionar event listener para o botão de salvar
-    const saveButton = document.querySelector('[data-action="saveGlassfish"]');
-    if (saveButton) {
-        saveButton.addEventListener('click', saveGlassfish);
-    }
-
-    // Adicionar event listener para o botão de cancelar
-    const cancelButton = document.querySelector('[data-action="closeAddModal"]');
-    if (cancelButton) {
-        cancelButton.addEventListener('click', closeAddModal);
-    }
-
-    // Adicionar event listeners para elementos com data-action
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
         const target = e.target.closest('[data-action]');
         if (!target) return;
-
         const action = target.dataset.action;
+        const index  = target.dataset.index !== undefined ? parseInt(target.dataset.index) : null;
+
         switch (action) {
-            case 'filter':
-                filterCards();
-                break;
-            case 'openAddModal':
-                openAddModal();
-                break;
-            case 'closeAddModal':
-                closeAddModal();
-                break;
-            case 'testSSHConnection':
-                testSSHConnection();
-                break;
-            case 'openAdminPanel':
-                openAdminPanel();
-                break;
-            case 'accessNeoWeb':
-                accessNeoWeb();
-                break;
-            case 'closeModal':
+            case 'filter':            filterCards();                                      break;
+            case 'refresh':           fetchServices();                                    break;
+            case 'openAddModal':      openAddModal();                                     break;
+            case 'closeAddModal':     closeAddModal();                                    break;
+            case 'saveGlassfish':     saveGlassfish();                                    break;
+            case 'editService':       openAddModal(index);                                break;
+            case 'removeService':     removeService(index);                               break;
+            case 'startService':      startService(index);                                break;
+            case 'stopService':       stopService(index);                                 break;
+            case 'restartService':    restartService(index);                              break;
+            case 'markInUse':         markInUse(index);                                   break;
+            case 'markAvailable':     markServiceAvailable(index, services, fetchServices); break;
+            // saveUserName removido — usuário é identificado automaticamente via JWT
+            case 'viewLogs':          viewLogs(index, services);                           break;
+            case 'toggleLogViewer':   toggleLogViewer(services);                           break;
+            case 'clearLogViewer':    { const lv = document.getElementById('log-viewer'); if (lv) lv.textContent = ''; break; }
+            case 'domainConfig':      openDomainConfigModal(index, services);              break;
+            case 'saveDomainConfig':  saveDomainConfig(services);                          break;
+            case 'uploadApplication': uploadApplication(services);                         break;
+            case 'openMaintenanceModal': openMaintenanceModal(index);                      break;
+            case 'executeMaintenance':   executeMaintenance(services, fetchServices);      break;
+            case 'testSSHConnection': testSSHConnection();                                 break;
+            case 'openAdminPanel':    openAdminPanel();                                    break;
+            case 'accessNeoWeb':      accessNeoWeb();                                      break;
+            case 'closeModal': {
                 const modalId = target.dataset.modal;
-                closeModal(modalId);
+                if (modalId) closeModal(modalId);
                 break;
-            case 'saveUserName':
-                saveUserName(services, fetchServices);
-                break;
-            case 'saveDomainConfig':
-                saveDomainConfig();
-                break;
-            case 'uploadApplication':
-                uploadApplication();
-                break;
-            case 'executeMaintenance':
-                executeMaintenance(services, fetchServices);
-                break;
-            case 'viewLogs':
-                const logIndex = parseInt(target.dataset.index);
-                viewLogs(logIndex, services);
-                break;
-            case 'editService':
-                const editIndex = parseInt(target.dataset.index);
-                openAddModal(editIndex);
-                break;
-            case 'startService':
-                const startIndex = parseInt(target.dataset.index);
-                startService(startIndex);
-                break;
-            case 'stopService':
-                const stopIndex = parseInt(target.dataset.index);
-                stopService(stopIndex);
-                break;
-            case 'restartService':
-                const restartIndex = parseInt(target.dataset.index);
-                restartService(restartIndex);
-                break;
-            case 'domainConfig':
-                const domainIndex = parseInt(target.dataset.index);
-                openDomainConfigModal(domainIndex, services);
-                break;
-            case 'markInUse':
-                const markIndex = parseInt(target.dataset.index);
-                markInUse(markIndex);
-                break;
-            case 'markAvailable':
-                const availableIndex = parseInt(target.dataset.index);
-                markServiceAvailable(availableIndex, services, fetchServices);
-                break;
-            case 'toggleLogViewer':
-                toggleLogViewer();
-                break;
-            case 'clearLogViewer':
-                const logViewer = document.getElementById('log-viewer');
-                if (logViewer) {
-                    logViewer.innerHTML = '';
-                }
-                break;
+            }
         }
     });
 
-    // Adicionar event listeners para fechar o modal
-    const addModal = document.getElementById('add-modal');
-    if (addModal) {
-        // Fechar ao clicar no background
-        const modalBackground = addModal.querySelector('.modal-background');
-        if (modalBackground) {
-            modalBackground.addEventListener('click', () => {
-                addModal.classList.remove('is-active');
-                currentServiceIndex = null;
-            });
-        }
-
-        // Fechar ao clicar no botão de fechar
-        const closeButton = addModal.querySelector('.delete');
-        if (closeButton) {
-            closeButton.addEventListener('click', () => {
-                addModal.classList.remove('is-active');
-                currentServiceIndex = null;
-            });
-        }
-    }
-
-    // Carregar serviços iniciais
+    window.handleAccessTypeChange = handleAccessTypeChange;
     await fetchServices();
 });
