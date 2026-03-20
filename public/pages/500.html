@@ -3,36 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erro Interno do Servidor</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="styles/500.css">
-</head>
-<body>
-    <button id="toggleTheme" class="button">Alternar Tema</button>
-    <section class="hero is-large">
+    <title>NeoHub - Erro 500</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <h1 class="title">500</h1>
-                <h2 class="subtitle">Erro Interno do Servidor</h2>
-                <p>Desculpe, ocorreu um erro inesperado. Estamos trabalhando para resolver isso.</p>
-                <p>Você pode voltar à página principal ou tentar novamente mais tarde.</p>
-                <a href="/" class="button is-light">Voltar para a Página Inicial</a>
-                <br><br>
-                <h3 class="title is-4">O que fazer agora:</h3>
-                <p>Se o problema persistir, entre em contato com o suporte.</p>
+    <script src="/services/theme/theme-service.js"></script>
+    <script type="module" src="/components/theme-selector/theme-selector.js"></script>
+
+    <style>
+        .brand-title-error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+
+<body class="bg-base-200 min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-300">
+
+    <div class="max-w-md w-full text-center space-y-8">
+        
+        <div class="brand-title-error mb-4">
+            <img src="/assets/neo-logo-small.png" alt="Neo" class="h-14 w-auto">
+            <h1 class="text-5xl font-black tracking-tighter text-white">Hub</h1>
+        </div>
+
+        <div class="space-y-4">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-error/10 text-error mb-2">
+                <i class="fas fa-exclamation-circle text-4xl"></i>
+            </div>
+            
+            <h2 class="text-5xl font-black text-error">500</h2>
+            <h3 class="text-2xl font-bold tracking-tight">Erro Interno do Servidor</h3>
+            
+            <p class="text-base-content/60 leading-relaxed">
+                Ops! Algo quebrou nos nossos circuitos. <br>
+                Nossa equipe técnica já foi notificada e está trabalhando no reparo.
+            </p>
+        </div>
+
+        <div class="flex flex-col gap-3 pt-6">
+            <a href="/" class="btn btn-success font-bold text-success-content shadow-lg shadow-success/20">
+                <i class="fas fa-sync-alt mr-2"></i> Tentar Novamente
+            </a>
+            
+            <div class="divider opacity-10 uppercase text-[10px] font-bold tracking-widest">Ou</div>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <a href="https://github.com/Abnerlucasm/neo_utilitario/issues" target="_blank" class="btn btn-outline btn-sm gap-2">
+                    <i class="fab fa-github"></i> Reportar
+                </a>
+                <a href="/pages/index.html" class="btn btn-outline btn-sm gap-2">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
             </div>
         </div>
-    </section>
-    <script>
-        const toggleThemeButton = document.getElementById('toggleTheme');
-        toggleThemeButton.addEventListener('click', () => {
-            // Toggle theme using DaisyUI
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'corporate';
-    const newTheme = currentTheme === 'corporate' ? 'forest' : 'corporate';
-    document.documentElement.setAttribute('data-theme', newTheme);
-        });
-    </script>
+
+        <p class="text-xs text-base-content/40 mt-10">
+            Se o problema persistir, entre em contato com o administrador do sistema.
+        </p>
+    </div>
+
 </body>
 </html>
