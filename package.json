@@ -66,6 +66,6 @@
     "daisyui": "^5.5.19",
     "pm2": "^6.0.14",
     "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.1"
+    "tailwindcss": "^4.2.2"
   }
 }
