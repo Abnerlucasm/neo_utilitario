@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,45 +9,48 @@
     <link rel="apple-touch-icon" href="../icons/icon-192x192.png">
     <title>Gerenciamento Glassfish</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">   
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../styles/glassfish.css">
     <script src="../components/navbar/navbar.js"></script>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
-    
+
     <!-- Script para aplicar tema imediatamente -->
-    
+
     <style>
         .modal {
             z-index: 1000;
         }
+
         .modal-backdrop {
             z-index: 1001;
         }
+
         .modal-box {
             z-index: 1002;
         }
-        
 
-        
+
+
         /* Melhorar layout geral */
         .hero {
             background: linear-gradient(135deg, #00d1b2 0%, #1a1a1a 100%) !important;
             margin-bottom: 0 !important;
         }
-        
+
         .stat {
             background: white !important;
             border-radius: 1rem !important;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
             transition: transform 0.3s ease !important;
         }
-        
+
         .stat:hover {
             transform: translateY(-2px) !important;
             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15) !important;
         }
     </style>
 </head>
+
 <body class="bg-base-100">
     <!-- Navbar -->
     <neo-navbar></neo-navbar>
@@ -68,21 +72,24 @@
     <div class="container mx-auto px-4 py-8 max-w-6xl">
         <!-- Dashboard Stats -->
         <div class="flex flex-wrap justify-center gap-8 mb-10">
-            <div class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
+            <div
+                class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
                 <div class="stat-figure text-primary mb-2">
                     <i class="fas fa-server text-3xl"></i>
                 </div>
                 <div class="stat-title text-gray-600 text-xs tracking-widest uppercase">Total de Servidores</div>
                 <div class="stat-value text-primary text-3xl font-bold" id="total-servers">0</div>
             </div>
-            <div class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
+            <div
+                class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
                 <div class="stat-figure text-success mb-2">
                     <i class="fas fa-server text-3xl"></i>
                 </div>
                 <div class="stat-title text-gray-600 text-xs tracking-widest uppercase">Servidores Ativos</div>
                 <div class="stat-value text-success text-3xl font-bold" id="active-servers">0</div>
             </div>
-            <div class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
+            <div
+                class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
                 <div class="stat-figure text-info mb-2">
                     <i class="fas fa-memory text-3xl"></i>
                 </div>
@@ -90,13 +97,15 @@
                 <div class="stat-value text-info text-3xl font-bold" id="avg-ram-usage">0%</div>
                 <progress class="progress progress-info w-full mt-2" id="ram-progress" value="0" max="100"></progress>
             </div>
-            <div class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
+            <div
+                class="stat bg-base-100 rounded-xl shadow-md border border-gray-100 w-64 flex flex-col items-center p-6">
                 <div class="stat-figure text-warning mb-2">
                     <i class="fas fa-microchip text-3xl"></i>
                 </div>
                 <div class="stat-title text-gray-600 text-xs tracking-widest uppercase">CPU Média</div>
                 <div class="stat-value text-warning text-3xl font-bold" id="avg-cpu-usage">0%</div>
-                <progress class="progress progress-warning w-full mt-2" id="cpu-progress" value="0" max="100"></progress>
+                <progress class="progress progress-warning w-full mt-2" id="cpu-progress" value="0"
+                    max="100"></progress>
             </div>
         </div>
 
@@ -129,7 +138,8 @@
                             <label class="label">
                                 <span class="label-text text-gray-600 text-sm">Buscar</span>
                             </label>
-                            <input type="text" class="input input-bordered w-full" id="search-input" placeholder="Buscar por título" data-action="filter">
+                            <input type="text" class="input input-bordered w-full" id="search-input"
+                                placeholder="Buscar por título" data-action="filter">
                         </div>
                         <div class="flex items-end gap-4">
                             <button class="btn btn-primary" data-action="refresh">
@@ -151,7 +161,8 @@
 
         <!-- Botão para adicionar -->
         <div class="flex justify-center mb-10">
-            <button class="btn btn-primary btn-lg shadow-md hover:shadow-lg transition-all duration-300" data-action="openAddModal" title="Adicionar Serviço">
+            <button class="btn btn-primary btn-lg shadow-md hover:shadow-lg transition-all duration-300"
+                data-action="openAddModal" title="Adicionar Serviço">
                 <i class="fas fa-plus mr-2"></i>
                 Adicionar Serviço
             </button>
@@ -166,14 +177,16 @@
         <div class="modal-box max-w-2xl">
             <h3 class="font-bold text-lg mb-4" id="modal-title">Adicionar Glassfish</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeAddModal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    data-action="closeAddModal">✕</button>
             </form>
             <div class="space-y-4">
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Nome do Serviço</span>
                     </label>
-                    <input class="input input-bordered w-full" type="text" id="service-name" placeholder="Nome do serviço">
+                    <input class="input input-bordered w-full" type="text" id="service-name"
+                        placeholder="Nome do serviço">
                 </div>
                 <div class="form-control">
                     <label class="label">
@@ -192,14 +205,16 @@
                         <label class="label">
                             <span class="label-text">Porta Produção</span>
                         </label>
-                        <input class="input input-bordered w-full" type="number" id="production-port" placeholder="Porta de Produção" value="8091">
+                        <input class="input input-bordered w-full" type="number" id="production-port"
+                            placeholder="Porta de Produção" value="8091">
                     </div>
                 </div>
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Domínio</span>
                     </label>
-                    <input class="input input-bordered w-full" type="text" id="service-domain" placeholder="Domínio do serviço">
+                    <input class="input input-bordered w-full" type="text" id="service-domain"
+                        placeholder="Domínio do serviço">
                 </div>
                 <div class="form-control">
                     <label class="label">
@@ -235,15 +250,15 @@
                     <label class="label">
                         <span class="label-text">Caminho de Instalação</span>
                     </label>
-                    <input class="input input-bordered w-full" type="text" id="service-install-path" 
-                        placeholder="/srv/glassfish6.2.5/" 
-                        value="/srv/glassfish6.2.5/">
+                    <input class="input input-bordered w-full" type="text" id="service-install-path"
+                        placeholder="/srv/glassfish6.2.5/" value="/srv/glassfish6.2.5/">
                 </div>
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Tipo de Acesso</span>
                     </label>
-                    <select class="select select-bordered w-full" id="service-access-type" onchange="handleAccessTypeChange()">
+                    <select class="select select-bordered w-full" id="service-access-type"
+                        onchange="handleAccessTypeChange()">
                         <option value="local">Rede Local</option>
                         <option value="external">Acesso Externo</option>
                     </select>
@@ -277,7 +292,8 @@
         <div class="modal-box">
             <h3 class="font-bold text-lg mb-4">Detalhes do Serviço</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal" data-modal="serviceDetailsModal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
+                    data-modal="serviceDetailsModal">✕</button>
             </form>
             <div class="space-y-2">
                 <p><strong>Nome:</strong> <span id="serviceName"></span></p>
@@ -294,7 +310,8 @@
         <div class="modal-box">
             <h3 class="font-bold text-lg mb-4">Marcar como Em Uso</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal" data-modal="userNameModal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
+                    data-modal="userNameModal">✕</button>
             </form>
             <div class="form-control">
                 <label class="label">
@@ -313,7 +330,8 @@
         <div class="modal-box max-w-4xl">
             <h3 class="font-bold text-lg mb-4">Logs do Serviço</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal" data-modal="logs-modal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
+                    data-modal="logs-modal">✕</button>
             </form>
             <div class="bg-base-300 p-4 rounded-lg">
                 <pre id="logs-content" class="logs-content text-sm"></pre>
@@ -326,7 +344,8 @@
         <div class="modal-box max-w-2xl">
             <h3 class="font-bold text-lg mb-4">Configuração do Domínio</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal" data-modal="domain-config-modal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
+                    data-modal="domain-config-modal">✕</button>
             </form>
             <div class="space-y-4">
                 <div class="form-control">
@@ -389,7 +408,8 @@
         <div class="modal-box">
             <h3 class="font-bold text-lg mb-4">Manutenção do Serviço</h3>
             <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal" data-modal="maintenance-modal">✕</button>
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" data-action="closeModal"
+                    data-modal="maintenance-modal">✕</button>
             </form>
             <div class="space-y-4">
                 <label class="label cursor-pointer">
@@ -436,6 +456,10 @@
     <script type="module" src="/components/navbar/navbar.js"></script>
     <script type="module" src="/components/footer/footer.js"></script>
     <script type="module">
+        if (true) {
+            window.location.href = '/pages/manutencao.html';
+        }
+
         // Aguardar o carregamento do DOM e do AuthManager
         window.addEventListener('load', async () => {
             try {
@@ -452,4 +476,5 @@
     </script>
 
 </body>
+
 </html>
