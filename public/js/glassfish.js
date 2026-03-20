@@ -199,7 +199,9 @@ function renderCards(list) {
                 <div class="flex justify-center">
                     ${!inUse
                         ? `<button class="btn btn-xs btn-warning btn-outline w-full gap-1" data-action="markInUse" data-index="${index}"><i class="fas fa-user-clock"></i>Marcar em uso</button>`
-                        : `<button class="btn btn-xs btn-success btn-outline w-full gap-1" data-action="markAvailable" data-index="${index}"><i class="fas fa-circle-check"></i>Disponível</button>`
+                        : canRelease(service)
+                            ? `<button class="btn btn-xs btn-success btn-outline w-full gap-1" data-action="markAvailable" data-index="${index}"><i class="fas fa-circle-check"></i>Disponível</button>`
+                            : `<span class="btn btn-xs btn-disabled w-full gap-1 opacity-60 cursor-not-allowed" title="Apenas ${service.inUseBy} ou um admin pode liberar"><i class="fas fa-lock"></i>Uso: ${(service.inUseBy||'?').split('@')[0]}</span>`
                     }
                 </div>
             </div>
@@ -440,6 +442,19 @@ function resolveCurrentUser() {
 
     // 3. localStorage
     return localStorage.getItem('username') || localStorage.getItem('user') || null;
+}
+
+// Verifica se o usuário atual pode liberar o serviço (dono ou admin)
+function canRelease(service) {
+    if (!service.inUse) return true;
+    try {
+        const payload = JSON.parse(atob(getToken().split('.')[1]));
+        const isAdmin = payload.is_admin || payload.roles?.some(r => r === 'admin' || r?.name === 'admin');
+        if (isAdmin) return true;
+        const me    = (payload.email || payload.username || '').split('@')[0].toLowerCase();
+        const owner = (service.inUseBy || '').split('@')[0].toLowerCase();
+        return me === owner;
+    } catch { return false; }
 }
 
 // Busca o nome real do usuário na API e armazena em cache

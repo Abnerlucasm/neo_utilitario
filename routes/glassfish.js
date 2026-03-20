@@ -610,6 +610,26 @@ async function markAvailableHandler(req, res) {
         const service = await Glassfish.findByPk(req.params.id);
         if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
 
+        // Só o próprio usuário que marcou ou um admin pode liberar
+        const cfg         = service.config || {};
+        const requester   = req.user?.email || req.user?.username || '';
+        const isAdmin     = req.user?.is_admin || req.user?.roles?.some(r =>
+            r === 'admin' || r?.name === 'admin'
+        );
+        const inUseBy     = cfg.inUseBy || '';
+
+        if (cfg.inUse && inUseBy && !isAdmin) {
+            // Normaliza para comparar: "abner.freitas@..." == "abner.freitas"
+            const requesterBase = requester.split('@')[0].toLowerCase();
+            const ownerBase     = inUseBy.split('@')[0].toLowerCase();
+
+            if (requesterBase !== ownerBase) {
+                return res.status(403).json({
+                    error: `Este serviço está em uso por "${inUseBy}". Apenas o próprio usuário ou um administrador pode liberá-lo.`
+                });
+            }
+        }
+
         await patchConfig(service, { inUse: false, inUseBy: '' });
         res.json({ message: 'Serviço marcado como disponível' });
     } catch (error) {
