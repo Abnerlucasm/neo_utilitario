@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoHub - Aviso</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Scripts de tema -->
+    <script src="/services/theme/theme-service.js"></script>
+    <script type="module" src="/components/theme-selector/theme-selector.js"></script>
+
+</head>
+
+<body class="bg-base-200 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+
+    <div class="card w-full max-w-md bg-base-100 shadow-2xl border-t-4 border-warning">
+        <div class="card-body items-center text-center p-10">
+
+            <div class="text-warning text-6xl mb-6">
+                <i class="fas fa-hammer"></i>
+            </div>
+
+            <div class="space-y-2">
+                <h1 class="text-3xl font-black text-base-content tracking-tight">
+                    Estamos em <span class="text-warning">Ajuste</span>
+                </h1>
+                <p class="text-base-content/60 font-medium">
+                    Esta funcionalidade está sendo aprimorada para você. <br>
+                    Voltamos em alguns instantes!
+                </p>
+            </div>
+
+            <div class="card-actions mt-10 w-full">
+                <button class="btn btn-warning btn-block font-bold text-warning-content shadow-lg shadow-warning/20"
+                    onclick="history.back()">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Voltar para o Início
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

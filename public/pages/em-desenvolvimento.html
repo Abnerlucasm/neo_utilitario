@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página em Desenvolvimento</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Scripts de tema -->
+    <script src="/services/theme/theme-service.js"></script>
+    <script type="module" src="/components/theme-selector/theme-selector.js"></script>
+</head>
+
+<body class="bg-base-100">
+
+    <div class="min-h-screen flex items-center justify-center p-4">
+
+        <div
+            class="max-w-md w-full text-center space-y-8 p-10 rounded-3xl border border-warning/20 shadow-xl bg-base-100">
+
+            <div class="relative flex justify-center">
+                <div class="text-warning text-9xl animate-pulse">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <div class="absolute top-0 right-1/4 badge badge-warning gap-2 p-3 font-bold">
+                    !
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <h1 class="text-4xl font-black text-warning uppercase tracking-tighter">
+                    Em Construção
+                </h1>
+                <p class="text-base-content/60 font-medium">
+                    Estamos preparando algo incrível para você. <br>
+                    Esta página estará disponível em breve!
+                </p>
+            </div>
+
+            <div class="flex justify-center gap-1">
+                <span class="h-1 w-8 rounded-full bg-warning"></span>
+                <span class="h-1 w-2 rounded-full bg-warning/40"></span>
+                <span class="h-1 w-1 rounded-full bg-warning/20"></span>
+            </div>
+
+            <div class="pt-4">
+                <button class="btn btn-warning btn-wide btn-outline hover:text-white border-2 font-bold"
+                    onclick="history.back()">
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    Voltar agora
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>
