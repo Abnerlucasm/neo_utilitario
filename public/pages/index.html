@@ -62,23 +62,25 @@
             <div class="menu-opcoes">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
 
-                    <!-- Card Glassfish -->
-                    <div class="card bg-base-100 shadow-xl card-hover" data-resource="glassfish">
+                    <div class="card bg-base-100 shadow-xl card-hover opacity-80" data-resource="glassfish">
                         <div class="card-body">
                             <div class="flex items-center mb-4">
                                 <div class="flex-shrink-0">
-                                    <i class="fas fa-server text-4xl text-info"></i>
+                                    <i class="fas fa-server text-4xl text-warning"></i>
                                 </div>
                                 <div class="ml-4">
-                                    <h3 class="card-title text-xl">Glassfish</h3>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="card-title text-xl">Glassfish</h3>
+                                        <span class="badge badge-warning badge-sm font-bold">EM BREVE</span>
+                                    </div>
                                     <p class="text-base-content/70">Gerenciamento de Aplicações</p>
                                 </div>
                             </div>
                             <div class="card-actions justify-end">
-                                <a href="/pages/glassfish.html" class="btn btn-info btn-sm">
-                                    <i class="fas fa-external-link-alt mr-1"></i>
-                                    Acessar
-                                </a>
+                                <button class="btn btn-warning btn-sm btn-outline cursor-not-allowed opacity-50">
+                                    <i class="fas fa-lock mr-1"></i>
+                                    Em desenvolvimento
+                                </button>
                             </div>
                         </div>
                     </div>
