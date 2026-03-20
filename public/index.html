@@ -4,44 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeoHub - Redirecionando...</title>
-    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="/services/theme/theme-service.js"></script>
+
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
-            font-family: Arial, sans-serif;
-            color: white;
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
         }
-        .loading {
-            text-align: center;
-        }
-        .loading h1 {
-            margin-bottom: 20px;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            margin: 0 auto;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+        .brand-title-loader { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .neo-logo-loader { height: 3.5rem; width: auto; }
+        /* Garante que o Hub seja branco mesmo em temas claros */
+        .text-hub-white { color: #ffffff !important; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     </style>
 </head>
-<body>
-    <div class="loading">
-        <h1>NeoHub</h1>
-        <div class="spinner"></div>
-        <p>Redirecionando...</p>
+
+<body class="bg-base-200 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+
+    <div class="text-center space-y-10 animate-pulse-soft">
+        <div class="flex flex-col items-center gap-4">
+            <h1 class="brand-title-loader text-5xl font-black tracking-tighter">
+                <img src="/assets/neo-logo-small.png" alt="Neo" class="neo-logo-loader">
+                <span class="text-hub-white">Hub</span>
+            </h1>
+            <div class="h-1 w-16 bg-success rounded-full opacity-30"></div>
+        </div>
+
+        <div class="flex flex-col items-center gap-4">
+            <span class="loading loading-ring loading-lg text-success scale-150"></span>
+            <div class="space-y-2">
+                <p class="text-xs font-bold uppercase tracking-[0.3em] text-base-content/40">
+                    Sincronizando ambiente
+                </p>
+            </div>
+        </div>
     </div>
+
     <script src="/js/redirect.js"></script>
 </body>
-</html> 
+</html>
