@@ -740,3 +740,4 @@ Para suporte técnico ou dúvidas:
 
 - **Email**: abner.freitas@neosistemas.com.br
 - **Issues**: [GitHub Issues](https://github.com/Abnerlucasm/neo_utilitario/issues)
+- **Comunidade**: [GitHub Comunidade](https://github.com/Abnerlucasm/neo_utilitario/discussions)
