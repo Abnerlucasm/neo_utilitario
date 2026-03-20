@@ -97,14 +97,14 @@ async function checkAllServicesStatus() {
 }
 
 async function checkServiceStatus(service) {
+    // Mostrar spinner no card
+    const spinner = document.getElementById(`checking-badge-${service.id}`);
+    if (spinner) spinner.style.display = 'inline-flex';
+
     try {
         const res = await fetch(`/api/glassfish/servicos/${service.id}/status`, {
             headers: authHeaders()
         });
-
-        // Esconde o badge "verificando" independente do resultado
-        const checkingBadge = document.getElementById(`checking-badge-${service.id}`);
-        if (checkingBadge) checkingBadge.remove();
 
         if (!res.ok) return;
 
@@ -112,41 +112,69 @@ async function checkServiceStatus(service) {
         const idx  = services.findIndex(s => s.id === service.id);
         if (idx === -1) return;
 
-        if (data.status !== 'error') {
-            const oldStatus = services[idx].status;
-            services[idx].status = data.status;
-            services[idx].pid    = data.pid || null;
+        // Atualiza o objeto local com os dois estados
+        services[idx].machineStatus   = data.machineStatus   || 'unknown';
+        services[idx].glassfishStatus = data.glassfishStatus || 'unknown';
+        services[idx].status          = data.status          || 'inactive';
 
-            // Atualiza só o badge de status no DOM — sem re-renderizar o card inteiro
-            const statusBadge = document.getElementById(`status-badge-${service.id}`);
-            if (statusBadge) {
-                const isActive = data.status === 'active';
-                statusBadge.className = `badge badge-sm ${isActive ? 'badge-success' : 'badge-error'}`;
-                statusBadge.textContent = isActive ? 'Ativo' : 'Inativo';
-            }
+        // Atualiza os dois badges no DOM sem re-renderizar o card
+        const mBadge = document.getElementById(`machine-badge-${service.id}`);
+        const gBadge = document.getElementById(`gf-badge-${service.id}`);
 
-            // Atualiza stat counters se o status mudou
-            if (data.status !== (oldStatus || 'inactive')) {
-                updateStats(services);
-            }
-        } else {
-            // Status error → só remove o badge de verificando
-            const checkingBadge2 = document.getElementById(`checking-badge-${service.id}`);
-            if (checkingBadge2) checkingBadge2.remove();
+        if (mBadge) mBadge.outerHTML = machineBadge(services[idx]);
+        if (gBadge) gBadge.outerHTML = glassfishBadge(services[idx]);
+
+        // Borda do card muda se máquina offline
+        const card = document.querySelector(`[data-index="${idx}"]`);
+        if (card) {
+            card.classList.toggle('border-error',   data.machineStatus === 'offline');
+            card.classList.toggle('border-warning',  data.machineStatus === 'online' && data.glassfishStatus !== 'active' && !services[idx].inUse);
+            card.classList.toggle('border-base-300', data.machineStatus === 'online' && data.glassfishStatus === 'active');
         }
+
+        updateStats(services);
+
     } catch {
-        // SSH falhou silenciosamente — remove spinner
-        const checkingBadge = document.getElementById(`checking-badge-${service.id}`);
-        if (checkingBadge) checkingBadge.remove();
+        // silencioso
+    } finally {
+        const sp = document.getElementById(`checking-badge-${service.id}`);
+        if (sp) sp.style.display = 'none';
     }
 }
 
 function updateStats(list) {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set('stat-total',    list.length);
-    set('stat-active',   list.filter(s => s.status === 'active').length);
-    set('stat-inactive', list.filter(s => s.status !== 'active').length);
-    set('stat-inuse',    list.filter(s => s.inUse).length);
+    set('stat-total',          list.length);
+    set('stat-machine-online', list.filter(s => s.machineStatus === 'online').length);
+    set('stat-gf-active',      list.filter(s => s.glassfishStatus === 'active').length);
+    set('stat-inuse',          list.filter(s => s.inUse).length);
+}
+
+// ─── Helpers de badge de status ──────────────────────────────────────────────
+function machineBadge(service) {
+    const s = service.machineStatus || 'unknown';
+    const map = {
+        online:  { cls: 'badge-success',  dot: 'bg-success',  label: 'Máquina online' },
+        offline: { cls: 'badge-error',    dot: 'bg-error',    label: 'Máquina offline' },
+        unknown: { cls: 'badge-ghost',    dot: 'bg-base-300', label: 'Máquina?' },
+    };
+    const { cls, dot, label } = map[s] || map.unknown;
+    return `<span class="badge badge-sm ${cls} gap-1" id="machine-badge-${service.id}">
+        <span class="w-1.5 h-1.5 rounded-full ${dot} inline-block flex-shrink-0"></span>${label}
+    </span>`;
+}
+
+function glassfishBadge(service) {
+    const s = service.glassfishStatus || (service.status === 'active' ? 'active' : 'inactive');
+    const map = {
+        active:   { cls: 'badge-success', dot: 'bg-success',  label: 'GlassFish ativo' },
+        inactive: { cls: 'badge-warning', dot: 'bg-warning',  label: 'GlassFish parado' },
+        unknown:  { cls: 'badge-ghost',   dot: 'bg-base-300', label: 'GlassFish?' },
+    };
+    const { cls, dot, label } = map[s] || map.unknown;
+    return `<span class="badge badge-sm ${cls} gap-1" id="gf-badge-${service.id}">
+        <span class="w-1.5 h-1.5 rounded-full ${dot} inline-block flex-shrink-0"></span>${label}
+    </span>`;
 }
 
 // ─── Render cards ─────────────────────────────────────────────────────────────
@@ -157,11 +185,15 @@ function renderCards(list) {
 
     container.innerHTML = list.map((service, index) => {
         const ip     = service.ip || service.host || '—';
-        const active = service.status === 'active';
-        const inUse  = !!service.inUse;
+        const active  = service.glassfishStatus === 'active' || service.status === 'active';
+        const inUse   = !!service.inUse;
 
         return `
-        <div class="card bg-base-100 shadow server-card border ${inUse ? 'border-warning' : 'border-base-300'} rounded-xl" data-index="${index}">
+        <div class="card bg-base-100 shadow server-card border ${
+            service.machineStatus === 'offline' ? 'border-error' :
+            (service.glassfishStatus === 'inactive' && !inUse) ? 'border-warning' :
+            inUse ? 'border-warning' : 'border-base-300'
+        } rounded-xl" data-index="${index}">
             <div class="card-body p-5 gap-2">
                 <div class="flex items-start gap-3">
                     <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -172,14 +204,13 @@ function renderCards(list) {
                         <p class="text-xs text-gray-400 font-mono">${ip}:${service.port || '—'}</p>
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-1 mt-1">
-                    <span class="badge badge-sm ${active ? 'badge-success' : 'badge-error'}" id="status-badge-${service.id}">
-                        ${active ? 'Ativo' : 'Inativo'}
+                <div class="flex flex-wrap gap-1 mt-1" id="badges-${service.id}">
+                    ${machineBadge(service)}
+                    ${glassfishBadge(service)}
+                    <span class="badge badge-sm badge-ghost gap-1 checking-spinner" id="checking-badge-${service.id}" style="display:none">
+                        <span class="loading loading-spinner loading-xs"></span>
                     </span>
-                    <span class="badge badge-sm badge-ghost gap-1" id="checking-badge-${service.id}">
-                        <span class="loading loading-spinner loading-xs"></span>verificando
-                    </span>
-                    ${inUse  ? `<span class="badge badge-sm badge-warning max-w-[160px] truncate" title="${service.inUseBy || '?'}">Em uso: ${service.inUseBy || '?'}</span>` : ''}
+                    ${inUse  ? `<span class="badge badge-sm badge-warning max-w-[160px] truncate" title="${service.inUseBy || '?'}">Em uso: ${(service.inUseBy||'?').split('@')[0]}</span>` : ''}
                     ${service.setor ? `<span class="badge badge-sm badge-ghost" title="${service.setor}">${service.setor}</span>` : ''}
                 </div>
                 <div class="text-xs text-gray-400 mt-1 space-y-0.5">
@@ -252,9 +283,10 @@ function openAddModal(editIndex = null) {
         setVal('service-ssh-username', s.sshUsername || s.username || fieldOf(s, 'sshUsername', ''));
         setVal('service-ssh-password', fieldOf(s, 'sshPassword'));
         setVal('service-install-path', fieldOf(s, 'installPath', '/srv/glassfish6.2.5'));
-        setVal('production-port',      fieldOf(s, 'productionPort', 8080));
+        setVal('production-port',      fieldOf(s, 'productionPort', 8091));
         setVal('service-category',     fieldOf(s, 'setor', 'Setor Sup. Externo'));
         setVal('service-access-type',  fieldOf(s, 'accessType', 'local'));
+        setVal('service-admin-password', fieldOf(s, 'adminPassword', ''));
 
         currentServiceIndex = editIndex;
         const t = document.getElementById('modal-title');
@@ -263,7 +295,7 @@ function openAddModal(editIndex = null) {
         currentServiceIndex = null;
         // Valores padrão para novo serviço
         setVal('service-port',         '4848');
-        setVal('production-port',      '8080');
+        setVal('production-port',      '8091');
         setVal('service-install-path', '/srv/glassfish6.2.5');
         setVal('service-access-type',  'local');
         setVal('service-category',     'Setor Sup. Externo');
@@ -293,10 +325,11 @@ async function saveGlassfish() {
             domain:         getVal('service-domain'),
             sshUsername:    getVal('service-ssh-username'),
             sshPassword:    getVal('service-ssh-password'),
+            adminPassword:  getVal('service-admin-password'),
             installPath:    getVal('service-install-path')      || '/srv/glassfish6.2.5',
             setor:          getVal('service-category'),
             accessType:     getVal('service-access-type'),
-            productionPort: parseInt(getVal('production-port')) || 8080
+            productionPort: parseInt(getVal('production-port')) || 8091
         };
 
         // Validação clara campo a campo
@@ -508,6 +541,33 @@ function handleAccessTypeChange() {
     if (field) field.style.display = type === 'external' ? '' : 'none';
 }
 
+async function testAPIConnection() {
+    const ip       = getVal('service-ip');
+    const port     = getVal('service-port') || '4848';
+    const password = getVal('service-admin-password');
+    const resultEl = document.getElementById('api-test-result');
+
+    if (!ip) {
+        if (resultEl) { resultEl.textContent = 'Preencha o IP'; resultEl.className = 'text-error text-xs mt-1'; }
+        return;
+    }
+
+    if (resultEl) { resultEl.textContent = 'Testando…'; resultEl.className = 'text-info text-xs mt-1'; }
+
+    try {
+        const res  = await fetch('/api/glassfish/test-api', {
+            method:  'POST',
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body:    JSON.stringify({ ip, port: parseInt(port), adminPassword: password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Falha na API');
+        if (resultEl) { resultEl.textContent = '✓ ' + data.message; resultEl.className = 'text-success text-xs mt-1'; }
+    } catch (err) {
+        if (resultEl) { resultEl.textContent = '✗ ' + err.message; resultEl.className = 'text-error text-xs mt-1'; }
+    }
+}
+
 async function testSSHConnection() {
     const host = getVal('service-ip'), username = getVal('service-ssh-username'), password = getVal('service-ssh-password');
     const el   = document.getElementById('ssh-test-result');
@@ -565,6 +625,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'openMaintenanceModal': openMaintenanceModal(index);                      break;
             case 'executeMaintenance':   executeMaintenance(services, fetchServices);      break;
             case 'testSSHConnection': testSSHConnection();                                 break;
+            case 'testAPIConnection':  testAPIConnection();                                  break;
             case 'openAdminPanel':    openAdminPanel();                                    break;
             case 'accessNeoWeb':      accessNeoWeb();                                      break;
             case 'closeModal': {

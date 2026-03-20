@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 
 <head>
     <meta charset="UTF-8">
@@ -14,12 +14,12 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
     <!-- Scripts de tema -->
     <script src="/services/theme/theme-service.js"></script>
     <script type="module" src="/components/theme-selector/theme-selector.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
         /* ── Gradiente hero ───────────────────────────────────── */
@@ -109,17 +109,17 @@
                 <div class="stat-title text-xs">Total</div>
                 <div class="stat-value text-primary text-3xl" id="stat-total">0</div>
             </div>
-            <!-- Ativos -->
+            <!-- Máquinas online -->
             <div class="stat bg-base-100 shadow rounded-2xl text-center">
-                <div class="stat-figure text-success"><i class="fas fa-circle-check text-2xl"></i></div>
-                <div class="stat-title text-xs">Ativos</div>
-                <div class="stat-value text-success text-3xl" id="stat-active">0</div>
+                <div class="stat-figure text-success"><i class="fas fa-network-wired text-2xl"></i></div>
+                <div class="stat-title text-xs">Máquinas online</div>
+                <div class="stat-value text-success text-3xl" id="stat-machine-online">0</div>
             </div>
-            <!-- Inativos -->
+            <!-- GlassFish ativos -->
             <div class="stat bg-base-100 shadow rounded-2xl text-center">
-                <div class="stat-figure text-error"><i class="fas fa-circle-xmark text-2xl"></i></div>
-                <div class="stat-title text-xs">Inativos</div>
-                <div class="stat-value text-error text-3xl" id="stat-inactive">0</div>
+                <div class="stat-figure text-info"><i class="fas fa-circle-play text-2xl"></i></div>
+                <div class="stat-title text-xs">GlassFish ativos</div>
+                <div class="stat-value text-info text-3xl" id="stat-gf-active">0</div>
             </div>
             <!-- Em uso -->
             <div class="stat bg-base-100 shadow rounded-2xl text-center">
@@ -273,7 +273,7 @@
                     <!-- Porta Produção -->
                     <div class="form-control" id="production-port-field">
                         <label class="label"><span class="label-text font-semibold">Porta Produção</span></label>
-                        <input class="input input-bordered w-full" type="number" id="production-port" value="8080">
+                        <input class="input input-bordered w-full" type="number" id="production-port" value="8091">
                     </div>
 
                     <!-- Usuário SSH -->
@@ -317,14 +317,31 @@
                     </div>
                 </div>
 
-                <!-- Testar SSH -->
-                <div class="flex flex-col gap-1">
-                    <button type="button" class="btn btn-outline btn-info btn-sm w-fit gap-2"
-                        data-action="testSSHConnection">
-                        <i class="fas fa-network-wired"></i>
-                        Testar Conexão SSH
-                    </button>
-                    <p id="ssh-test-result" class="text-sm"></p>
+                <!-- Senha Admin GlassFish -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-semibold">Senha Admin GlassFish *</span></label>
+                    <input class="input input-bordered w-full" type="password" id="service-admin-password"
+                        placeholder="Senha do painel :4848">
+                    <label class="label"><span class="label-text-alt text-gray-400 text-xs">Usada para API REST —
+                            substitui SSH na maioria das operações</span></label>
+                </div>
+
+                <!-- Testar conexões -->
+                <div class="flex gap-3 flex-wrap">
+                    <div class="flex flex-col gap-1">
+                        <button type="button" class="btn btn-outline btn-info btn-sm gap-2"
+                            data-action="testSSHConnection">
+                            <i class="fas fa-terminal"></i>Testar SSH
+                        </button>
+                        <p id="ssh-test-result" class="text-xs"></p>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <button type="button" class="btn btn-outline btn-success btn-sm gap-2"
+                            data-action="testAPIConnection">
+                            <i class="fas fa-plug"></i>Testar API GlassFish
+                        </button>
+                        <p id="api-test-result" class="text-xs"></p>
+                    </div>
                 </div>
 
                 <!-- Atalhos -->

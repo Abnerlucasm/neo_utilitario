@@ -44,7 +44,7 @@ module.exports = (sequelize) => {
 
         // Virtual getter para productionPort
         get productionPort() {
-            return this.config?.productionPort || 8080;
+            return this.config?.productionPort || 8091;
         }
 
         // Virtual getter para inUse
@@ -133,7 +133,7 @@ module.exports = (sequelize) => {
          * config JSONB — campos armazenados aqui:
          *   sshPassword    : string  — senha SSH real
          *   installPath    : string  — caminho base do Glassfish
-         *   productionPort : number  — porta da aplicação (padrão 8080)
+         *   productionPort : number  — porta da aplicação (padrão 8091)
          *   setor          : string  — setor de suporte
          *   accessType     : string  — 'local' | 'external'
          *   inUse          : boolean — se está em uso por alguém
