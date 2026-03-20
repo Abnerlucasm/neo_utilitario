@@ -10,14 +10,14 @@
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <title>Gerenciamento Glassfish</title>
 
-    <!-- DaisyUI + Tailwind -->
+      <!-- DaisyUI + Tailwind -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Scripts de tema -->
     <script src="/services/theme/theme-service.js"></script>
     <script type="module" src="/components/theme-selector/theme-selector.js"></script>
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -519,6 +519,128 @@
     </dialog>
 
     <!-- Modal userNameModal removido — usuário identificado automaticamente via JWT -->
+
+
+    <!-- Modal: Telemetria -->
+    <dialog class="modal" id="telemetry-modal">
+        <div class="modal-box max-w-lg">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
+                        data-action="closeModal" data-modal="telemetry-modal">&#x2715;</button>
+            </form>
+            <h3 class="font-bold text-lg mb-1 flex items-center gap-2" id="telemetry-modal-title">
+                <i class="fas fa-chart-line text-primary"></i>
+                Telemetria
+            </h3>
+            <p class="text-xs text-gray-400 mb-5" id="telemetry-modal-subtitle">Carregando...</p>
+
+            <!-- Loading -->
+            <div id="telemetry-loading" class="flex flex-col items-center gap-3 py-8">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="text-sm text-gray-400">Coletando métricas via SSH e API REST...</p>
+            </div>
+
+            <!-- Conteúdo -->
+            <div id="telemetry-content" class="hidden space-y-5">
+
+                <!-- Sistema (SSH) -->
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fas fa-server text-xs"></i>Sistema operacional
+                    </p>
+                    <div class="space-y-3">
+
+                        <!-- RAM -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium">RAM</span>
+                                <span class="font-mono text-xs text-gray-400" id="tel-ram-label">—</span>
+                            </div>
+                            <div class="w-full bg-base-300 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full transition-all duration-700" id="tel-ram-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- CPU -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium">CPU</span>
+                                <span class="font-mono text-xs text-gray-400" id="tel-cpu-label">—</span>
+                            </div>
+                            <div class="w-full bg-base-300 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full transition-all duration-700" id="tel-cpu-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Disco -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium">Disco (/)</span>
+                                <span class="font-mono text-xs text-gray-400" id="tel-disk-label">—</span>
+                            </div>
+                            <div class="w-full bg-base-300 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full transition-all duration-700" id="tel-disk-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Info linha -->
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 pt-1">
+                            <span>Uptime: <span class="text-gray-600 font-medium" id="tel-uptime">—</span></span>
+                            <span>Load: <span class="text-gray-600 font-medium" id="tel-load">—</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider my-1"></div>
+
+                <!-- JVM GlassFish -->
+                <div id="tel-jvm-section">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fas fa-coffee text-xs"></i>GlassFish JVM
+                    </p>
+                    <div class="space-y-3">
+
+                        <!-- Heap -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium">Heap memory</span>
+                                <span class="font-mono text-xs text-gray-400" id="tel-heap-label">—</span>
+                            </div>
+                            <div class="w-full bg-base-300 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full transition-all duration-700" id="tel-heap-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Info JVM -->
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 pt-1">
+                            <span>Threads: <span class="text-gray-600 font-medium" id="tel-threads">—</span></span>
+                            <span>Uptime JVM: <span class="text-gray-600 font-medium" id="tel-jvm-uptime">—</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tel-jvm-error" class="hidden alert alert-warning text-xs py-2">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <span>GlassFish JVM indisponível — habilite o monitoramento no painel admin (:4848 > Monitoring).</span>
+                </div>
+
+            </div>
+
+            <!-- Erro geral -->
+            <div id="telemetry-error" class="hidden alert alert-error text-sm py-3">
+                <i class="fas fa-circle-xmark"></i>
+                <span id="telemetry-error-msg">Erro ao coletar métricas</span>
+            </div>
+
+            <div class="modal-action pt-3 border-t border-base-200 mt-4">
+                <button class="btn btn-ghost btn-sm gap-2" id="telemetry-refresh-btn" data-action="refreshTelemetry">
+                    <i class="fas fa-rotate-right"></i>Atualizar
+                </button>
+                <form method="dialog"><button class="btn btn-sm">Fechar</button></form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
 
     <!-- Toast container -->
     <div id="toast-container"></div>

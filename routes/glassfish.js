@@ -861,6 +861,143 @@ router.post('/servicos/:id/maintenance', authMiddleware, async (req, res) => {
     }
 });
 
+
+// ─── Telemetria (SSH sistema + API REST GlassFish JVM) ────────────────────────
+router.get('/servicos/:id/telemetry', authMiddleware, async (req, res) => {
+    const service = await Glassfish.findByPk(req.params.id);
+    if (!service) return res.status(404).json({ error: 'Serviço não encontrado' });
+
+    const result = { machine: null, jvm: null, errors: [] };
+
+    // ── 1. Métricas do sistema via SSH (uma conexão por comando) ─────────────
+    try {
+        const ssh = async (cmd, timeout = 8000) => {
+            try {
+                const r = await executeSSHCommand(service, cmd, timeout);
+                return (r.stdout || '').trim();
+            } catch (e) {
+                logger.warn('[telemetry] cmd falhou:', cmd.slice(0,40), e.message);
+                return '';
+            }
+        };
+
+        // Executar tudo em paralelo — cada um tem sua própria conexão SSH
+        const [ramRaw, cpu1Raw, diskRaw, uptimeRaw, loadRaw] = await Promise.all([
+            ssh("free -m | awk 'NR==2{print $2, $3, $4}'"),
+            ssh("awk 'NR==1{print $2+$3+$4+$5+$6+$7+$8, $5}' /proc/stat; sleep 1; awk 'NR==1{print $2+$3+$4+$5+$6+$7+$8, $5}' /proc/stat", 10000),
+            ssh("df / | awk 'NR==2{print $2, $3, $4, $5}'"),
+            ssh('uptime -p 2>/dev/null || echo unknown'),
+            ssh("awk '{print $1, $2, $3}' /proc/loadavg"),
+        ]);
+
+        logger.info('[telemetry] raw:', { ramRaw, cpu1Raw: cpu1Raw.slice(0,80), diskRaw, uptimeRaw, loadRaw });
+
+        // RAM
+        const rp      = ramRaw.split(/\s+/);
+        const ramTotal = parseInt(rp[0]) || 0;
+        const ramUsed  = parseInt(rp[1]) || 0;
+        const ramFree  = parseInt(rp[2]) || 0;
+        const ramPct   = ramTotal > 0 ? Math.round(ramUsed * 100 / ramTotal) : 0;
+
+        // CPU — duas linhas "total idle"
+        let cpuPct = 0;
+        const cpuLines = cpu1Raw.split('\n').map(l => l.trim()).filter(Boolean);
+        if (cpuLines.length >= 2) {
+            const [t1, i1] = cpuLines[0].split(/\s+/).map(Number);
+            const [t2, i2] = cpuLines[1].split(/\s+/).map(Number);
+            const dt = t2 - t1, di = i2 - i1;
+            if (dt > 0) cpuPct = Math.round((dt - di) * 100 / dt);
+        }
+
+        // Disco — df sem -h retorna 1K-blocks, converter para GB
+        const dp      = diskRaw.split(/\s+/);
+        const toGB    = v => v ? (Math.round(parseInt(v) / 1024 / 1024 * 10) / 10) + ' GB' : '?';
+        const diskPct = parseInt((dp[3] || '0').replace('%', '')) || 0;
+
+        result.machine = {
+            ram:    { total: ramTotal, used: ramUsed, free: ramFree, percent: ramPct, unit: 'MB' },
+            cpu:    { percent: cpuPct },
+            disk:   { total: toGB(dp[0]), used: toGB(dp[1]), free: toGB(dp[2]), percent: diskPct },
+            uptime: uptimeRaw || '?',
+            load:   loadRaw   || '?',
+        };
+
+    } catch (err) {
+        logger.warn('[telemetry] SSH erro geral:', err.message);
+        result.errors.push('SSH: ' + err.message);
+    }
+
+    // ── 2. Métricas JVM via API REST GlassFish ────────────────────────────────
+    try {
+        // Buscar sub-nós específicos em paralelo — /jvm retorna só childResources
+        const [memData, threadData, runtimeData] = await Promise.all([
+            gfAPI(service, 'GET', '/monitoring/domain/server/jvm/memory',  null, 8000).catch(() => null),
+            gfAPI(service, 'GET', '/monitoring/domain/server/jvm/thread-system', null, 8000).catch(() => null),
+            gfAPI(service, 'GET', '/monitoring/domain/server/jvm/runtime', null, 8000).catch(() => null),
+        ]);
+
+        logger.info('[telemetry] JVM memory entity keys:', Object.keys(memData?.extraProperties?.entity || {}));
+        logger.info('[telemetry] JVM thread entity keys:', Object.keys(threadData?.extraProperties?.entity || {}));
+        logger.info('[telemetry] JVM runtime entity keys:', Object.keys(runtimeData?.extraProperties?.entity || {}));
+
+        const mem     = memData?.extraProperties?.entity     || {};
+        const threads = threadData?.extraProperties?.entity  || {};
+        const runtime = runtimeData?.extraProperties?.entity || {};
+
+        // Heap: os campos podem ter nomes diferentes dependendo da versão
+        const heapUsed = parseInt(
+            mem['usedheapsize-count']?.count || mem.usedheapsize?.count ||
+            mem['heap-memory-usage-used']?.current || mem.used?.count || 0
+        );
+        const heapMax = parseInt(
+            mem['maxheapsize-count']?.count || mem.maxheapsize?.count ||
+            mem['heap-memory-usage-max']?.current || mem.max?.count || 0
+        );
+        const heapCom = parseInt(
+            mem['committedheapsize-count']?.count || mem.committedheapsize?.count ||
+            mem['heap-memory-usage-committed']?.current || mem.committed?.count || 0
+        );
+
+        // Threads
+        const threadCount = parseInt(
+            threads['threadcount']?.count || threads['liveThreadCount']?.count ||
+            threads['thread-count']?.current || threads.threadcount?.count || 0
+        );
+        const threadPeak = parseInt(
+            threads['peakthreadcount']?.count || threads['peakLiveThreadCount']?.count ||
+            threads['peak-thread-count']?.current || threads.peakthreadcount?.count || 0
+        );
+
+        // Uptime da JVM via runtime
+        const jvmUptime = parseInt(
+            runtime['uptime-count']?.count || runtime.uptime?.count ||
+            runtime['jvm-uptime']?.count || 0
+        );
+
+        logger.info('[telemetry] JVM parsed:', { heapUsed, heapMax, threadCount, jvmUptime });
+
+        result.jvm = {
+            heap: {
+                used:      Math.round(heapUsed / 1024 / 1024),
+                max:       Math.round(heapMax  / 1024 / 1024),
+                committed: Math.round(heapCom  / 1024 / 1024),
+                percent:   heapMax > 0 ? Math.round(heapUsed * 100 / heapMax) : 0,
+                unit:      'MB'
+            },
+            threads:     { current: threadCount, peak: threadPeak },
+            uptimeMs:    jvmUptime,
+            uptimeHuman: jvmUptime > 0
+                ? (Math.floor(jvmUptime / 3600000) + 'h ' + Math.floor((jvmUptime % 3600000) / 60000) + 'min')
+                : null,
+        };
+    } catch (err) {
+        logger.warn('[telemetry] JVM API falhou:', err.message);
+        result.errors.push('JVM: ' + err.message);
+    }
+
+    res.json(result);
+});
+
 // ─── Stats ─────────────────────────────────────────────────────────────────────
 router.get('/servicos/stats/overview', authMiddleware, async (req, res) => {
     try {

@@ -226,6 +226,7 @@ function renderCards(list) {
                     <button class="btn btn-xs btn-ghost"    data-action="domainConfig"   data-index="${index}" title="Domain"><i class="fas fa-database"></i></button>
                     <button class="btn btn-xs btn-ghost"    data-action="editService"    data-index="${index}" title="Editar"><i class="fas fa-pen"></i></button>
                     <button class="btn btn-xs btn-ghost text-error" data-action="removeService" data-index="${index}" title="Excluir"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-xs btn-ghost" data-action="openTelemetry" data-index="${index}" title="Telemetria"><i class="fas fa-chart-line"></i></button>
                 </div>
                 <div class="flex justify-center">
                     ${!inUse
@@ -636,6 +637,141 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+// ─── Telemetria ───────────────────────────────────────────────────────────────
+let currentTelemetryIndex = null;
+
+async function openTelemetry(index) {
+    const service = services[index];
+    if (!service?.id) return;
+
+    currentTelemetryIndex = index;
+
+    // Atualizar título
+    const title    = document.getElementById('telemetry-modal-title');
+    const subtitle = document.getElementById('telemetry-modal-subtitle');
+    if (title)    title.innerHTML = '<i class="fas fa-chart-line text-primary mr-2"></i>' + service.name;
+    if (subtitle) subtitle.textContent = (service.ip || service.host) + ':' + service.port;
+
+    // Reset visual
+    showTelemetryLoading(true);
+
+    const modal = document.getElementById('telemetry-modal');
+    if (modal?.showModal) modal.showModal();
+
+    await loadTelemetry(service);
+}
+
+async function loadTelemetry(service) {
+    showTelemetryLoading(true);
+
+    try {
+        const res  = await fetch('/api/glassfish/servicos/' + service.id + '/telemetry', {
+            headers: authHeaders()
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.details || err.error || 'HTTP ' + res.status);
+        }
+
+        const data = await res.json();
+        renderTelemetry(data);
+    } catch (err) {
+        showTelemetryError(err.message);
+    } finally {
+        showTelemetryLoading(false);
+    }
+}
+
+function showTelemetryLoading(show) {
+    const loading = document.getElementById('telemetry-loading');
+    const content = document.getElementById('telemetry-content');
+    const error   = document.getElementById('telemetry-error');
+    if (loading) loading.classList.toggle('hidden', !show);
+    if (content) content.classList.toggle('hidden', show);
+    if (error)   error.classList.add('hidden');
+}
+
+function showTelemetryError(msg) {
+    const loading = document.getElementById('telemetry-loading');
+    const content = document.getElementById('telemetry-content');
+    const error   = document.getElementById('telemetry-error');
+    const errMsg  = document.getElementById('telemetry-error-msg');
+    if (loading) loading.classList.add('hidden');
+    if (content) content.classList.add('hidden');
+    if (error)   error.classList.remove('hidden');
+    if (errMsg)  errMsg.textContent = msg;
+}
+
+function barColor(pct) {
+    if (pct >= 90) return 'bg-error';
+    if (pct >= 70) return 'bg-warning';
+    return 'bg-success';
+}
+
+function setBar(barId, labelId, pct, label) {
+    const bar = document.getElementById(barId);
+    const lbl = document.getElementById(labelId);
+    if (bar) {
+        bar.style.width = Math.min(pct, 100) + '%';
+        bar.className   = 'h-2.5 rounded-full transition-all duration-700 ' + barColor(pct);
+    }
+    if (lbl) lbl.textContent = label;
+}
+
+function renderTelemetry(data) {
+    // ── Sistema ──────────────────────────────────────────────────────────────
+    if (data.machine) {
+        const m = data.machine;
+
+        // RAM
+        const ramUsedGB  = (m.ram.used  / 1024).toFixed(1);
+        const ramTotalGB = (m.ram.total / 1024).toFixed(1);
+        setBar('tel-ram-bar', 'tel-ram-label',
+            m.ram.percent,
+            ramUsedGB + ' GB / ' + ramTotalGB + ' GB (' + m.ram.percent + '%)');
+
+        // CPU
+        setBar('tel-cpu-bar', 'tel-cpu-label', m.cpu.percent, m.cpu.percent + '%');
+
+        // Disco
+        setBar('tel-disk-bar', 'tel-disk-label',
+            m.disk.percent,
+            m.disk.used + ' / ' + m.disk.total + ' (' + m.disk.percent + '%)');
+
+        // Info
+        const uptime = document.getElementById('tel-uptime');
+        const load   = document.getElementById('tel-load');
+        if (uptime) uptime.textContent = m.uptime;
+        if (load)   load.textContent   = m.load;
+    }
+
+    // ── JVM ───────────────────────────────────────────────────────────────────
+    const jvmSection = document.getElementById('tel-jvm-section');
+    const jvmError   = document.getElementById('tel-jvm-error');
+
+    if (data.jvm) {
+        if (jvmSection) jvmSection.classList.remove('hidden');
+        if (jvmError)   jvmError.classList.add('hidden');
+
+        const j = data.jvm;
+
+        setBar('tel-heap-bar', 'tel-heap-label',
+            j.heap.percent,
+            j.heap.used + ' MB / ' + j.heap.max + ' MB (' + j.heap.percent + '%)');
+
+        const threads   = document.getElementById('tel-threads');
+        const jvmUptime = document.getElementById('tel-jvm-uptime');
+        if (threads)   threads.textContent   = j.threads.current + ' (pico: ' + j.threads.peak + ')';
+        if (jvmUptime) jvmUptime.textContent = j.uptimeHuman || '—';
+    } else {
+        if (jvmSection) jvmSection.classList.add('hidden');
+        if (jvmError)   jvmError.classList.remove('hidden');
+    }
+
+    showTelemetryLoading(false);
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('search-input')?.addEventListener('input',  filterCards);
@@ -682,6 +818,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'openMaintenanceModal': openMaintenanceModal(index);                      break;
             case 'executeMaintenance':   executeMaintenance(services, fetchServices);      break;
             case 'testSSHConnection': testSSHConnection();                                 break;
+            case 'openTelemetry':     openTelemetry(index);                                 break;
+            case 'refreshTelemetry': {
+                const svc = currentTelemetryIndex !== null ? services[currentTelemetryIndex] : null;
+                if (svc) loadTelemetry(svc);
+                break;
+            }
             case 'testAPIConnection':  testAPIConnection();                                  break;
             case 'openAdminPanel':    openAdminPanel();                                    break;
             case 'accessNeoWeb':      accessNeoWeb();                                      break;
@@ -694,5 +836,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     window.handleAccessTypeChange = handleAccessTypeChange;
+    window.currentTelemetryIndex  = null; // referência externa para o modal
     await fetchServices();
 });
