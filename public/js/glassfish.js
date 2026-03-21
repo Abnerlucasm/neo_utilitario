@@ -57,6 +57,40 @@ function fieldOf(service, field, defaultValue = '') {
     return defaultValue;
 }
 
+// ─── Categorias ───────────────────────────────────────────────────────────────
+let categories = []; // cache local
+
+async function fetchCategories() {
+    try {
+        const res = await fetch('/api/glassfish/categorias', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        categories = Array.isArray(data) ? data : [];
+        populateCategorySelects();
+    } catch (err) {
+        console.warn('Erro ao carregar categorias:', err);
+    }
+}
+
+function populateCategorySelects() {
+    // Select nos filtros
+    const filterSel = document.getElementById('filter-category');
+    if (filterSel) {
+        const cur = filterSel.value;
+        filterSel.innerHTML = '<option value="all">Todas</option>' +
+            categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        filterSel.value = cur;
+    }
+    // Select no formulário de add/edit
+    const formSel = document.getElementById('service-category');
+    if (formSel) {
+        const cur = formSel.value;
+        formSel.innerHTML = '<option value="">Sem categoria</option>' +
+            categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        if (cur) formSel.value = cur;
+    }
+}
+
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 async function fetchServices() {
     try {
@@ -243,20 +277,33 @@ function renderCards(list) {
 
 // ─── Filtros ──────────────────────────────────────────────────────────────────
 function filterCards() {
-    const status = document.getElementById('filter-status')?.value || 'all';
-    const setor  = document.getElementById('filter-setor')?.value  || 'all';
-    const query  = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const machine  = document.getElementById('filter-machine')?.value   || 'all';
+    const gf       = document.getElementById('filter-glassfish')?.value || 'all';
+    const inuse    = document.getElementById('filter-inuse')?.value     || 'all';
+    const access   = document.getElementById('filter-access')?.value    || 'all';
+    const category = document.getElementById('filter-category')?.value  || 'all';
+    const query    = (document.getElementById('search-input')?.value    || '').toLowerCase();
 
     const filtered = services.filter(s => {
-        const matchStatus = status === 'all' || (status === 'active' && s.status === 'active') || (status === 'inactive' && s.status !== 'active');
-        const matchSetor  = setor === 'all' || s.setor === setor;
-        const matchSearch = (s.name || '').toLowerCase().includes(query) || (s.domain || '').toLowerCase().includes(query) || (s.ip || s.host || '').toLowerCase().includes(query);
-        return matchStatus && matchSetor && matchSearch;
+        const mStatus = s.machineStatus   || 'unknown';
+        const gStatus = s.glassfishStatus || (s.status === 'active' ? 'active' : 'inactive');
+
+        if (machine  !== 'all' && mStatus !== machine)                   return false;
+        if (gf       !== 'all' && gStatus !== gf)                        return false;
+        if (inuse    === 'free'  &&  s.inUse)                            return false;
+        if (inuse    === 'inuse' && !s.inUse)                            return false;
+        if (access   !== 'all'  && (s.accessType || 'local') !== access) return false;
+        if (category !== 'all'  && (s.setor || '') !== category)         return false;
+        if (query) {
+            const hay = [s.name, s.domain, s.ip, s.host, s.inUseBy].join(' ').toLowerCase();
+            if (!hay.includes(query)) return false;
+        }
+        return true;
     });
 
     renderCards(filtered);
     const rc = document.getElementById('results-count');
-    if (rc) rc.textContent = `${filtered.length} de ${services.length} serviço(s)`;
+    if (rc) rc.textContent = filtered.length + ' de ' + services.length + ' serviço(s)';
 }
 
 // ─── Modal Adicionar/Editar ───────────────────────────────────────────────────
@@ -637,6 +684,116 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+// ─── Gerenciamento de Categorias ─────────────────────────────────────────────
+async function openCategoryManager() {
+    const modal = document.getElementById('category-manager-modal');
+    if (modal?.showModal) modal.showModal();
+    await renderCategoryList();
+}
+
+async function renderCategoryList() {
+    const list = document.getElementById('category-list');
+    if (!list) return;
+    list.innerHTML = '<div class="flex justify-center py-4"><span class="loading loading-spinner loading-sm"></span></div>';
+
+    try {
+        const res  = await fetch('/api/glassfish/categorias/all', { headers: authHeaders() });
+        const raw  = await res.json();
+        const cats = Array.isArray(raw) ? raw : [];
+
+        if (cats.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-400 text-sm py-3">Nenhuma categoria cadastrada</p>';
+            return;
+        }
+
+        list.innerHTML = cats.map(c => `
+            <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-200 group" id="cat-row-${c.id}">
+                <span class="w-4 h-4 rounded-full flex-shrink-0" style="background:${c.color || '#6b7280'}"></span>
+                <input type="text" value="${c.name}"
+                       class="input input-xs input-ghost flex-1 font-medium focus:input-bordered"
+                       id="cat-name-${c.id}">
+                <input type="color" value="${c.color || '#6b7280'}"
+                       class="w-7 h-7 rounded border border-base-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                       id="cat-color-${c.id}"
+                       onchange="document.querySelector('#cat-row-${c.id} span').style.background=this.value">
+                <span class="badge badge-xs ${c.active ? 'badge-success' : 'badge-ghost'}">${c.active ? 'Ativa' : 'Inativa'}</span>
+                <button class="btn btn-xs btn-ghost opacity-0 group-hover:opacity-100" onclick="saveCategory('${c.id}')" title="Salvar">
+                    <i class="fas fa-check text-success"></i>
+                </button>
+                <button class="btn btn-xs btn-ghost opacity-0 group-hover:opacity-100" onclick="toggleCategory('${c.id}', ${c.active})" title="${c.active ? 'Desativar' : 'Ativar'}">
+                    <i class="fas ${c.active ? 'fa-eye-slash' : 'fa-eye'} text-warning"></i>
+                </button>
+            </div>
+        `).join('');
+    } catch (err) {
+        list.innerHTML = '<p class="text-center text-error text-sm py-3">' + err.message + '</p>';
+    }
+}
+
+async function createCategory() {
+    const nameEl  = document.getElementById('new-category-name');
+    const colorEl = document.getElementById('new-category-color');
+    const name    = nameEl?.value?.trim();
+
+    if (!name) { showToast('Digite um nome para a categoria', 'warning'); return; }
+
+    try {
+        const res = await fetch('/api/glassfish/categorias', {
+            method:  'POST',
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body:    JSON.stringify({ name, color: colorEl?.value || '#6b7280' })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Erro ao criar');
+        }
+        if (nameEl) nameEl.value = '';
+        showToast('Categoria criada!', 'success');
+        await fetchCategories();
+        await renderCategoryList();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function saveCategory(id) {
+    const name  = document.getElementById('cat-name-' + id)?.value?.trim();
+    const color = document.getElementById('cat-color-' + id)?.value;
+    if (!name) return;
+    try {
+        const res = await fetch('/api/glassfish/categorias/' + id, {
+            method:  'PUT',
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body:    JSON.stringify({ name, color })
+        });
+        if (!res.ok) throw new Error('Erro ao salvar');
+        showToast('Categoria salva!', 'success');
+        await fetchCategories();
+        await renderCategoryList();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function toggleCategory(id, currentActive) {
+    try {
+        const res = await fetch('/api/glassfish/categorias/' + id, {
+            method:  'PUT',
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body:    JSON.stringify({ active: !currentActive })
+        });
+        if (!res.ok) throw new Error('Erro ao alterar status');
+        await fetchCategories();
+        await renderCategoryList();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+// Expor funções para inline onclick no modal
+window.saveCategory   = saveCategory;
+window.toggleCategory = toggleCategory;
+
 // ─── Telemetria ───────────────────────────────────────────────────────────────
 let currentTelemetryIndex = null;
 
@@ -774,9 +931,12 @@ function renderTelemetry(data) {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-    document.getElementById('search-input')?.addEventListener('input',  filterCards);
-    document.getElementById('filter-status')?.addEventListener('change', filterCards);
-    document.getElementById('filter-setor')?.addEventListener('change',  filterCards);
+    document.getElementById('search-input')?.addEventListener('input',   filterCards);
+    document.getElementById('filter-machine')?.addEventListener('change',    filterCards);
+    document.getElementById('filter-glassfish')?.addEventListener('change',  filterCards);
+    document.getElementById('filter-inuse')?.addEventListener('change',      filterCards);
+    document.getElementById('filter-access')?.addEventListener('change',     filterCards);
+    document.getElementById('filter-category')?.addEventListener('change',   filterCards);
     // ── File input: preview do arquivo selecionado ───────────────────────────
     document.getElementById('application-file')?.addEventListener('change', e => {
         updateFilePreview(e.target.files?.[0] || null);
@@ -817,6 +977,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'uploadApplication': uploadApplication(services);                         break;
             case 'openMaintenanceModal': openMaintenanceModal(index);                      break;
             case 'executeMaintenance':   executeMaintenance(services, fetchServices);      break;
+            case 'openCategoryManager': openCategoryManager();                             break;
+            case 'createCategory':      createCategory();                                break;
             case 'testSSHConnection': testSSHConnection();                                 break;
             case 'openTelemetry':     openTelemetry(index);                                 break;
             case 'refreshTelemetry': {
@@ -837,5 +999,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.handleAccessTypeChange = handleAccessTypeChange;
     window.currentTelemetryIndex  = null; // referência externa para o modal
-    await fetchServices();
+    await Promise.all([fetchServices(), fetchCategories()]);
 });

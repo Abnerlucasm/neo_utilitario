@@ -4,33 +4,35 @@ const { sequelize } = require('../../config/database');
 const { DataTypes } = require('sequelize');
 
 // Importar definições dos modelos
-const defineUser = require('./User');
-const defineRole = require('./Role');
-const definePermission = require('./Permission');
-const defineService = require('./Service');
-const defineSession = require('./session');
-const defineResource = require('./Resource');
-const defineGlassfish = require('./Glassfish');
-const defineMenu = require('./Menu');
-const defineRolePermission = require('./RolePermission');
-const defineUserRole = require('./UserRole');
-const defineRoleResource = require('./RoleResource');
-const Server = require('./Server');
-const defineDatabaseCache = require('./DatabaseCache');
+const defineUser             = require('./User');
+const defineRole             = require('./Role');
+const definePermission       = require('./Permission');
+const defineService          = require('./Service');
+const defineSession          = require('./session');
+const defineResource         = require('./Resource');
+const defineGlassfish        = require('./Glassfish');
+const defineGlassfishCategory = require('./GlassfishCategory'); // ← novo
+const defineMenu             = require('./Menu');
+const defineRolePermission   = require('./RolePermission');
+const defineUserRole         = require('./UserRole');
+const defineRoleResource     = require('./RoleResource');
+const Server                 = require('./Server');
+const defineDatabaseCache    = require('./DatabaseCache');
 
 // Inicializar modelos
-const User = defineUser(sequelize);
-const Role = defineRole(sequelize);
-const Permission = definePermission(sequelize);
-const Service = defineService(sequelize);
-const Session = defineSession(sequelize);
-const Resource = defineResource(sequelize);
-const Glassfish = defineGlassfish(sequelize);
-const Menu = defineMenu(sequelize);
-const RolePermission = defineRolePermission(sequelize);
-const UserRole = defineUserRole(sequelize);
-const RoleResource = defineRoleResource(sequelize);
-const DatabaseCache = defineDatabaseCache(sequelize);
+const User              = defineUser(sequelize);
+const Role              = defineRole(sequelize);
+const Permission        = definePermission(sequelize);
+const Service           = defineService(sequelize);
+const Session           = defineSession(sequelize);
+const Resource          = defineResource(sequelize);
+const Glassfish         = defineGlassfish(sequelize);
+const GlassfishCategory = defineGlassfishCategory(sequelize); // ← novo
+const Menu              = defineMenu(sequelize);
+const RolePermission    = defineRolePermission(sequelize);
+const UserRole          = defineUserRole(sequelize);
+const RoleResource      = defineRoleResource(sequelize);
+const DatabaseCache     = defineDatabaseCache(sequelize);
 
 // Definir as associações
 function initAssociations() {
@@ -70,31 +72,31 @@ function initAssociations() {
         as: 'assignee'
     });
 
-        // Role - Resource
-        Role.belongsToMany(Resource, {
-            through: 'role_resources',
-            foreignKey: 'role_id',
-            otherKey: 'resource_id',
-            as: 'accessibleResources'
-        });
-    
-        Resource.belongsToMany(Role, {
-            through: 'role_resources',
-            foreignKey: 'resource_id',
-            otherKey: 'role_id',
-            as: 'roles'
-        });
-    
-        // Associações auto-referenciais do Resource (parent-child)
-        Resource.belongsTo(Resource, { 
-            foreignKey: 'parent_id', 
-            as: 'parent' 
-        });
-        
-        Resource.hasMany(Resource, { 
-            foreignKey: 'parent_id', 
-            as: 'children' 
-        });
+    // Role - Resource
+    Role.belongsToMany(Resource, {
+        through: 'role_resources',
+        foreignKey: 'role_id',
+        otherKey: 'resource_id',
+        as: 'accessibleResources'
+    });
+
+    Resource.belongsToMany(Role, {
+        through: 'role_resources',
+        foreignKey: 'resource_id',
+        otherKey: 'role_id',
+        as: 'roles'
+    });
+
+    // Associações auto-referenciais do Resource (parent-child)
+    Resource.belongsTo(Resource, {
+        foreignKey: 'parent_id',
+        as: 'parent'
+    });
+
+    Resource.hasMany(Resource, {
+        foreignKey: 'parent_id',
+        as: 'children'
+    });
 
     // User - Session
     User.hasMany(Session, {
@@ -121,7 +123,6 @@ function initAssociations() {
         otherKey: 'role_id',
         as: 'roles'
     });
-
 
     // Associações do Menu
     Menu.associate({ Menu, Resource });
@@ -157,6 +158,9 @@ function initAssociations() {
         foreignKey: 'serverId',
         as: 'server'
     });
+
+    // GlassfishCategory não tem associações FK por ora
+    // A categoria é referenciada por nome (string) no config JSONB do Glassfish
 }
 
 // Aplicar as associações imediatamente
@@ -171,6 +175,7 @@ module.exports = {
     Service,
     Session,
     Glassfish,
+    GlassfishCategory, // ← novo
     Menu,
     RolePermission,
     UserRole,
@@ -179,4 +184,4 @@ module.exports = {
     Server,
     DatabaseCache,
     initAssociations
-}; 
+};

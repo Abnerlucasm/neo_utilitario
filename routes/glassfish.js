@@ -11,7 +11,7 @@ const https    = require('https');
 // Agente HTTPS que aceita certificados autoassinados do GlassFish
 // O GlassFish usa HTTPS com self-signed cert na porta 4848
 const gfAgent = new https.Agent({ rejectUnauthorized: false });
-const { Glassfish } = require('../models/postgresql/associations');
+const { Glassfish, GlassfishCategory } = require('../models/postgresql/associations');
 const authMiddleware = require('../middlewares/auth');
 const logger   = require('../utils/logger');
 
@@ -31,6 +31,85 @@ const upload = multer({
 router.use((req, res, next) => {
     logger.info(`[Glassfish] ${req.method} ${req.url}`);
     next();
+});
+
+// ─── Rotas de Categorias ─────────────────────────────────────────────────────
+
+// GET /categorias — lista todas as categorias
+router.get('/categorias', authMiddleware, async (req, res) => {
+    try {
+        const cats = await GlassfishCategory.findAll({
+            where: { active: true },
+            order: [['name', 'ASC']]
+        });
+        res.json(cats);
+    } catch (err) {
+        logger.error('Erro ao listar categorias:', err);
+        res.status(500).json({ error: 'Erro ao listar categorias' });
+    }
+});
+
+// GET /categorias/all — lista todas incluindo inativas (admin)
+router.get('/categorias/all', authMiddleware, async (req, res) => {
+    try {
+        const cats = await GlassfishCategory.findAll({ order: [['name', 'ASC']] });
+        res.json(cats);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao listar categorias' });
+    }
+});
+
+// POST /categorias
+router.post('/categorias', authMiddleware, async (req, res) => {
+    try {
+        const { name, description, color } = req.body;
+        if (!name?.trim()) return res.status(400).json({ error: 'Nome é obrigatório' });
+        const cat = await GlassfishCategory.create({
+            name: name.trim(),
+            description: description?.trim() || null,
+            color: color || '#6b7280'
+        });
+        res.status(201).json(cat);
+    } catch (err) {
+        if (err.name === 'SequelizeUniqueConstraintError') {
+            return res.status(409).json({ error: 'Já existe uma categoria com esse nome' });
+        }
+        res.status(500).json({ error: 'Erro ao criar categoria', details: err.message });
+    }
+});
+
+// PUT /categorias/:id
+router.put('/categorias/:id', authMiddleware, async (req, res) => {
+    try {
+        const cat = await GlassfishCategory.findByPk(req.params.id);
+        if (!cat) return res.status(404).json({ error: 'Categoria não encontrada' });
+        const { name, description, color, active } = req.body;
+        await cat.update({
+            name:        name?.trim()        || cat.name,
+            description: description?.trim() ?? cat.description,
+            color:       color               || cat.color,
+            active:      active !== undefined ? active : cat.active,
+        });
+        res.json(cat);
+    } catch (err) {
+        if (err.name === 'SequelizeUniqueConstraintError') {
+            return res.status(409).json({ error: 'Já existe uma categoria com esse nome' });
+        }
+        res.status(500).json({ error: 'Erro ao atualizar categoria', details: err.message });
+    }
+});
+
+// DELETE /categorias/:id
+router.delete('/categorias/:id', authMiddleware, async (req, res) => {
+    try {
+        const cat = await GlassfishCategory.findByPk(req.params.id);
+        if (!cat) return res.status(404).json({ error: 'Categoria não encontrada' });
+        // Soft delete — só desativa para não quebrar registros existentes
+        await cat.update({ active: false });
+        res.json({ message: 'Categoria desativada com sucesso' });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao remover categoria' });
+    }
 });
 
 // ─── expandService: expande config JSONB para o frontend ──────────────────────

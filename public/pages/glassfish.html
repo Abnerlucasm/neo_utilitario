@@ -10,14 +10,13 @@
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <title>Gerenciamento Glassfish</title>
 
-      <!-- DaisyUI + Tailwind -->
+    <!-- DaisyUI + Tailwind -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Scripts de tema -->
     <script src="/services/theme/theme-service.js"></script>
     <script type="module" src="/components/theme-selector/theme-selector.js"></script>
-
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -135,36 +134,65 @@
                             <input type="text" id="search-input" placeholder="Nome, IP, domínio…" class="grow">
                         </label>
                     </div>
-                    <!-- Status -->
-                    <div class="form-control min-w-36">
-                        <label class="label py-1"><span class="label-text text-xs font-semibold">Status</span></label>
-                        <select class="select select-bordered select-sm" id="filter-status">
-                            <option value="all">Todos</option>
-                            <option value="active">Ativos</option>
-                            <option value="inactive">Inativos</option>
+                    <!-- Máquina -->
+                    <div class="form-control min-w-32">
+                        <label class="label py-1"><span class="label-text text-xs font-semibold">Máquina</span></label>
+                        <select class="select select-bordered select-sm" id="filter-machine">
+                            <option value="all">Todas</option>
+                            <option value="online">Online</option>
+                            <option value="offline">Offline</option>
+                            <option value="unknown">Desconhecida</option>
                         </select>
                     </div>
-                    <!-- Setor -->
-                    <div class="form-control min-w-44">
-                        <label class="label py-1"><span class="label-text text-xs font-semibold">Setor</span></label>
-                        <select class="select select-bordered select-sm" id="filter-setor">
-                            <option value="all">Todos os setores</option>
-                            <option value="Setor Sup. Externo">Sup. Externo</option>
-                            <option value="Setor Sup. Interno">Sup. Interno</option>
+                    <!-- GlassFish -->
+                    <div class="form-control min-w-32">
+                        <label class="label py-1"><span class="label-text text-xs font-semibold">GlassFish</span></label>
+                        <select class="select select-bordered select-sm" id="filter-glassfish">
+                            <option value="all">Todos</option>
+                            <option value="active">Ativo</option>
+                            <option value="inactive">Parado</option>
+                            <option value="unknown">Desconhecido</option>
+                        </select>
+                    </div>
+                    <!-- Em uso -->
+                    <div class="form-control min-w-32">
+                        <label class="label py-1"><span class="label-text text-xs font-semibold">Uso</span></label>
+                        <select class="select select-bordered select-sm" id="filter-inuse">
+                            <option value="all">Todos</option>
+                            <option value="free">Disponível</option>
+                            <option value="inuse">Em uso</option>
+                        </select>
+                    </div>
+                    <!-- Tipo de acesso -->
+                    <div class="form-control min-w-32">
+                        <label class="label py-1"><span class="label-text text-xs font-semibold">Acesso</span></label>
+                        <select class="select select-bordered select-sm" id="filter-access">
+                            <option value="all">Todos</option>
+                            <option value="local">Rede local</option>
+                            <option value="external">Externo</option>
+                        </select>
+                    </div>
+                    <!-- Categoria (dinâmico) -->
+                    <div class="form-control min-w-36">
+                        <label class="label py-1"><span class="label-text text-xs font-semibold">Categoria</span></label>
+                        <select class="select select-bordered select-sm" id="filter-category">
+                            <option value="all">Todas</option>
                         </select>
                     </div>
                     <!-- Ações -->
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 items-end">
                         <button class="btn btn-sm btn-ghost" data-action="refresh" title="Atualizar">
                             <i class="fas fa-rotate-right"></i>
+                        </button>
+                        <button class="btn btn-sm btn-ghost" data-action="openCategoryManager" title="Gerenciar categorias">
+                            <i class="fas fa-tags"></i>
                         </button>
                         <button class="btn btn-sm btn-primary gap-2" data-action="openAddModal">
                             <i class="fas fa-plus"></i>
                             <span class="hidden sm:inline">Adicionar</span>
                         </button>
                     </div>
-                    <!-- Contador -->
-                    <p id="results-count" class="text-xs text-gray-400 self-end pb-1"></p>
+                    <p id="results-count" class="text-xs text-gray-400 self-end pb-1 w-full"></p>
                 </div>
             </div>
         </div>
@@ -286,12 +314,14 @@
                                placeholder="/srv/glassfish6.2.5" value="/srv/glassfish6.2.5" required>
                     </div>
 
-                    <!-- Setor -->
+                    <!-- Categoria -->
                     <div class="form-control">
-                        <label class="label"><span class="label-text font-semibold">Setor</span></label>
+                        <label class="label">
+                            <span class="label-text font-semibold">Categoria</span>
+                            <button type="button" class="label-text-alt link link-primary text-xs" data-action="openCategoryManager">Gerenciar</button>
+                        </label>
                         <select class="select select-bordered w-full" id="service-category">
-                            <option value="Setor Sup. Externo">Sup. Externo</option>
-                            <option value="Setor Sup. Interno">Sup. Interno</option>
+                            <option value="">Sem categoria</option>
                         </select>
                     </div>
 
@@ -520,6 +550,42 @@
 
     <!-- Modal userNameModal removido — usuário identificado automaticamente via JWT -->
 
+
+
+    <!-- Modal: Gerenciar Categorias -->
+    <dialog class="modal" id="category-manager-modal">
+        <div class="modal-box max-w-lg">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">&#x2715;</button>
+            </form>
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i class="fas fa-tags text-primary"></i>Gerenciar Categorias
+            </h3>
+
+            <!-- Formulário de nova categoria -->
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="new-category-name" class="input input-bordered input-sm flex-1"
+                       placeholder="Nome da categoria">
+                <input type="color" id="new-category-color" class="w-10 h-9 rounded border border-base-300 cursor-pointer"
+                       value="#6b7280" title="Cor">
+                <button class="btn btn-sm btn-primary gap-1" data-action="createCategory">
+                    <i class="fas fa-plus"></i>Criar
+                </button>
+            </div>
+
+            <!-- Lista de categorias -->
+            <div id="category-list" class="space-y-2 max-h-80 overflow-y-auto">
+                <div class="flex justify-center py-4">
+                    <span class="loading loading-spinner loading-sm"></span>
+                </div>
+            </div>
+
+            <div class="modal-action border-t border-base-200 mt-4 pt-4">
+                <form method="dialog"><button class="btn btn-sm">Fechar</button></form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
 
     <!-- Modal: Telemetria -->
     <dialog class="modal" id="telemetry-modal">
