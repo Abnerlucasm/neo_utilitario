@@ -69,6 +69,7 @@ class NeoNavbar extends HTMLElement {
             // Garantir FontAwesome e CSS
             this.ensureFontAwesome();
             this.ensureDaisyUI();
+            await this.ensureScript()
 
             // Inicializar
             await this.initialize();
@@ -103,6 +104,20 @@ class NeoNavbar extends HTMLElement {
 
             document.head.appendChild(daisyBase);
         }
+    }
+
+    ensureScript() {
+        return new Promise((resolve) => {
+            if (document.querySelector('script[src="/js/avatar-manager.js"]')) {
+                resolve();
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = '/js/avatar-manager.js';
+            script.onload = resolve;
+            script.onerror = resolve; 
+            document.head.appendChild(script);
+        });
     }
 
     async initialize() {
