@@ -175,7 +175,7 @@ module.exports = {
     Service,
     Session,
     Glassfish,
-    GlassfishCategory, // ← novo
+    GlassfishCategory, 
     Menu,
     RolePermission,
     UserRole,
