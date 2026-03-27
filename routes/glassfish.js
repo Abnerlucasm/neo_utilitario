@@ -440,7 +440,29 @@ router.get('/servicos/:id/logs/since', authMiddleware, async (req, res) => {
 
         const auth = Buffer.from(`admin:${getAdminPass(service)}`).toString('base64');
 
-        const logRes = await fetch(appendNextUrl, {
+        // Reconstrói/valida a URL usando os dados confiáveis do serviço,
+        // evitando SSRF para outros hosts/portas.
+        const base = `https://${service.ip}:${service.port}/management/domain/`;
+        let safeUrl;
+        try {
+            // Se appendNextUrl for relativa, o construtor URL usa "base" como origem.
+            const parsed = new URL(appendNextUrl, base);
+            const expected = new URL(base);
+
+            const sameProtocol = parsed.protocol === expected.protocol;
+            const sameHost = parsed.hostname === expected.hostname;
+            const samePort = parsed.port === expected.port;
+
+            if (!sameProtocol || !sameHost || !samePort) {
+                return res.status(400).json({ error: 'URL de logs inválida' });
+            }
+
+            safeUrl = parsed.toString();
+        } catch (e) {
+            return res.status(400).json({ error: 'URL de logs inválida' });
+        }
+
+        const logRes = await fetch(safeUrl, {
             headers: {
                 'Authorization':  `Basic ${auth}`,
                 'X-Requested-By': 'GlassFish REST HTML interface',
