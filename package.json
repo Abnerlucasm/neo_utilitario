@@ -32,7 +32,7 @@
     "form-data": "^4.0.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "lucide": "^0.577.0",
+    "lucide": "^1.7.0",
     "multer": "^2.1.1",
     "node-fetch": "^2.7.0",
     "node-ssh": "^13.2.0",
