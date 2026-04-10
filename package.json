@@ -44,7 +44,7 @@
     "sequelize": "^6.37.5",
     "speakeasy": "^2.0.0",
     "ssh2": "^1.16.0",
-    "turndown": "^7.2.0",
+    "turndown": "^7.2.4",
     "umzug": "^3.7.2",
     "uuid": "^13.0.0",
     "winston": "^3.11.0",
