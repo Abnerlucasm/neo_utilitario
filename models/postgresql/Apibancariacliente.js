@@ -30,10 +30,6 @@ module.exports = (sequelize) => {
                 notEmpty: { msg: 'O CNPJ da empresa é obrigatório' }
             }
         },
-        returnType: {
-            type: DataTypes.ENUM('CNAB', 'API'),
-            allowNull: true
-        },
         notes: {
             type: DataTypes.TEXT,
             allowNull: true

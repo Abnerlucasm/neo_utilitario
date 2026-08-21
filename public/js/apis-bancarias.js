@@ -271,7 +271,6 @@ function renderClients(list) {
             <td class="font-medium">${escapeHtml(client.name)}</td>
             <td>${escapeHtml(client.document || "—")}</td>
             <td><div class="api-integrations">${badges || '<span class="text-base-content/40">—</span>'}</div></td>
-            <td>${escapeHtml(client.returnType || "—")}</td>
             <td class="max-w-xs whitespace-normal break-words" title="${escapeHtml(client.notes || "")}">${escapeHtml(client.notes || "—")}</td>
             <td class="api-actions">
                 <button type="button" class="btn btn-xs btn-ghost" onclick="editClient('${client.id}')" title="Editar">
@@ -421,7 +420,6 @@ function editClient(id) {
   form.elements.id.value = client.id;
   form.elements.name.value = client.name;
   form.elements.document.value = client.document || "";
-  form.elements.returnType.value = client.returnType || "";
   form.elements.notes.value = client.notes || "";
 
   renderIntegrations(client.integrations || []);
@@ -437,7 +435,6 @@ async function handleClientSubmit(e) {
   const payload = {
     name: form.elements.name.value.trim().toLocaleUpperCase("pt-BR"),
     document: form.elements.document.value.trim(),
-    returnType: form.elements.returnType.value,
     notes: form.elements.notes.value.trim(),
     integrations: collectIntegrations(),
   };

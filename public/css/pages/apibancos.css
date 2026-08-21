@@ -85,6 +85,15 @@
   gap: 0.35rem;
   white-space: nowrap;
 }
+.client-form {
+  display: flex;
+  flex-direction: column;
+}
+.client-form > fieldset,
+.client-form > .form-control,
+.client-form > .modal-action {
+  width: 100%;
+}
 @media (max-width: 640px) {
   .api-page {
     padding-left: 0.75rem;

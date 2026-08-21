@@ -39,7 +39,6 @@ function serializeClient(client) {
         id: client.id,
         name: client.name,
         document: client.document,
-        returnType: client.returnType,
         notes: client.notes,
         integrations: (client.integrations || []).map((integ) => ({
             id: integ.id,
@@ -87,7 +86,7 @@ router.get('/clientes', async (req, res) => {
 router.post('/clientes', async (req, res) => {
     const t = await ApiBancariaCliente.sequelize.transaction();
     try {
-        const { document, returnType, notes, integrations = [] } = req.body;
+        const { document, notes, integrations = [] } = req.body;
         const name = normalizeClientName(req.body.name);
 
         if (!name) {
@@ -105,7 +104,7 @@ router.post('/clientes', async (req, res) => {
         }
 
         const client = await ApiBancariaCliente.create({
-            name, document, returnType: returnType || null, notes,
+            name, document, notes,
             createdBy: req.user?.id || null,
         }, { transaction: t });
 
@@ -138,7 +137,7 @@ router.put('/clientes/:id', async (req, res) => {
         const client = await ApiBancariaCliente.findByPk(req.params.id, { transaction: t });
         if (!client) { await t.rollback(); return res.status(404).json({ error: 'Cliente não encontrado' }); }
 
-        const { document, returnType, notes, integrations = [] } = req.body;
+        const { document, notes, integrations = [] } = req.body;
         const name = normalizeClientName(req.body.name);
 
         if (!name) {
@@ -157,7 +156,7 @@ router.put('/clientes/:id', async (req, res) => {
 
         await client.update({
             name: name ?? client.name,
-            document, returnType: returnType || null, notes,
+            document, notes,
             updatedBy: req.user?.id || null,
         }, { transaction: t });
 

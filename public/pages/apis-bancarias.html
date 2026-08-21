@@ -133,7 +133,6 @@
                     <th>Cliente</th>
                     <th>Documento</th>
                     <th>Bancos e APIs</th>
-                    <th>Retorno Cob</th>
                     <th>Anotações</th>
                     <th></th>
                   </tr>
@@ -200,7 +199,7 @@
           <h2 id="clientDialogTitle" class="font-bold text-2xl mb-5">
             Novo cliente
           </h2>
-          <div class="grid gap-4 md:grid-cols-2">
+          <div class="flex flex-col gap-2 md:grid-cols-2">
             <label class="form-control"
               ><span class="label-text">Nome da empresa *</span
               ><input
@@ -214,14 +213,6 @@
                 class="input input-bordered"
                 name="document"
                 maxlength="30" /></label
-            ><label class="form-control"
-              ><span class="label-text">Tipo de retorno</span
-              ><select class="select select-bordered" name="returnType">
-                <option value="">Não informado</option>
-                <option>CNAB</option>
-                <option>API</option>
-              </select></label
-            >
           </div>
           <fieldset class="mt-5">
             <div class="flex items-center justify-between gap-3">
