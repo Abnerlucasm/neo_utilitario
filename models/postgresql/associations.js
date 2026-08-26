@@ -18,10 +18,10 @@ const defineUserRole         = require('./UserRole');
 const defineRoleResource     = require('./RoleResource');
 const Server                 = require('./Server');
 const defineDatabaseCache    = require('./DatabaseCache');
-const defineApiBancariaCliente     = require('./ApiBancariaCliente');
-const defineApiBancariaIntegracao  = require('./ApiBancariaIntegracao');
-const defineApiBancariaApi         = require('./ApiBancariaApi');
-const defineApiBancariaCertificado = require('./ApiBancariaCertificado');
+const defineApiBancariaCliente = require('./Apibancariacliente');
+const defineApiBancariaIntegracao = require('./Apibancariaintegracao');
+const defineApiBancariaApi = require('./Apibancariaapi');
+const defineApiBancariaCertificado = require('./Apibancariacertificado');
 
 // Inicializar modelos
 const User              = defineUser(sequelize);
