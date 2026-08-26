@@ -16,6 +16,7 @@ const rolesRoutes = require('./roles');
 const permissionsRoutes = require('./permissions');
 const serverRoutes = require('./servers');
 const resourcesRoutes = require('./resources');
+const apiBancariasRoutes = require('./apibancarias');
 
 // Configuração de logging para diagnóstico de rotas
 router.use((req, res, next) => {
@@ -35,6 +36,7 @@ router.use('/api/permissions', [requireAuth, requireAdmin], permissionsRoutes);
 router.use('/api', serverRoutes);
 router.use('/api/resources', resourcesRoutes); // Temporariamente sem autenticação
 router.use('/api/users', userRoutes); // Adicionada a rota para usuários
+router.use('/api/apis-bancarias', requireAuth, apiBancariasRoutes);
 
 // Rota de diagnóstico
 router.get('/api/status', (req, res) => {
@@ -49,7 +51,8 @@ router.get('/api/status', (req, res) => {
             '/api/roles',
             '/api/permissions',
             '/api/servers',
-            '/api/resources'
+            '/api/resources',
+            '/api/apis-bancarias'
         ]
     });
 });

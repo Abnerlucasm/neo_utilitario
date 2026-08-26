@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeoHub - APIs Bancárias</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../css/neohub-core.css" />
+    <link rel="stylesheet" href="../css/pages/apibancos.css" />
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <script src="../services/theme/theme-service.js"></script>
+    <script
+      type="module"
+      src="../components/theme-selector/theme-selector.js"
+    ></script>
+  </head>
+  <body>
+    <neo-navbar></neo-navbar>
+    <main class="api-page container mx-auto flex-1 px-4 pt-24 pb-10">
+      <div
+        class="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <span class="api-page__icon"><i class="fas fa-landmark"></i></span>
+          <div>
+            <h1 class="text-3xl font-bold">APIs Bancárias</h1>
+            <p class="text-base-content/65">
+              Clientes, integrações e certificados em um só lugar.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-4 shadow-sm flex items-start gap-3"
+      >
+        <i class="fas fa-info-circle text-blue-500 text-xl mt-0.5"></i>
+
+        <div>
+          <p class="text-sm mt-1">
+            O fato de uma API estar cadastrada no cliente não significa que ela
+            esteja sendo utilizada. Em alguns casos, os clientes cadastram todas
+            as APIs disponíveis para que os recursos já estejam habilitados na
+            credencial caso sejam necessários futuramente.
+            <strong
+              >Para confirmar quais APIs são utilizadas ativamente, é necessário
+              consultar diretamente o cliente.</strong
+            >
+          </p>
+        </div>
+      </div>
+
+      <!-- Section status geral dos certificados -->
+      <section class="stats api-stats shadow mb-8 w-full">
+        <div class="stat">
+          <div class="stat-figure text-primary">
+            <i class="fas fa-building text-2xl"></i>
+          </div>
+          <div class="stat-title">Clientes cadastrados</div>
+          <div id="clientCount" class="stat-value text-primary">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-figure text-warning">
+            <i class="fas fa-hourglass-half text-2xl"></i>
+          </div>
+          <div class="stat-title">Vencem em 30 dias</div>
+          <div id="soonCount" class="stat-value text-warning">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-figure text-error">
+            <i class="fas fa-triangle-exclamation text-2xl"></i>
+          </div>
+          <div class="stat-title">Certificados vencidos</div>
+          <div id="expiredCount" class="stat-value text-error">0</div>
+        </div>
+      </section>
+
+      <!-- Section para cadastramento de clientes/APIs e seus certificados -->
+      <section class="card bg-base-100 shadow-xl">
+        <div class="card-body gap-6">
+          <div role="tablist" class="tabs tabs-bordered">
+            <button
+              role="tab"
+              class="tab tab-active"
+              data-tab="clients"
+              onclick="switchTab('clients')"
+            >
+              <i class="fas fa-building mr-2"></i>Clientes</button
+            ><button
+              role="tab"
+              class="tab"
+              data-tab="certificates"
+              onclick="switchTab('certificates')"
+            >
+              <i class="fas fa-certificate mr-2"></i>Certificados
+            </button>
+          </div>
+          <div id="clientsPanel" class="tab-panel">
+            <div class="flex flex-col gap-3 md:flex-row md:justify-between">
+              <label
+                class="input input-bordered flex items-center gap-2 md:w-96"
+              >
+                <i class="fas fa-search opacity-50"></i>
+                <!-- Imput de busca, clientes, APIs -->
+                <input
+                  id="clientSearch"
+                  type="search"
+                  class="grow"
+                  placeholder="Buscar cliente, banco ou API"
+                />
+              </label>
+              <button
+                type="button"
+                id="newClient"
+                class="btn btn-ghost"
+                onclick="openClientModal()"
+              >
+                <i class="fas fa-plus"></i>Novo cliente
+              </button>
+            </div>
+            <div class="overflow-x-auto mt-4">
+              <table class="table table-zebra api-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Documento</th>
+                    <th>Bancos e APIs</th>
+                    <th>Anotações</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="clientsBody"></tbody>
+              </table>
+            </div>
+            <div id="clientsEmpty" class="api-empty hidden">
+              <i class="fas fa-building text-4xl"></i>
+              <p>Nenhum cliente cadastrado.</p>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                onclick="openClientModal()"
+              >
+                Cadastrar cliente
+              </button>
+            </div>
+          </div>
+          <div id="certificatesPanel" class="tab-panel hidden">
+            <div class="flex flex-col gap-3 md:flex-row md:justify-between">
+              <p class="text-sm text-base-content/65">
+                A senha de certificados não é armazenada.
+              </p>
+              <button
+                type="button"
+                id="newCertificate"
+                class="btn btn-ghost"
+                onclick="openCertificateModal()"
+              >
+                <i class="fas fa-plus"></i>Adicionar certificado
+              </button>
+            </div>
+            <div class="overflow-x-auto mt-4">
+              <table class="table table-zebra api-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Banco</th>
+                    <th>API</th>
+                    <th>Identificação</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="certificatesBody"></tbody>
+              </table>
+            </div>
+            <div id="certificatesEmpty" class="api-empty hidden">
+              <i class="fas fa-certificate text-4xl"></i>
+              <p>Nenhum certificado cadastrado.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal de cadastramento CLIENTE/API -->
+    <dialog id="clientDialog" class="modal">
+      <div class="modal-box max-w-2xl">
+        <form id="clientForm">
+          <input type="hidden" name="id" />
+          <h2 id="clientDialogTitle" class="font-bold text-2xl mb-5">
+            Novo cliente
+          </h2>
+          <div class="flex flex-col gap-2 md:grid-cols-2">
+            <label class="form-control"
+              ><span class="label-text">Nome da empresa *</span
+              ><input
+                class="input input-bordered"
+                required
+                name="name"
+                maxlength="120" /></label
+            ><label class="form-control"
+              ><span class="label-text">CNPJ</span
+              ><input
+                class="input input-bordered"
+                name="document"
+                maxlength="30" /></label
+          </div>
+          <fieldset class="mt-5">
+            <div class="flex items-center justify-between gap-3">
+              <span class="font-medium">Bancos e APIs aderidas</span>
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                onclick="addIntegration()"
+              >
+                <i class="fas fa-plus"></i> Adicionar banco
+              </button>
+            </div>
+            <div id="integrationRows" class="mt-3"></div>
+          </fieldset>
+          <label class="form-control mt-5"
+            ><span class="label-text">Anotações</span
+            ><textarea
+              class="textarea textarea-bordered h-24"
+              name="notes"
+              maxlength="1000"
+            ></textarea>
+          </label>
+          <div class="modal-action">
+            <button type="button" class="btn" onclick="closeClientModal()">
+              Cancelar</button
+            ><button type="submit" class="btn btn-ghost">Salvar</button>
+          </div>
+        </form>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>fechar</button>
+      </form>
+    </dialog>
+
+    <!-- Modal para cadastrar certificados e vencimentos -->
+
+    <dialog id="certificateDialog" class="modal">
+      <div class="modal-box">
+        <form id="certificateForm">
+          <input type="hidden" name="id" />
+          <h2 id="certificateDialogTitle" class="font-bold text-2xl mb-5">
+            Adicionar certificado
+          </h2>
+          <div class="grid gap-4">
+            <label class="form-control"
+              ><span class="label-text">Cliente *</span
+              ><select
+                class="select select-bordered"
+                required
+                name="clientId"
+                id="certificateClient"
+                onchange="populateApiSelect()"
+              ></select></label
+            ><label class="form-control"
+              ><span class="label-text">API *</span
+              ><select
+                class="select select-bordered"
+                required
+                name="apiId"
+                id="certificateApi"
+              >
+                <option value="">Selecione o cliente primeiro</option>
+              </select></label
+            ><label class="form-control"
+              ><span class="label-text">Identificação</span
+              ><input
+                class="input input-bordered"
+                name="label"
+                placeholder="Ex.: Produção - matriz" /></label
+            ><label class="form-control"
+              ><span class="label-text">Vencimento *</span
+              ><input
+                class="input input-bordered"
+                required
+                type="date"
+                name="expiresOn"
+            /></label>
+          </div>
+          <p class="text-sm text-base-content/60 mt-4">
+            <i class="fas fa-lock mr-1"></i> Registre apenas a identificação. O
+            arquivo e a senha não são salvos nesta tela.
+          </p>
+          <div class="modal-action">
+            <button type="button" class="btn" onclick="closeCertificateModal()">
+              Cancelar</button
+            ><button type="submit" class="btn btn-ghost">Salvar</button>
+          </div>
+        </form>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>fechar</button>
+      </form>
+    </dialog>
+
+    <neo-footer></neo-footer>
+
+    <script src="../components/navbar/navbar.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/apis-bancarias.js"></script>
+    <script type="module" src="../components/footer/footer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,109 @@
+.api-page {
+  max-width: 1280px;
+}
+.api-page__icon {
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 1rem;
+  background: hsl(var(--p) / 0.14);
+  color: hsl(var(--p));
+  font-size: 1.4rem;
+}
+.api-stats {
+  overflow: hidden;
+}
+.api-table th {
+  white-space: nowrap;
+}
+.api-table td {
+  vertical-align: top;
+}
+.api-integrations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 15rem;
+}
+.api-empty {
+  min-height: 13rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
+  color: hsl(var(--bc) / 0.55);
+  text-align: center;
+}
+.api-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.65rem;
+}
+.api-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid hsl(var(--b3));
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.api-options label:hover {
+  background: hsl(var(--b2));
+}
+.api-integration-badge {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 1.5rem;
+  padding: 0.25rem 0.5rem;
+  white-space: normal;
+  text-align: left;
+  border-radius: 0.5rem;
+}
+.api-integration {
+  border: 1px solid hsl(var(--b3));
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+.api-options label.api-option-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.api-options label.api-option-disabled:hover {
+  background: transparent;
+}
+.api-integration + .api-integration {
+  margin-top: 0.75rem;
+}
+.api-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+.client-form {
+  display: flex;
+  flex-direction: column;
+}
+.client-form > fieldset,
+.client-form > .form-control,
+.client-form > .modal-action {
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .api-page {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .api-stats {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .api-stats .stat {
+    padding: 1rem;
+  }
+}

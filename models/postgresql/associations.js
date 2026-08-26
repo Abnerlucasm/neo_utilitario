@@ -18,6 +18,10 @@ const defineUserRole         = require('./UserRole');
 const defineRoleResource     = require('./RoleResource');
 const Server                 = require('./Server');
 const defineDatabaseCache    = require('./DatabaseCache');
+const defineApiBancariaCliente     = require('./ApiBancariaCliente');
+const defineApiBancariaIntegracao  = require('./ApiBancariaIntegracao');
+const defineApiBancariaApi         = require('./ApiBancariaApi');
+const defineApiBancariaCertificado = require('./ApiBancariaCertificado');
 
 // Inicializar modelos
 const User              = defineUser(sequelize);
@@ -33,6 +37,10 @@ const RolePermission    = defineRolePermission(sequelize);
 const UserRole          = defineUserRole(sequelize);
 const RoleResource      = defineRoleResource(sequelize);
 const DatabaseCache     = defineDatabaseCache(sequelize);
+const ApiBancariaCliente     = defineApiBancariaCliente(sequelize);
+const ApiBancariaIntegracao  = defineApiBancariaIntegracao(sequelize);
+const ApiBancariaApi         = defineApiBancariaApi(sequelize);
+const ApiBancariaCertificado = defineApiBancariaCertificado(sequelize);
 
 // Definir as associações
 function initAssociations() {
@@ -159,6 +167,33 @@ function initAssociations() {
         as: 'server'
     });
 
+    ApiBancariaCliente.hasMany(ApiBancariaIntegracao, {
+      foreignKey: "clientId",
+      as: "integrations",
+    });
+    ApiBancariaIntegracao.belongsTo(ApiBancariaCliente, {
+      foreignKey: "clientId",
+      as: "client",
+    });
+
+    ApiBancariaIntegracao.hasMany(ApiBancariaApi, {
+      foreignKey: "integrationId",
+      as: "apis",
+    });
+    ApiBancariaApi.belongsTo(ApiBancariaIntegracao, {
+      foreignKey: "integrationId",
+      as: "integration",
+    });
+
+    ApiBancariaApi.hasOne(ApiBancariaCertificado, {
+      foreignKey: "apiId",
+      as: "certificate",
+    });
+    ApiBancariaCertificado.belongsTo(ApiBancariaApi, {
+      foreignKey: "apiId",
+      as: "api",
+    });
+
     // GlassfishCategory não tem associações FK por ora
     // A categoria é referenciada por nome (string) no config JSONB do Glassfish
 }
@@ -183,5 +218,9 @@ module.exports = {
     RoleResource,
     Server,
     DatabaseCache,
+    ApiBancariaCliente,
+    ApiBancariaIntegracao,
+    ApiBancariaApi,
+    ApiBancariaCertificado,
     initAssociations
 };
