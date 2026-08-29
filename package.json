@@ -36,7 +36,7 @@
     "multer": "^2.1.1",
     "node-fetch": "^3.3.2",
     "node-ssh": "^13.2.0",
-    "nodemailer": "^8.0.4",
+    "nodemailer": "^8.0.5",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pg": "^8.13.3",
@@ -46,7 +46,7 @@
     "ssh2": "^1.16.0",
     "turndown": "^7.2.4",
     "umzug": "^3.7.2",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^5.0.0",
     "ws": "^8.20.0",
@@ -67,7 +67,7 @@
     "autoprefixer": "^10.4.27",
     "daisyui": "^5.5.19",
     "pm2": "^6.0.14",
-    "postcss": "^8.5.9",
+    "postcss": "^8.5.13",
     "tailwindcss": "^4.2.2"
   }
 }
